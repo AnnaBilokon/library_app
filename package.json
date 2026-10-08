@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "notion:inspect": "tsx --env-file=.env.local scripts/inspect-notion.ts"
+    "notion:inspect": "tsx --env-file=.env.local scripts/inspect-notion.ts",
+    "notion:import": "tsx --env-file=.env.local scripts/import-notion.ts",
+    "db:types": "supabase gen types typescript --linked --schema public > lib/database.types.ts",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -22,9 +26,11 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "supabase": "^2.120.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.3"
   },
   "packageManager": "pnpm@12.10.1"
 }
