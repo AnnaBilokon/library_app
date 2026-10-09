@@ -9,7 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { FinishDialog } from "./reading-tools";
+import { DnfDialog, FinishDialog } from "./reading-tools";
+import { STATUS_ICON } from "./status-badge";
 
 interface Action {
   key: string;
@@ -25,6 +26,7 @@ interface Action {
 export function BookQuickActions({ book }: { book: Book }) {
   const [pending, startTransition] = useTransition();
   const [finishOpen, setFinishOpen] = useState(false);
+  const [dnfOpen, setDnfOpen] = useState(false);
 
   const run = (action: () => Promise<{ ok: boolean; error?: string }>, message: string) =>
     startTransition(async () => {
@@ -38,7 +40,7 @@ export function BookQuickActions({ book }: { book: Book }) {
     actions.push({ key: "queue", label: "Up next", icon: ListPlus, run: () => run(() => changeQueue(book.id, "append"), `“${book.title}” is in Up next`) });
   }
   if (book.status !== "reading") {
-    const label = book.status === "finished" ? "Read again" : book.status === "paused" ? "Continue" : "Reading now";
+    const label = book.status === "finished" ? "Read again" : book.status === "paused" ? "Continue" : book.status === "abandoned" ? "Try again" : "Reading now";
     actions.push({
       key: "reading",
       label,
@@ -48,6 +50,10 @@ export function BookQuickActions({ book }: { book: Book }) {
   }
   if (book.status !== "finished") {
     actions.push({ key: "finished", label: "Finished", icon: CircleCheck, run: () => setFinishOpen(true) });
+  }
+  // Only for a book you're in the middle of: asks where you stopped and why.
+  if (book.status === "reading" || book.status === "paused") {
+    actions.push({ key: "dnf", label: "Didn't finish", icon: STATUS_ICON.abandoned, run: () => setDnfOpen(true) });
   }
   if (actions.length === 0) return null;
 
@@ -98,6 +104,7 @@ export function BookQuickActions({ book }: { book: Book }) {
 
       {/* Only mounted when opened, so a big library doesn't render hundreds of dialogs. */}
       {finishOpen && <FinishDialog book={book} open onOpenChange={setFinishOpen} />}
+      {dnfOpen && <DnfDialog book={book} open onOpenChange={setDnfOpen} />}
     </>
   );
 }

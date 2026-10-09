@@ -26,7 +26,7 @@ export function ReadingHistory({ bookId, readings, totalPages }: { bookId: strin
   const [editing, setEditing] = useState<string | "new" | null>(null);
 
   return (
-    <section className="flex flex-col gap-5">
+    <section id="reading-history" className="flex scroll-mt-24 flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-heading text-2xl font-semibold text-heading">Reading history</h2>
         {editing !== "new" && (

@@ -65,6 +65,8 @@ export async function createBook(raw: unknown): Promise<ActionResult<{ id: strin
       started_at: input.startedAt || null,
       finished_at: outcome ? input.finishedAt || null : null,
       outcome,
+      progress_page: outcome === "abandoned" ? (input.stoppedPage ?? null) : null,
+      stop_reason: outcome === "abandoned" ? input.stopReason || null : null,
     });
   }
 
