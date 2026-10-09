@@ -31,8 +31,9 @@ export const libraryParams = {
   finishedYear: parseAsInteger,
   pagesMin: parseAsInteger,
   pagesMax: parseAsInteger,
-  sort: parseAsStringLiteral(SORT_KEYS).withDefault("title"),
-  dir: parseAsStringLiteral(["asc", "desc"] as const).withDefault("asc"),
+  // Newest added first unless you pick another order.
+  sort: parseAsStringLiteral(SORT_KEYS).withDefault("added"),
+  dir: parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc"),
 };
 
 /** Short URL keys, e.g. ?g=Fiction&y=2024 instead of ?genre=Fiction&finishedYear=2024. */

@@ -116,7 +116,8 @@ function authorKey(b: Book): string {
 const sortValue: Record<SortKey, (b: Book) => string | number | undefined> = {
   title: (b) => b.title,
   author: (b) => (b.authors.length ? authorKey(b) : undefined),
-  added: (b) => b.acquiredAt ?? b.createdAt,
+  // When it joined your library: added in the app, or bought later (a wishlist book).
+  added: (b) => (b.acquiredAt && `${b.acquiredAt}T00:00:00Z` > b.createdAt ? `${b.acquiredAt}T00:00:00Z` : b.createdAt),
   finished: (b) => b.lastFinishedAt,
   rating: (b) => b.rating,
   pages: (b) => b.pages,

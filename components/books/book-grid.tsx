@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { progressInfo } from "@/lib/books/progress";
 import { openReading } from "@/lib/books/reading-logic";
 import { BookCover } from "./book-cover";
+import { BookQuickActions } from "./book-quick-actions";
 import { ProgressBar } from "./reading-tools";
 
 const SIZES = "(min-width: 1536px) 13vw, (min-width: 1280px) 15vw, (min-width: 1024px) 18vw, (min-width: 768px) 23vw, (min-width: 640px) 30vw, 45vw";
@@ -24,7 +25,7 @@ export function BookGrid({ books, duplicateIds, priorityCount = 6 }: { books: Bo
     <ul className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 sm:gap-x-7 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
       {books.map((book, i) => (
         <li key={book.id}>
-          <BookCard book={book} duplicate={duplicateIds.has(book.id)} priority={i < priorityCount} />
+          <BookCard book={book} duplicate={duplicateIds.has(book.id)} priority={i < priorityCount} actions />
         </li>
       ))}
     </ul>
@@ -38,6 +39,7 @@ export function BookCard({
   sizes = SIZES,
   hideRibbon,
   hideProgress,
+  actions,
 }: {
   book: Book;
   duplicate?: boolean;
@@ -47,6 +49,8 @@ export function BookCard({
   hideRibbon?: boolean;
   /** The Reading now shelf shows its own progress row with a quick update. */
   hideProgress?: boolean;
+  /** Library grid: Up next / Reading now / Finished on hover (a menu on touch screens). */
+  actions?: boolean;
 }) {
   const ribbon = hideRibbon ? undefined : RIBBON[book.status];
   const meta = [book.genres[0], book.publishedYear].filter(Boolean).join(" · ");
@@ -54,21 +58,25 @@ export function BookCard({
     !hideProgress && (book.status === "reading" || book.status === "paused") ? progressInfo(openReading(book.readings), book.pages) : null;
 
   return (
-    <Link href={`/books/${book.id}`} className="group flex flex-col gap-3 rounded-sm outline-none">
-      <div className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5">
-        <BookCover
-          title={book.title}
-          authors={book.authors}
-          src={book.coverSrc}
-          lang={book.language}
-          sizes={sizes}
-          priority={priority}
-          className="transition-shadow duration-300 group-hover:shadow-book-hover group-focus-visible:shadow-book-hover group-focus-visible:ring-3 group-focus-visible:ring-ring/60"
-        />
+    // The cover and the title both open the book; the quick actions sit beside them (buttons
+    // can't go inside a link). Only the title link is a tab stop.
+    <div className="group flex flex-col gap-3">
+      <div className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1.5 group-has-[a:focus-visible]:-translate-y-1.5">
+        <Link href={`/books/${book.id}`} tabIndex={-1} aria-hidden className="block rounded-sm outline-none">
+          <BookCover
+            title={book.title}
+            authors={book.authors}
+            src={book.coverSrc}
+            lang={book.language}
+            sizes={sizes}
+            priority={priority}
+            className="transition-shadow duration-300 group-hover:shadow-book-hover group-has-[a:focus-visible]:shadow-book-hover group-has-[a:focus-visible]:ring-3 group-has-[a:focus-visible]:ring-ring/60"
+          />
+        </Link>
         {ribbon && (
           <span
             className={cn(
-              "absolute top-3 left-0 rounded-r-full py-0.5 pr-2.5 pl-2 text-[10px] font-semibold tracking-wider uppercase shadow-sm",
+              "pointer-events-none absolute top-3 left-0 rounded-r-full py-0.5 pr-2.5 pl-2 text-[10px] font-semibold tracking-wider uppercase shadow-sm",
               ribbon,
             )}
           >
@@ -77,7 +85,7 @@ export function BookCard({
         )}
         {book.timesRead >= 2 && (
           <span
-            className="absolute bottom-2 left-2 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur"
+            className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur"
             title={`Read ${book.timesRead} times`}
           >
             ×{book.timesRead}
@@ -85,10 +93,11 @@ export function BookCard({
           </span>
         )}
         {book.favorite && (
-          <span className="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-background/90 text-red-500 shadow-sm backdrop-blur dark:text-red-400">
+          <span className="pointer-events-none absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-background/90 text-red-500 shadow-sm backdrop-blur dark:text-red-400">
             <Heart className="size-3.5 fill-current" aria-label="Favourite" />
           </span>
         )}
+        {actions && <BookQuickActions book={book} />}
       </div>
       {progress && (
         <div className="-mt-1 flex items-center gap-2 px-0.5">
@@ -96,7 +105,7 @@ export function BookCard({
           <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{progress.percent !== undefined ? `${progress.percent}%` : progress.label}</span>
         </div>
       )}
-      <div className="flex min-w-0 flex-col gap-0.5 px-0.5">
+      <Link href={`/books/${book.id}`} className="flex min-w-0 flex-col gap-0.5 rounded-sm px-0.5 outline-none">
         <h3 lang={book.language} className="line-clamp-2 font-heading text-[15px] leading-snug font-semibold text-heading decoration-highlight decoration-2 underline-offset-4 group-hover:underline">
           {book.title}
         </h3>
@@ -111,7 +120,7 @@ export function BookCard({
             {duplicate && <span className="ml-1 italic">{meta ? "· " : ""}possible duplicate</span>}
           </p>
         )}
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
