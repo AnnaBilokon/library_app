@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { progressInfo } from "./progress";
+import { lastStop, progressInfo } from "./progress";
 
 describe("progressInfo", () => {
   it("shows a page with the percentage when the page count is known", () => {
@@ -18,5 +18,17 @@ describe("progressInfo", () => {
     expect(progressInfo({ progressPage: 400 }, 340)?.percent).toBe(100);
     expect(progressInfo({}, 340)).toBeNull();
     expect(progressInfo(undefined)).toBeNull();
+  });
+});
+
+describe("lastStop", () => {
+  it("finds the latest reading you didn't finish", () => {
+    const readings = [
+      { id: "1", outcome: "abandoned" as const, progressPage: 40 },
+      { id: "2", outcome: "finished" as const },
+      { id: "3", outcome: "abandoned" as const, progressPage: 90, stopReason: "Too slow" },
+    ];
+    expect(lastStop(readings)?.id).toBe("3");
+    expect(lastStop([{ id: "x", outcome: "finished" }])).toBeUndefined();
   });
 });

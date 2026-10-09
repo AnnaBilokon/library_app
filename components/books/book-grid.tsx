@@ -3,7 +3,7 @@ import { Heart } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/books/labels";
 import type { Book, BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { progressInfo } from "@/lib/books/progress";
+import { lastStop, progressInfo } from "@/lib/books/progress";
 import { openReading } from "@/lib/books/reading-logic";
 import { BookCover } from "./book-cover";
 import { BookQuickActions } from "./book-quick-actions";
@@ -57,6 +57,9 @@ export function BookCard({
   const meta = [book.genres[0], book.publishedYear].filter(Boolean).join(" · ");
   const progress =
     !hideProgress && (book.status === "reading" || book.status === "paused") ? progressInfo(openReading(book.readings), book.pages) : null;
+  // Did not finish: where you stopped (the reason shows on hover and on the book page).
+  const stop = book.status === "abandoned" ? lastStop(book.readings) : undefined;
+  const stoppedAt = stop ? progressInfo(stop, book.pages) : null;
 
   return (
     // The cover and the title both open the book; the quick actions sit beside them (buttons
@@ -100,6 +103,12 @@ export function BookCard({
         )}
         {actions && <BookQuickActions book={book} />}
       </div>
+      {stop && (stoppedAt || stop.stopReason) && (
+        <p className="-mt-1 truncate px-0.5 text-[11px] text-muted-foreground" title={stop.stopReason}>
+          {stoppedAt ? `Stopped at ${stoppedAt.label}` : "Stopped"}
+          {stop.stopReason && <span className="italic"> · “{stop.stopReason}”</span>}
+        </p>
+      )}
       {progress && (
         <div className="-mt-1 flex items-center gap-2 px-0.5">
           <ProgressBar percent={progress.percent ?? 0} className="flex-1" />

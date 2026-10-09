@@ -86,6 +86,7 @@ const EMPTY: BookFormValues = {
   wishlistReason: "",
   startedAt: "",
   finishedAt: "",
+  stopReason: "",
 };
 
 /** An empty form; from the Wishlist page it starts as a wishlist book (wanted, not owned). */
@@ -311,6 +312,18 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
                     <Input id={id} type="date" {...register("finishedAt")} aria-invalid={Boolean(errors.finishedAt) || undefined} aria-describedby={d} className="h-10" />
                   )}
                 </Field>
+              )}
+              {status === "abandoned" && (
+                <>
+                  <Field label="Stopped at page" error={errors.stoppedPage}>
+                    {(id, d) => <Input id={id} type="number" min={0} inputMode="numeric" {...register("stoppedPage", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Why I stopped" error={errors.stopReason}>
+                      {(id, d) => <Textarea id={id} {...register("stopReason")} rows={2} placeholder="Too slow, not in the mood, didn't like the translation…" aria-describedby={d} />}
+                    </Field>
+                  </div>
+                </>
               )}
             </div>
           )}

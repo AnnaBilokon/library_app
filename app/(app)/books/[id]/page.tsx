@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, BookX, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
 import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls, BookWishlistButton } from "@/components/books/book-controls";
 import { BookCard } from "@/components/books/book-grid";
@@ -16,6 +16,7 @@ import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
 import { libraryUrl } from "@/lib/books/library-url";
 import { sortBooks } from "@/lib/books/filters";
+import { lastStop, progressInfo } from "@/lib/books/progress";
 import { buildSuggestions } from "@/lib/books/suggestions";
 import { getBook, getBooks } from "@/lib/data/books";
 import { inLibrary } from "@/lib/selling";
@@ -104,6 +105,8 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </header>
 
+        {book.status === "abandoned" && <DnfNote book={book} />}
+
         {duplicates.length > 0 && (
           <div role="note" className="flex gap-3 rounded-2xl bg-accent/80 p-4 text-sm">
             <Copy className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -184,6 +187,31 @@ function Details({ book }: { book: Book }) {
           </div>
         ))}
       </dl>
+    </section>
+  );
+}
+
+/** A book you didn't finish: where you stopped, when, and why, right under the controls. */
+function DnfNote({ book }: { book: Book }) {
+  const stop = lastStop(book.readings);
+  const where = progressInfo(stop, book.pages);
+  return (
+    <section aria-label="Did not finish" className="flex gap-3 rounded-2xl bg-muted/70 p-4">
+      <BookX className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="font-medium">
+          {where ? `Stopped at ${where.label}` : "Did not finish"}
+          {stop?.finishedAt && <span className="font-normal text-muted-foreground"> · {formatDate(stop.finishedAt)}</span>}
+        </p>
+        {stop?.stopReason ? (
+          <p className="font-heading text-lg leading-snug italic">“{stop.stopReason}”</p>
+        ) : null}
+        {(!where || !stop?.stopReason) && (
+          <a href="#reading-history" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            {!where && !stop?.stopReason ? "Add where you stopped and why" : !where ? "Add where you stopped" : "Add why you stopped"} in Reading history
+          </a>
+        )}
+      </div>
     </section>
   );
 }

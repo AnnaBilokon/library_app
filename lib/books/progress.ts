@@ -8,6 +8,11 @@ export interface ProgressInfo {
   label: string;
 }
 
+/** The reading you stopped (the latest one marked did not finish), for a book you didn't finish. */
+export function lastStop(readings: Reading[]): Reading | undefined {
+  return readings.findLast((r) => r.outcome === "abandoned");
+}
+
 /** How far into a reading you are (or where you stopped, for a book you didn't finish). */
 export function progressInfo(reading: Pick<Reading, "progressPage" | "progressPercent"> | undefined, totalPages?: number): ProgressInfo | null {
   if (!reading) return null;
