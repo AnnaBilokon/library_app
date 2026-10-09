@@ -10,7 +10,7 @@ import { getBooks } from "@/lib/data/books";
 
 export const metadata: Metadata = { title: "Add a book" };
 
-export default function NewBookPage() {
+export default function NewBookPage({ searchParams }: PageProps<"/books/new">) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 pt-6 pb-12 md:px-8 md:pt-10">
       <Link
@@ -22,14 +22,15 @@ export default function NewBookPage() {
       </Link>
       <PageHeader eyebrow="New on the shelf" title="Add a book" />
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
-        <NewBookForm />
+        <NewBookForm searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function NewBookForm() {
+async function NewBookForm({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Existing books feed autocomplete (authors, genres, publishers) and the duplicate warning.
-  const books = await getBooks();
-  return <BookForm suggestions={buildSuggestions(books)} />;
+  const [books, params] = await Promise.all([getBooks(), searchParams]);
+  // Opened from the Wishlist page (?wishlist=1): preset "on my wishlist, not owned".
+  return <BookForm suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} />;
 }

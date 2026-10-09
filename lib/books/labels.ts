@@ -34,7 +34,9 @@ export function formatDate(iso: string): string {
 
 export function formatMoney(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
+    // Whole amounts without ".00" (UAH 420), otherwise two decimals.
+    const whole = Number.isInteger(amount);
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 }).format(amount);
   } catch {
     return `${amount} ${currency}`;
   }

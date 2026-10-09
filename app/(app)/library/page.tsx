@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { getBooks } from "@/lib/data/books";
+import { isWishlistOnly } from "@/lib/wishlist";
 
 export const metadata: Metadata = { title: "Library" };
 
@@ -38,11 +39,13 @@ export default function LibraryPage() {
 }
 
 async function LibraryData() {
-  const [books, cookieStore] = await Promise.all([getBooks(), cookies()]);
+  const [all, cookieStore] = await Promise.all([getBooks(), cookies()]);
+  // Books you only want (not owned yet) live on the Wishlist page, not on your shelves.
+  const books = all.filter((b) => !isWishlistOnly(b));
   const saved = cookieStore.get(LAYOUT_COOKIE)?.value;
   const layout: LibraryLayout = saved === "table" ? "table" : "grid";
   // LibraryView is a Client Component ("use client"): it gets the data as props and handles
   // the interactive parts (search, filters, sorting) in the browser.
   const columns = parseColumns(cookieStore.get(COLUMNS_COOKIE)?.value);
-  return <LibraryView books={books} initialLayout={layout} initialColumns={columns} />;
+  return <LibraryView books={books} initialLayout={layout} initialColumns={columns} wishlistCount={all.length - books.length} />;
 }

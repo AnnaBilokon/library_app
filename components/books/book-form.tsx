@@ -56,6 +56,10 @@ export function bookToFormValues(book: Book): BookFormValues {
     purchasePrice: book.purchasePrice,
     notes: book.notes ?? "",
     description: book.description ?? "",
+    wanted: book.wanted,
+    wishPrice: book.wishPrice,
+    whereToBuy: book.whereToBuy ?? "",
+    wishlistReason: book.wishlistReason ?? "",
   };
 }
 
@@ -76,6 +80,9 @@ const EMPTY: BookFormValues = {
   acquiredAt: "",
   notes: "",
   description: "",
+  wanted: false,
+  whereToBuy: "",
+  wishlistReason: "",
   startedAt: "",
   finishedAt: "",
 };
@@ -88,9 +95,11 @@ interface BookFormProps {
   onCancel?: () => void;
   /** In a full page the save bar must clear the phone's bottom tab bar; in a sheet it doesn't. */
   inSheet?: boolean;
+  /** Opened from the Wishlist page: a book you want, not one you own. */
+  forWishlist?: boolean;
 }
 
-export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookFormProps) {
+export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist }: BookFormProps) {
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -100,14 +109,14 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
   // re-render the whole form; zodResolver runs the same schema the server uses.
   const form = useForm<BookFormValues, unknown, BookInput>({
     resolver: zodResolver(bookInputSchema),
-    defaultValues: book ? bookToFormValues(book) : EMPTY,
+    defaultValues: book ? bookToFormValues(book) : forWishlist ? { ...EMPTY, wanted: true, owned: false } : EMPTY,
     mode: "onTouched",
   });
   const { register, control, handleSubmit, formState } = form;
   const errors = formState.errors;
 
   // useWatch re-renders only when these fields change.
-  const [status, title, authors, isbn] = useWatch({ control, name: ["status", "title", "authors", "isbn"] });
+  const [status, title, authors, isbn, wanted] = useWatch({ control, name: ["status", "title", "authors", "isbn", "wanted"] });
 
   const duplicate = useMemo(() => {
     const others = suggestions.existing.filter((b) => b.id !== book?.id);
@@ -177,7 +186,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
         const imported = await importCoverFromUrl(bookId, coverUrl);
         if (!imported.ok) toast.warning(imported.error);
       }
-      toast.success(book ? "Saved" : `Added “${values.title}”`);
+      toast.success(book ? "Saved" : values.wanted && !values.owned ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`);
       if (book) onDone?.();
       else router.push(`/books/${bookId}`);
     });
@@ -397,6 +406,32 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
             {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("purchasePrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
           </Field>
         </div>
+      </Section>
+
+      <Section title="Wishlist">
+        <Controller
+          control={control}
+          name="wanted"
+          render={({ field }) => (
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Checkbox checked={Boolean(field.value)} onCheckedChange={(c) => field.onChange(Boolean(c))} />
+              On my wishlist (I want to buy it)
+            </label>
+          )}
+        />
+        {wanted && (
+          <div className="grid gap-5 sm:grid-cols-3">
+            <Field label="Expected price (UAH)" error={errors.wishPrice}>
+              {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("wishPrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
+            </Field>
+            <Field label="Where to buy">
+              {(id) => <Input id={id} {...register("whereToBuy")} placeholder="Yakaboo, a bookshop…" className="h-10" />}
+            </Field>
+            <Field label="Why I want it">
+              {(id) => <Input id={id} {...register("wishlistReason")} placeholder="Recommended by…" className="h-10" />}
+            </Field>
+          </div>
+        )}
       </Section>
 
       <Section title="Notes">

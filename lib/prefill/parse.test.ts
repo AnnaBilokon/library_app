@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanTitle, decodeEntities, parseBookPage } from "./parse";
+import { cleanDescription, cleanTitle, decodeEntities, isJunkParagraph, parseBookPage } from "./parse";
 
 const ld = (obj: unknown) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
 
@@ -122,5 +122,26 @@ describe("descriptions", () => {
   it("ignores shop marketing in og:description", () => {
     const html = `<meta property="og:description" content="Купити книгу в інтернет-магазині ✓ Швидка доставка по всій Україні та найкращі ціни">`;
     expect(parseBookPage(html, "https://x.example/b").description).toBeUndefined();
+  });
+});
+
+describe("description clean-up", () => {
+  const blurb = "Сім’я переїжджає до старого будинку на околиці міста, і там починають відбуватися дивні речі, які змінюють усе.";
+
+  it("decodes entities like &bull; and drops bullet-only and badge paragraphs", () => {
+    const html = `<p>Готується екранізація!</p><p>&bull;</p><p>${blurb}</p><p>&bull; Перший пункт &mdash; важливий</p><p>Новинка</p>`;
+    expect(cleanDescription(html)).toBe(`${blurb}\n\n• Перший пункт — важливий`);
+  });
+
+  it("keeps a real sentence that only mentions a screen adaptation", () => {
+    const html = `<p>${blurb}</p><p>За романом знято серіал, який подивилися мільйони глядачів у всьому світі.</p>`;
+    expect(cleanDescription(html)).toContain("За романом знято серіал");
+  });
+
+  it("recognises junk paragraphs", () => {
+    expect(isJunkParagraph("•")).toBe(true);
+    expect(isJunkParagraph("— —")).toBe(true);
+    expect(isJunkParagraph("🎬 Готується екранізація!")).toBe(true);
+    expect(isJunkParagraph("Екранізація роману стала подією року, і про неї говорили всі критики та читачі.")).toBe(false);
   });
 });
