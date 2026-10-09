@@ -15,6 +15,8 @@
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
+  --color-chart-actual: var(--chart-actual);
+  --color-chart-plan: var(--chart-plan);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -91,6 +93,9 @@
   --chart-3: #a58b8f;
   --chart-4: #28231c;
   --chart-5: #8fd3ec;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #0080a7;
+  --chart-plan: #b1a9a3;
   --radius: 0.625rem;
 
   --jacket-1-bg: #513b3c; --jacket-1-fg: #f3efea; --jacket-1-line: rgb(193 238 255 / 0.4);
@@ -129,6 +134,9 @@
   --chart-3: #6fb6d1;
   --chart-4: #8a6a6c;
   --chart-5: #e6d5c3;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #3299bc;
+  --chart-plan: #69625d;
 }
 
 /* ── Smoky rose & teal ────────────────────────────────────────────────
@@ -164,6 +172,9 @@
   --chart-3: #9ed0e6;
   --chart-4: #b796ac;
   --chart-5: #1f1a1c;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #a0446d;
+  --chart-plan: #b0a8ad;
 
   --jacket-1-bg: #785964; --jacket-1-fg: #f6f2f4; --jacket-1-line: rgb(158 208 230 / 0.45);
   --jacket-2-bg: #1a1517; --jacket-2-fg: #f4eef1; --jacket-2-line: rgb(158 208 230 / 0.35);
@@ -201,6 +212,9 @@
   --chart-3: #b796ac;
   --chart-4: #785964;
   --chart-5: #f4eef1;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #2599c3;
+  --chart-plan: #686165;
 }
 
 /* ── Tea green & pollen ───────────────────────────────────────────────
@@ -236,6 +250,9 @@
   --chart-3: #412234;
   --chart-4: #bdd9bf;
   --chart-5: #7f8b94;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #bc7d19;
+  --chart-plan: #a4acb1;
 
   --jacket-1-bg: #412234; --jacket-1-fg: #ffffff; --jacket-1-line: rgb(255 200 87 / 0.5);
   --jacket-2-bg: #2e4052; --jacket-2-fg: #ffffff; --jacket-2-line: rgb(189 217 191 / 0.45);
@@ -273,6 +290,9 @@
   --chart-3: #8fa4b8;
   --chart-4: #b0789a;
   --chart-5: #f3f6f4;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #bd871c;
+  --chart-plan: #5b656a;
 }
 
 @layer base {
