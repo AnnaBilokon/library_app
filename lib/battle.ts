@@ -54,6 +54,8 @@ export interface QuarterRound {
   quarter: number;
   label: string;
   months: MonthRound[];
+  /** Every month is decided (or over with nothing to decide), so the quarter can be played. */
+  settled: boolean;
   /** Monthly winners that made it to the quarter. */
   entrants: Book[];
   /** Keep two of three (only when there are three entrants). */
@@ -116,7 +118,7 @@ export function computeBattle(allBooks: Book[], picks: Picks, year: number, brac
 
     const finalists = entrants.length === 3 ? (dropped ? entrants.filter((b) => b !== dropped) : []) : entrants;
     const duel = round(slot, finalists, picks, settled && finalists.length > 0);
-    return { quarter: q, label: QUARTER_LABEL[q], months, entrants, keep, duel: settled ? duel : { ...duel, winner: null, auto: false, open: false } };
+    return { quarter: q, label: QUARTER_LABEL[q], months, settled, entrants, keep, duel: settled ? duel : { ...duel, winner: null, auto: false, open: false } };
   });
 
   // A later round waits until both sides are known; an empty side lets the other through.
