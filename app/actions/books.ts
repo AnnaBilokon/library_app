@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { LEAVES_QUEUE } from "@/lib/books/queue";
-import { openReading, planStatusChange } from "@/lib/books/reading-logic";
+import { openReading, planStatusChange, statusFromReadings } from "@/lib/books/reading-logic";
 import { getBook } from "@/lib/data/books";
 import {
   bookInputSchema,
@@ -23,7 +23,7 @@ import {
   stopReasonSchema,
 } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/server";
-import { BOOK_STATUSES } from "@/lib/types";
+import { BOOK_STATUSES, type BookStatus } from "@/lib/types";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -223,7 +223,27 @@ export async function setFavorite(bookId: string, favorite: boolean): Promise<Ac
 
 // ───────────────────────── Readings ─────────────────────────
 
-export async function addReading(bookId: string, raw: unknown): Promise<ActionResult> {
+/**
+ * Keep the book's status in line with its readings after one is added, changed or deleted
+ * (e.g. adding a finished reading to a to-read book marks it Finished). Returns the new status,
+ * or null when it didn't change.
+ */
+async function syncBookStatus(supabase: Awaited<ReturnType<typeof createClient>>, bookId: string): Promise<BookStatus | null> {
+  const [{ data: book }, { data: readings }] = await Promise.all([
+    supabase.from("books").select("status, queue_position").eq("id", bookId).single(),
+    supabase.from("readings").select("outcome, started_at, finished_at, created_at").eq("book_id", bookId),
+  ]);
+  if (!book || !readings) return null;
+  const next = statusFromReadings(readings, book.status);
+  if (next === book.status) return null;
+  const leaves = LEAVES_QUEUE.has(next) && book.queue_position !== null;
+  await supabase.from("books").update({ status: next, ...(leaves ? { queue_position: null } : {}) }).eq("id", bookId);
+  return next;
+}
+
+export type ReadingResult = ActionResult<{ status: BookStatus | null }>;
+
+export async function addReading(bookId: string, raw: unknown): Promise<ReadingResult> {
   const user = await requireUser();
   const parsed = readingInputSchema.safeParse(raw);
   if (!id.safeParse(bookId).success || !parsed.success) return fail(parsed.error?.issues[0]?.message ?? "Invalid input.");
@@ -231,11 +251,12 @@ export async function addReading(bookId: string, raw: unknown): Promise<ActionRe
   const { error } = await supabase.from("readings").insert({ ...readingInputToRow(parsed.data), book_id: bookId, user_id: user.id });
   if (error) return fail(dbError(error));
   await syncBookRating(supabase, bookId);
+  const status = await syncBookStatus(supabase, bookId);
   refreshAll();
-  return ok(undefined);
+  return ok({ status });
 }
 
-export async function updateReading(readingId: string, raw: unknown): Promise<ActionResult> {
+export async function updateReading(readingId: string, raw: unknown): Promise<ReadingResult> {
   await requireUser();
   const parsed = readingInputSchema.safeParse(raw);
   if (!id.safeParse(readingId).success || !parsed.success) return fail(parsed.error?.issues[0]?.message ?? "Invalid input.");
@@ -243,18 +264,20 @@ export async function updateReading(readingId: string, raw: unknown): Promise<Ac
   const { data, error } = await supabase.from("readings").update(readingInputToRow(parsed.data)).eq("id", readingId).select("book_id").single();
   if (error) return fail(dbError(error));
   await syncBookRating(supabase, data.book_id);
+  const status = await syncBookStatus(supabase, data.book_id);
   refreshAll();
-  return ok(undefined);
+  return ok({ status });
 }
 
-export async function deleteReading(readingId: string): Promise<ActionResult> {
+export async function deleteReading(readingId: string): Promise<ReadingResult> {
   await requireUser();
   if (!id.safeParse(readingId).success) return fail("Invalid input.");
   const supabase = await createClient();
-  const { error } = await supabase.from("readings").delete().eq("id", readingId);
+  const { data, error } = await supabase.from("readings").delete().eq("id", readingId).select("book_id").single();
   if (error) return fail(dbError(error));
+  const status = await syncBookStatus(supabase, data.book_id);
   refreshAll();
-  return ok(undefined);
+  return ok({ status });
 }
 
 // ───────────────────────── Delete / restore ─────────────────────────

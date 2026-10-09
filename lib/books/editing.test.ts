@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeIsbn } from "@/lib/isbn";
 import { bookInputSchema, bookInputToRow, readingInputSchema, readingInputToRow } from "@/lib/schemas";
-import { openReading, planStatusChange } from "./reading-logic";
+import { openReading, planStatusChange, statusFromReadings } from "./reading-logic";
 
 describe("normalizeIsbn", () => {
   it("accepts ISBN-13 with or without hyphens", () => {
@@ -135,5 +135,32 @@ describe("wishlist books are never owned", () => {
     const base = { title: "Колега", authors: [], status: "to-read" as const, favorite: false, genres: [], tags: [] };
     expect(bookInputToRow(bookInputSchema.parse({ ...base, owned: true, wanted: true }))).toMatchObject({ owned: false, wanted: true });
     expect(bookInputToRow(bookInputSchema.parse({ ...base, owned: true, wanted: false }))).toMatchObject({ owned: true, wanted: false });
+  });
+});
+
+describe("statusFromReadings", () => {
+  const r = (outcome: "finished" | "abandoned" | null, finished_at: string | null, started_at: string | null = null, created_at = "2026-10-09T10:00:00Z") => ({
+    outcome,
+    finished_at,
+    started_at,
+    created_at,
+  });
+
+  it("finishes the book when a finished reading is added", () => {
+    expect(statusFromReadings([r("finished", "2024-05-01")], "to-read")).toBe("finished");
+  });
+
+  it("follows the most recent reading", () => {
+    expect(statusFromReadings([r("finished", "2023-01-01"), r("abandoned", "2025-06-01")], "finished")).toBe("abandoned");
+    expect(statusFromReadings([r("abandoned", "2023-01-01"), r("finished", "2025-06-01")], "abandoned")).toBe("finished");
+  });
+
+  it("an open reading means Reading, but keeps Paused", () => {
+    expect(statusFromReadings([r("finished", "2024-01-01"), r(null, null, "2026-10-01")], "finished")).toBe("reading");
+    expect(statusFromReadings([r(null, null, "2026-10-01")], "paused")).toBe("paused");
+  });
+
+  it("leaves the status alone when there are no readings", () => {
+    expect(statusFromReadings([], "to-read")).toBe("to-read");
   });
 });
