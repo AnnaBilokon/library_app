@@ -121,3 +121,11 @@ describe("reading progress and did-not-finish details", () => {
     expect(readingInputSchema.safeParse({ outcome: "in-progress", progress: { mode: "page", value: 1.5 } }).success).toBe(false);
   });
 });
+
+describe("reading rating", () => {
+  it("keeps the rating for an ended reading and drops it while still reading", () => {
+    expect(readingInputToRow(readingInputSchema.parse({ outcome: "finished", rating: 4 }))).toMatchObject({ rating: 4 });
+    expect(readingInputToRow(readingInputSchema.parse({ outcome: "in-progress", rating: 4 }))).toMatchObject({ rating: null });
+    expect(readingInputSchema.safeParse({ outcome: "finished", rating: 6 }).success).toBe(false);
+  });
+});

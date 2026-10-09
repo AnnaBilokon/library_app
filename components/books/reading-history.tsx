@@ -12,6 +12,7 @@ import { progressInfo } from "@/lib/books/progress";
 import { readingInputSchema, type ReadingFormValues } from "@/lib/schemas";
 import type { Reading } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { RatingStars } from "./rating-stars";
 import { draftFrom, parseDraft, ProgressBar, ProgressField, type ProgressDraft } from "./reading-tools";
 
 /** "First read", then "Re-read 1", "Re-read 2"… */
@@ -44,6 +45,12 @@ export function ReadingHistory({ bookId, readings, totalPages }: { bookId: strin
         <ol className="flex flex-col gap-5 border-l-2 border-border pl-6">
           {readings.map((r, i) => {
             const progress = progressInfo(r, totalPages);
+            // How your rating changed since the previous rated reading.
+            const previous = readings.slice(0, i).reverse().find((x) => x.rating !== undefined)?.rating;
+            const trend =
+              r.rating !== undefined && previous !== undefined && previous !== r.rating
+                ? `${r.rating > previous ? "up" : "down"} from ${previous}★`
+                : null;
             return (
               <li key={r.id} className="relative">
                 <Dot active={r.outcome === undefined} />
@@ -61,6 +68,12 @@ export function ReadingHistory({ bookId, readings, totalPages }: { bookId: strin
                     <div className="flex min-w-0 flex-col gap-1">
                       <span className="font-medium">{readingLabel(i, readings.length)}</span>
                       <span className="text-sm text-muted-foreground">{describe(r)}</span>
+                      {r.rating !== undefined && (
+                        <span className="flex items-center gap-2">
+                          <RatingStars value={r.rating} size="sm" />
+                          {trend && <span className="text-xs text-muted-foreground">{trend}</span>}
+                        </span>
+                      )}
                       {progress && r.outcome !== "finished" && (
                         <div className="flex max-w-xs flex-col gap-1">
                           <span className="text-sm">
@@ -135,6 +148,7 @@ function ReadingEditor({
   const [finishedAt, setFinishedAt] = useState(initial.finishedAt ?? "");
   const [progress, setProgress] = useState<ProgressDraft>(() => draftFrom(initial as Reading, Boolean(totalPages)));
   const [stopReason, setStopReason] = useState(initial.stopReason ?? "");
+  const [rating, setRating] = useState<number | null>(initial.rating ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -159,6 +173,7 @@ function ReadingEditor({
       finishedAt: outcome === "in-progress" ? "" : finishedAt,
       progress: outcome === "finished" ? null : parsedProgress.progress,
       stopReason: outcome === "abandoned" ? stopReason : "",
+      rating: outcome === "in-progress" ? null : rating,
     };
     const parsed = readingInputSchema.safeParse(values);
     if (!parsed.success) {
@@ -212,6 +227,12 @@ function ReadingEditor({
           </label>
         )}
       </div>
+      {outcome !== "in-progress" && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">My rating for this reading</span>
+          <RatingStars value={rating} onChange={setRating} size="md" />
+        </div>
+      )}
       {outcome !== "finished" && (
         <ProgressField draft={progress} onChange={setProgress} totalPages={totalPages} label={outcome === "abandoned" ? "Stopped at" : "I'm at"} />
       )}

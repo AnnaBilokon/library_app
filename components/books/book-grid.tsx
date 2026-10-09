@@ -85,7 +85,7 @@ export function BookCard({
           </span>
         )}
         {book.favorite && (
-          <span className="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-background/90 text-primary shadow-sm backdrop-blur dark:text-highlight">
+          <span className="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-background/90 text-red-500 shadow-sm backdrop-blur dark:text-red-400">
             <Heart className="size-3.5 fill-current" aria-label="Favourite" />
           </span>
         )}

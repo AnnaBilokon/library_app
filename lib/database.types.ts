@@ -23,6 +23,7 @@ export type Database = {
           created_at: string
           currency: string
           deleted_at: string | null
+          description: string | null
           favorite: boolean
           format: Database["public"]["Enums"]["book_format"] | null
           genres: string[]
@@ -63,6 +64,7 @@ export type Database = {
           created_at?: string
           currency?: string
           deleted_at?: string | null
+          description?: string | null
           favorite?: boolean
           format?: Database["public"]["Enums"]["book_format"] | null
           genres?: string[]
@@ -103,6 +105,7 @@ export type Database = {
           created_at?: string
           currency?: string
           deleted_at?: string | null
+          description?: string | null
           favorite?: boolean
           format?: Database["public"]["Enums"]["book_format"] | null
           genres?: string[]
@@ -147,6 +150,7 @@ export type Database = {
           progress_page: number | null
           progress_percent: number | null
           progress_updated_at: string | null
+          rating: number | null
           started_at: string | null
           stop_reason: string | null
           updated_at: string
@@ -161,6 +165,7 @@ export type Database = {
           progress_page?: number | null
           progress_percent?: number | null
           progress_updated_at?: string | null
+          rating?: number | null
           started_at?: string | null
           stop_reason?: string | null
           updated_at?: string
@@ -175,6 +180,7 @@ export type Database = {
           progress_page?: number | null
           progress_percent?: number | null
           progress_updated_at?: string | null
+          rating?: number | null
           started_at?: string | null
           stop_reason?: string | null
           updated_at?: string

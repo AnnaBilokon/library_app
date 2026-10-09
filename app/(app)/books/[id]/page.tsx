@@ -6,7 +6,7 @@ import { ArrowLeft, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
 import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls } from "@/components/books/book-controls";
 import { ReadingHistory } from "@/components/books/reading-history";
-import { ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
+import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
@@ -123,6 +123,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
         {(book.status === "reading" || book.status === "paused") && (
           <ProgressPanel key={book.readings.map((r) => `${r.id}:${r.progressPage}:${r.progressPercent}`).join()} book={book} />
         )}
+        {book.description && <DescriptionSection text={book.description} />}
         <ReviewSection key={book.review ?? ""} book={book} />
         <ReadingHistory bookId={book.id} readings={book.readings} totalPages={book.pages} />
         <Details book={book} />

@@ -65,7 +65,7 @@ const columns = helper.columns([
         onClick={(e) => e.stopPropagation()}
       >
         {row.original.title}
-        {row.original.favorite && <Heart className="ml-1 inline size-3 fill-current text-primary" aria-label="Favourite" />}
+        {row.original.favorite && <Heart className="ml-1 inline size-3 fill-current text-red-500 dark:text-red-400" aria-label="Favourite" />}
       </Link>
     ),
   }),

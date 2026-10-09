@@ -35,6 +35,7 @@ import { libraryParams, libraryUrlKeys } from "@/lib/books/search-params";
 import { BOOK_STATUSES, type Book, type BookFormat, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookFiltersPanel } from "./book-filters";
+import { groupByFinishedYear } from "@/lib/books/years";
 import { BookGrid } from "./book-grid";
 import { BookTable } from "./book-table";
 import { ReadingShelf } from "./reading-shelf";
@@ -157,7 +158,12 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
           counts={facets.status}
           total={books.length}
           selected={filters.status}
-          onSelect={(status) => update({ status: status ? [status] : [] })}
+          onSelect={(status) =>
+            // Finished books are easiest to browse newest first, by year.
+            status === "finished"
+              ? void setParams({ status: ["finished"], sort: "finished", dir: "desc" })
+              : update({ status: status ? [status] : [] })
+          }
         />
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -179,7 +185,11 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
             }
           />
         ) : layout === "grid" ? (
-          <BookGrid books={results} duplicateIds={duplicateIds} />
+          sort === "finished" ? (
+            <YearSections books={results} dir={dir} duplicateIds={duplicateIds} />
+          ) : (
+            <BookGrid books={results} duplicateIds={duplicateIds} />
+          )
         ) : (
           <BookTable books={results} sort={sort} dir={dir} onSort={setSort} initialColumns={initialColumns} />
         )}
@@ -375,6 +385,32 @@ function EmptyState({ title, text, action }: { title: string; text: string; acti
       <h2 className="font-heading text-xl font-semibold text-heading">{title}</h2>
       <p className="max-w-sm text-sm text-muted-foreground">{text}</p>
       {action}
+    </div>
+  );
+}
+
+/** Books sorted by finish date, split into one section per year ("date unknown" last). */
+function YearSections({ books, dir, duplicateIds }: { books: Book[]; dir: SortDir; duplicateIds: Set<string> }) {
+  const sections = groupByFinishedYear(books);
+  const known = sections.filter((s) => s.year !== null);
+  const unknown = sections.filter((s) => s.year === null);
+  const ordered = [...(dir === "asc" ? known.reverse() : known), ...unknown];
+  return (
+    <div className="flex flex-col gap-12">
+      {ordered.map((section) => (
+        <section key={section.year ?? "unknown"} aria-labelledby={`year-${section.year ?? "unknown"}`} className="flex flex-col gap-6">
+          <h2
+            id={`year-${section.year ?? "unknown"}`}
+            className="sticky top-16 z-20 -mx-4 flex items-baseline gap-3 bg-background/90 px-4 py-2 font-heading text-3xl font-semibold text-heading backdrop-blur md:mx-0 md:px-0"
+          >
+            {section.year ?? "Date unknown"}
+            <span className="font-sans text-sm font-normal text-muted-foreground">
+              {section.books.length} {section.books.length === 1 ? "book" : "books"}
+            </span>
+          </h2>
+          <BookGrid books={section.books} duplicateIds={duplicateIds} priorityCount={0} />
+        </section>
+      ))}
     </div>
   );
 }
