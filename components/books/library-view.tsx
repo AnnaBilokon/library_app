@@ -2,12 +2,19 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import { debounce, useQueryStates } from "nuqs";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, LayoutGrid, Rows3, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, LayoutGrid, Rows3, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { findDuplicateIds } from "@/lib/books/duplicates";
 import {
   countActiveFilters,
@@ -19,18 +26,17 @@ import {
   SORT_LABEL,
   sortBooks,
   type BookFilters,
+  type SortDir,
   type SortKey,
 } from "@/lib/books/filters";
 import { FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
+import { LAYOUT_COOKIE, type LibraryLayout } from "@/lib/books/layout";
 import { libraryParams, libraryUrlKeys } from "@/lib/books/search-params";
-import { BOOK_STATUSES, type Book, type BookFormat } from "@/lib/types";
+import { BOOK_STATUSES, type Book, type BookFormat, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookFiltersPanel } from "./book-filters";
-import { BookGrid } from "./book-grid";
+import { BookCard, BookGrid } from "./book-grid";
 import { BookTable } from "./book-table";
-import { STATUS_ICON } from "./status-badge";
-
-import { LAYOUT_COOKIE, type LibraryLayout } from "@/lib/books/layout";
 
 const CLEARED = Object.fromEntries(Object.keys(EMPTY_FILTERS).map((k) => [k, null])) as Record<keyof BookFilters, null>;
 
@@ -54,154 +60,252 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
   );
   const facets = useMemo(() => computeFacets(books), [books]);
   const duplicateIds = useMemo(() => findDuplicateIds(books), [books]);
-  const activeCount = countActiveFilters(filters);
+  const nowReading = useMemo(
+    () => [...books.filter((b) => b.status === "reading"), ...books.filter((b) => b.status === "paused")],
+    [books],
+  );
+
+  const panelFilters = countActiveFilters({ ...filters, status: [] });
+  const browsing = filters.q === "" && countActiveFilters(filters) === 0;
 
   const update = (patch: Partial<BookFilters>) => void setParams(patch);
-  const setSort = (key: SortKey) => void setParams({ sort: key, dir: key === sort ? (dir === "asc" ? "desc" : "asc") : DEFAULT_DIR[key] });
+  const setSort = (key: SortKey, nextDir?: SortDir) =>
+    void setParams({ sort: key, dir: nextDir ?? (key === sort ? (dir === "asc" ? "desc" : "asc") : DEFAULT_DIR[key]) });
   const clearFilters = () => void setParams({ ...CLEARED });
 
   const [layout, setLayout] = useLayout(initialLayout);
 
   if (books.length === 0) {
-    return (
-      <EmptyState title="Your library is empty" text="Books you add will appear here. Adding books arrives in the next phase." />
-    );
+    return <EmptyState title="Your library is empty" text="Books you add will appear here. Adding books arrives in the next phase." />;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Search, filters, sort, layout */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 basis-full sm:basis-64">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            type="search"
-            value={filters.q}
-            onChange={(e) => void setParams({ q: e.target.value }, { limitUrlUpdates: debounce(300) })}
-            placeholder="Search title, author, series, notes…"
-            aria-label="Search books"
-            className="h-9 pl-8"
-          />
-        </div>
+    <div className="flex flex-col gap-10">
+      <Stats books={books} />
 
-        <Sheet>
-          <SheetTrigger render={<Button variant="outline" className="h-9" />}>
-            <SlidersHorizontal aria-hidden />
-            Filters
-            {activeCount > 0 && (
-              <span className="grid size-5 place-items-center rounded-full bg-primary text-[11px] text-primary-foreground">
-                {activeCount}
-              </span>
-            )}
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full gap-0 sm:max-w-sm">
-            <SheetHeader className="border-b">
-              <SheetTitle>Filters</SheetTitle>
-              <SheetDescription>
-                {results.length} of {books.length} books match
-              </SheetDescription>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto p-4">
-              <BookFiltersPanel filters={filters} facets={facets} onChange={update} />
-            </div>
-            <SheetFooter className="border-t">
-              <Button variant="outline" onClick={clearFilters} disabled={activeCount === 0}>
-                Clear all filters
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+      {browsing && nowReading.length > 0 && (
+        <section aria-labelledby="now-reading" className="rounded-3xl bg-accent/70 px-5 py-6 md:px-8 md:py-8 dark:bg-accent/60">
+          <div className="mb-5 flex items-baseline justify-between gap-4">
+            <h2 id="now-reading" className="font-heading text-xl font-semibold text-heading md:text-2xl">
+              Now reading
+            </h2>
+            <span className="text-sm text-muted-foreground">{nowReading.length} on the go</span>
+          </div>
+          <ul className="-mx-5 flex snap-x scroll-px-5 gap-5 overflow-x-auto px-5 pb-2 md:-mx-8 md:scroll-px-8 md:px-8">
+            {nowReading.map((book) => (
+              <li key={book.id} className="w-32 shrink-0 snap-start sm:w-36">
+                <BookCard book={book} sizes="144px" priority />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-        <div className="flex items-center gap-1">
-          <Select
-            value={sort}
-            onValueChange={(v) => v && setSort(v)}
-            items={SORT_KEYS.map((k) => ({ value: k, label: SORT_LABEL[k] }))}
-          >
-            <SelectTrigger className="h-9! w-40" aria-label="Sort by">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SORT_KEYS.map((k) => (
-                <SelectItem key={k} value={k}>{SORT_LABEL[k]}</SelectItem>
+      <section aria-label="All books" className="flex flex-col gap-6">
+        {/* Search + quiet controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="relative min-w-0 flex-1 basis-full md:max-w-xl md:basis-auto">
+            <span className="sr-only">Search books</span>
+            <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              type="search"
+              value={filters.q}
+              onChange={(e) => void setParams({ q: e.target.value }, { limitUrlUpdates: debounce(300) })}
+              placeholder="Search by title, author, series or notes"
+              className="h-11 w-full rounded-full bg-card pr-4 pl-11 text-[15px] shadow-sm ring-1 ring-border transition-shadow outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring dark:bg-muted/60"
+            />
+          </label>
+
+          <div className="flex items-center gap-1 md:ml-auto">
+            <Sheet>
+              <SheetTrigger render={<Button variant="ghost" className="h-10 rounded-full px-4" />}>
+                <SlidersHorizontal aria-hidden />
+                Filters
+                {panelFilters > 0 && (
+                  <span className="grid size-5 place-items-center rounded-full bg-primary text-[11px] text-primary-foreground">
+                    {panelFilters}
+                  </span>
+                )}
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full gap-0 sm:max-w-sm">
+                <SheetHeader className="border-b">
+                  <SheetTitle className="font-heading text-xl">Filters</SheetTitle>
+                  <SheetDescription>
+                    {results.length} of {books.length} books match
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <BookFiltersPanel filters={filters} facets={facets} onChange={update} />
+                </div>
+                <SheetFooter className="border-t">
+                  <Button variant="outline" onClick={clearFilters} disabled={panelFilters === 0}>
+                    Clear all filters
+                  </Button>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+
+            <SortMenu sort={sort} dir={dir} onChange={setSort} />
+
+            <div className="ml-1 flex rounded-full bg-muted p-1" role="group" aria-label="Layout">
+              {(
+                [
+                  ["grid", LayoutGrid, "Covers"],
+                  ["table", Rows3, "Table"],
+                ] as const
+              ).map(([value, Icon, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={layout === value}
+                  aria-label={label}
+                  onClick={() => setLayout(value)}
+                  className={cn(
+                    "grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    layout === value && "bg-background text-foreground shadow-sm",
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden />
+                </button>
               ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-9"
-            onClick={() => void setParams({ dir: dir === "asc" ? "desc" : "asc" })}
-            aria-label={dir === "asc" ? "Sorted ascending; switch to descending" : "Sorted descending; switch to ascending"}
-          >
-            {dir === "asc" ? <ArrowUpNarrowWide aria-hidden /> : <ArrowDownWideNarrow aria-hidden />}
-          </Button>
+            </div>
+          </div>
         </div>
 
-        <ToggleGroup
-          variant="outline"
-          value={[layout]}
-          onValueChange={(v) => v[0] && setLayout(v[0] as LibraryLayout)}
-          aria-label="Layout"
-          className="ml-auto"
-        >
-          <ToggleGroupItem value="grid" aria-label="Grid of covers" className="size-9">
-            <LayoutGrid aria-hidden />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="table" aria-label="Table" className="size-9">
-            <Rows3 aria-hidden />
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+        <StatusTabs
+          counts={facets.status}
+          total={books.length}
+          selected={filters.status}
+          onSelect={(status) => update({ status: status ? [status] : [] })}
+        />
 
-      {/* Quick status filter */}
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Filter by status">
-        {BOOK_STATUSES.map((s) => {
-          const count = facets.status.find((f) => f.value === s)?.count ?? 0;
-          if (count === 0) return null;
-          const on = filters.status.includes(s);
-          const Icon = STATUS_ICON[s];
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {results.length === books.length ? `${books.length} books` : `${results.length} of ${books.length} books`}
+            {" · "}sorted by {SORT_LABEL[sort].toLowerCase()}
+          </p>
+          <ActiveFilters filters={filters} onChange={update} onClear={clearFilters} />
+        </div>
+
+        {results.length === 0 ? (
+          <EmptyState
+            title="No books match"
+            text="Try a different search or remove some filters."
+            action={
+              <Button variant="outline" className="rounded-full" onClick={() => void setParams({ ...CLEARED, q: null })}>
+                Clear search and filters
+              </Button>
+            }
+          />
+        ) : layout === "grid" ? (
+          <BookGrid books={results} duplicateIds={duplicateIds} />
+        ) : (
+          <BookTable books={results} sort={sort} dir={dir} onSort={setSort} initialColumns={initialColumns} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+/** The masthead numbers under the page title. */
+function Stats({ books }: { books: Book[] }) {
+  const read = books.filter((b) => b.timesRead > 0 || b.status === "finished").length;
+  const items = [
+    [books.length, "books"],
+    [read, "read"],
+    [books.filter((b) => b.status === "to-read").length, "waiting"],
+    [books.filter((b) => b.favorite).length, "favourites"],
+  ] as const;
+  return (
+    <dl className="grid grid-cols-4 gap-3 sm:flex sm:gap-x-10">
+      {items.map(([value, label]) => (
+        <div key={label} className="flex flex-col">
+          <dd className="order-1 font-heading text-2xl font-semibold text-heading tabular-nums sm:text-3xl md:text-4xl dark:text-highlight">
+            {value}
+          </dd>
+          <dt className="order-2 truncate text-[10px] font-medium tracking-[0.12em] text-muted-foreground uppercase sm:text-xs sm:tracking-[0.14em]">{label}</dt>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function StatusTabs({
+  counts,
+  total,
+  selected,
+  onSelect,
+}: {
+  counts: { value: string; count: number }[];
+  total: number;
+  selected: BookStatus[];
+  onSelect: (status: BookStatus | null) => void;
+}) {
+  const tabs: [BookStatus | null, string, number][] = [
+    [null, "All", total],
+    ...BOOK_STATUSES.map((s): [BookStatus, string, number] => [s, STATUS_LABEL[s], counts.find((c) => c.value === s)?.count ?? 0]).filter(
+      ([, , n]) => n > 0,
+    ),
+  ];
+  return (
+    <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+      <div role="tablist" aria-label="Filter by status" className="flex min-w-max gap-6 border-b border-border/70">
+        {tabs.map(([status, label, count]) => {
+          const active = status === null ? selected.length === 0 : selected.length === 1 && selected[0] === status;
           return (
             <button
-              key={s}
+              key={label}
               type="button"
-              aria-pressed={on}
-              onClick={() => update({ status: on ? filters.status.filter((x) => x !== s) : [...filters.status, s] })}
+              role="tab"
+              aria-selected={active}
+              onClick={() => onSelect(status)}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                on ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
+                "-mb-px flex items-baseline gap-1.5 border-b-2 border-transparent pb-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none",
+                active && "border-primary text-heading dark:border-highlight",
               )}
             >
-              <Icon className="size-3.5" aria-hidden />
-              {STATUS_LABEL[s]}
-              <span className={cn("text-xs tabular-nums", on ? "opacity-80" : "text-muted-foreground")}>{count}</span>
+              {label}
+              <span className="text-xs tabular-nums opacity-70">{count}</span>
             </button>
           );
         })}
       </div>
-
-      <ActiveFilters filters={filters} onChange={update} onClear={clearFilters} />
-
-      <p className="text-sm text-muted-foreground" aria-live="polite">
-        {results.length === books.length ? `${books.length} books` : `${results.length} of ${books.length} books`}
-      </p>
-
-      {results.length === 0 ? (
-        <EmptyState
-          title="No books match"
-          text="Try a different search or remove some filters."
-          action={
-            <Button variant="outline" onClick={() => void setParams({ ...CLEARED, q: null })}>
-              Clear search and filters
-            </Button>
-          }
-        />
-      ) : layout === "grid" ? (
-        <BookGrid books={results} duplicateIds={duplicateIds} />
-      ) : (
-        <BookTable books={results} sort={sort} dir={dir} onSort={setSort} initialColumns={initialColumns} />
-      )}
     </div>
+  );
+}
+
+function SortMenu({ sort, dir, onChange }: { sort: SortKey; dir: SortDir; onChange: (key: SortKey, dir?: SortDir) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" className="h-10 rounded-full px-4" />}>
+        <ArrowDownUp aria-hidden />
+        <span className="hidden sm:inline">{SORT_LABEL[sort]}</span>
+        <span className="sr-only sm:hidden">Sort: {SORT_LABEL[sort]}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={sort} onValueChange={(v) => onChange(v as SortKey, DEFAULT_DIR[v as SortKey])}>
+            {SORT_KEYS.map((k) => (
+              <DropdownMenuRadioItem key={k} value={k} closeOnClick>
+                {SORT_LABEL[k]}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuRadioGroup value={dir} onValueChange={(v) => onChange(sort, v as SortDir)}>
+            <DropdownMenuRadioItem value="asc" closeOnClick>
+              {sort === "title" || sort === "author" ? "A → Z" : "Lowest / oldest first"}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="desc" closeOnClick>
+              {sort === "title" || sort === "author" ? "Z → A" : "Highest / newest first"}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -231,12 +335,16 @@ function ActiveFilters({
       chips.push({ key: `${key}:${v}`, label: label(v), remove: () => onChange({ [key]: values.filter((x) => x !== v) }) });
     }
   };
+  if (filters.status.length > 1) {
+    for (const s of filters.status)
+      chips.push({ key: `status:${s}`, label: STATUS_LABEL[s], remove: () => onChange({ status: filters.status.filter((x) => x !== s) }) });
+  }
   many("genre", (v) => v);
   many("tag", (v) => `#${v}`);
   many("language", languageLabel);
   many("format", (v) => FORMAT_LABEL[v as BookFormat] ?? v);
   many("publisher", (v) => v);
-  if (filters.author) chips.push({ key: "author", label: `Author: ${filters.author}`, remove: () => onChange({ author: null }) });
+  if (filters.author) chips.push({ key: "author", label: filters.author, remove: () => onChange({ author: null }) });
   if (filters.series) chips.push({ key: "series", label: `Series: ${filters.series}`, remove: () => onChange({ series: null }) });
   if (filters.owned !== null)
     chips.push({ key: "owned", label: filters.owned ? "Owned" : "Not owned", remove: () => onChange({ owned: null }) });
@@ -260,7 +368,7 @@ function ActiveFilters({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {chips.map((c) => (
-        <span key={c.key} className="inline-flex h-7 items-center gap-1 rounded-full bg-highlight pr-1 pl-2.5 text-xs font-medium text-highlight-foreground">
+        <span key={c.key} className="inline-flex h-7 items-center gap-1 rounded-full bg-highlight pr-1 pl-3 text-xs font-medium text-highlight-foreground">
           {c.label}
           <button
             type="button"
@@ -272,17 +380,17 @@ function ActiveFilters({
           </button>
         </span>
       ))}
-      <Button variant="ghost" size="sm" onClick={onClear}>
+      <button type="button" onClick={onClear} className="px-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
         Clear all
-      </Button>
+      </button>
     </div>
   );
 }
 
 function EmptyState({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
-      <h2 className="font-heading text-lg font-semibold">{title}</h2>
+    <div className="flex flex-col items-center gap-3 rounded-3xl bg-muted/60 px-6 py-20 text-center">
+      <h2 className="font-heading text-xl font-semibold text-heading">{title}</h2>
       <p className="max-w-sm text-sm text-muted-foreground">{text}</p>
       {action}
     </div>

@@ -16,8 +16,8 @@ export const metadata: Metadata = { title: "Library" };
  */
 export default function LibraryPage() {
   return (
-    <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 p-4 md:p-6">
-      <PageHeader title="Library" description="Every book on your shelves." />
+    <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-8 px-4 pt-6 pb-12 md:gap-10 md:px-8 md:pt-10">
+      <PageHeader eyebrow="Your shelves" title="Library" />
       <Suspense fallback={<LibrarySkeleton />}>
         <LibraryData />
       </Suspense>

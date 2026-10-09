@@ -45,14 +45,14 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
   return (
     <>
       <Button
-        variant="outline"
+        variant="ghost"
         onClick={() => setOpen(true)}
-        className="h-9 w-full max-w-64 justify-start gap-2 text-muted-foreground sm:w-64"
+        className="size-9 justify-center rounded-full bg-muted px-0 text-muted-foreground hover:bg-secondary md:w-56 md:justify-start md:gap-2 md:px-3.5"
         aria-label="Search books and pages"
       >
         <Search aria-hidden />
-        <span className="truncate">Search…</span>
-        <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
+        <span className="hidden truncate md:inline">Jump to a book…</span>
+        <kbd className="ml-auto hidden rounded-full bg-background px-1.5 font-mono text-[10px] md:inline">Ctrl K</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} title="Search" description="Jump to a book or a page">
         <Command>

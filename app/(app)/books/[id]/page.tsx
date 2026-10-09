@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps<"/books/[id]">): Pr
 
 export default function BookPage({ params }: PageProps<"/books/[id]">) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-6 pb-12 md:px-8 md:pt-10">
       <Link
         href="/library"
         className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-visible:underline focus-visible:outline-none"
@@ -44,12 +44,12 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
   const duplicates = all.filter((b) => b.id !== book.id && duplicateKey(b) === key);
 
   return (
-    <article className="grid gap-6 md:grid-cols-[16rem_1fr] md:gap-10">
-      <div className="mx-auto w-44 sm:w-52 md:mx-0 md:w-full">
-        <BookCover title={book.title} authors={book.authors} src={book.coverSrc} lang={book.language} sizes="(min-width: 768px) 256px, 208px" priority />
+    <article className="grid gap-8 md:grid-cols-[18rem_1fr] md:gap-14">
+      <div className="mx-auto w-48 sm:w-56 md:sticky md:top-24 md:mx-0 md:w-full md:self-start">
+        <BookCover title={book.title} authors={book.authors} src={book.coverSrc} lang={book.language} sizes="(min-width: 768px) 288px, 224px" priority />
       </div>
 
-      <div className="flex min-w-0 flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-10">
         <header className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={book.status} />
@@ -60,11 +60,11 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
             )}
             {book.wanted && <span className="rounded-full bg-highlight px-2 text-[11px] font-medium text-highlight-foreground">On wishlist</span>}
           </div>
-          <h1 lang={book.language} className="font-heading text-3xl leading-tight font-semibold text-balance md:text-4xl">
+          <h1 lang={book.language} className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-heading md:text-5xl">
             {book.title}
           </h1>
           {book.authors.length > 0 && (
-            <p lang={book.language} className="text-lg text-muted-foreground">
+            <p lang={book.language} className="text-xl text-muted-foreground">
               {book.authors.map((a, i) => (
                 <span key={a}>
                   {i > 0 && ", "}
@@ -80,14 +80,14 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
             <ul className="flex flex-wrap gap-1.5" aria-label="Genres and tags">
               {book.genres.map((g) => (
                 <li key={g}>
-                  <Link href={libraryUrl({ genre: [g] })} className="inline-flex h-6 items-center rounded-full border px-2.5 text-xs hover:bg-muted">
+                  <Link href={libraryUrl({ genre: [g] })} className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-xs font-medium hover:bg-secondary">
                     {g}
                   </Link>
                 </li>
               ))}
               {book.tags.map((t) => (
                 <li key={t}>
-                  <Link href={libraryUrl({ tag: [t] })} className="inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-xs hover:bg-accent">
+                  <Link href={libraryUrl({ tag: [t] })} className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-medium hover:bg-highlight">
                     #{t}
                   </Link>
                 </li>
@@ -97,7 +97,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
         </header>
 
         {duplicates.length > 0 && (
-          <div role="note" className="flex gap-3 rounded-lg border border-dashed p-3 text-sm">
+          <div role="note" className="flex gap-3 rounded-2xl bg-accent/80 p-4 text-sm">
             <Copy className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
             <p>
               Possible duplicate: your library has {duplicates.length === 1 ? "another book" : `${duplicates.length} other books`} with the
@@ -119,9 +119,9 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
         <ReadingHistory readings={book.readings} />
 
         {book.notes && (
-          <section className="flex flex-col gap-2">
-            <h2 className="font-heading text-lg font-semibold">Notes</h2>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{book.notes}</p>
+          <section className="flex flex-col gap-4">
+            <h2 className="font-heading text-2xl font-semibold text-heading">Notes</h2>
+            <blockquote className="border-l-4 border-highlight pl-5 font-heading text-lg leading-relaxed whitespace-pre-wrap italic">{book.notes}</blockquote>
           </section>
         )}
       </div>
@@ -154,12 +154,12 @@ function Details({ book }: { book: Book }) {
   }
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-heading text-lg font-semibold">Details</h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg border bg-card p-4 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
+    <section className="flex flex-col gap-5">
+      <h2 className="font-heading text-2xl font-semibold text-heading">Details</h2>
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3">
         {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted-foreground">{label}</dt>
+          <div key={label} className="flex min-w-0 flex-col gap-1">
+            <dt className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">{label}</dt>
             <dd className="min-w-0 break-words">{value}</dd>
           </div>
         ))}
@@ -171,13 +171,14 @@ function Details({ book }: { book: Book }) {
 function ReadingHistory({ readings }: { readings: Reading[] }) {
   if (readings.length === 0) return null;
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-heading text-lg font-semibold">Reading history</h2>
-      <ol className="flex flex-col gap-2">
+    <section className="flex flex-col gap-5">
+      <h2 className="font-heading text-2xl font-semibold text-heading">Reading history</h2>
+      <ol className="flex flex-col gap-4 border-l-2 border-border pl-6">
         {readings.map((r, i) => (
-          <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 rounded-lg border bg-card px-4 py-3 text-sm">
+          <li key={r.id} className="relative flex flex-col gap-0.5">
+            <span aria-hidden className="absolute top-1.5 -left-[31px] size-3 rounded-full bg-primary ring-4 ring-background dark:bg-highlight" />
             <span className="font-medium">{readings.length > 1 ? `Reading ${i + 1}` : "Read"}</span>
-            <span className="text-muted-foreground">{describeReading(r)}</span>
+            <span className="text-sm text-muted-foreground">{describeReading(r)}</span>
           </li>
         ))}
       </ol>

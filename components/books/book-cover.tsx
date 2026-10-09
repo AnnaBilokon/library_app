@@ -4,11 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const PLACEHOLDER_COLOURS = [
-  "bg-[#513b3c] text-[#f3efea]",
-  "bg-[#28231c] text-[#f3efea]",
-  "bg-[#655356] text-[#f3efea]",
-  "bg-[#c1eeff] text-[#070707]",
+/** Jacket colours for books without a cover image, all from the palette. */
+const JACKETS = [
+  { bg: "bg-[#513b3c]", fg: "text-[#f3efea]", line: "border-[#c1eeff]/40" },
+  { bg: "bg-[#28231c]", fg: "text-[#f3efea]", line: "border-[#c1eeff]/30" },
+  { bg: "bg-[#655356]", fg: "text-[#f7f3ee]", line: "border-[#f7f3ee]/35" },
+  { bg: "bg-[#c1eeff]", fg: "text-[#28231c]", line: "border-[#513b3c]/35" },
+  { bg: "bg-[#ebe3dc]", fg: "text-[#513b3c]", line: "border-[#513b3c]/30" },
 ];
 
 function hash(text: string): number {
@@ -29,15 +31,26 @@ interface BookCoverProps {
   priority?: boolean;
   className?: string;
   lang?: string;
+  /** Small covers (table rows) skip the jacket text. */
+  compact?: boolean;
 }
 
-/** A 2:3 book cover. Falls back to a coloured card with the title when there's no image or it fails to load. */
-export function BookCover({ title, authors = [], src, sizes, priority, className, lang }: BookCoverProps) {
+/**
+ * A 2:3 book: slightly rounded on the open side, a shaded spine on the left and a soft shadow.
+ * Falls back to a designed jacket with the title when there's no image or it fails to load.
+ */
+export function BookCover({ title, authors = [], src, sizes, priority, className, lang, compact }: BookCoverProps) {
   const [failed, setFailed] = useState(false);
   const showImage = src && !failed;
+  const jacket = JACKETS[hash(title) % JACKETS.length];
 
   return (
-    <div className={cn("relative aspect-[2/3] overflow-hidden rounded-md bg-muted shadow-sm ring-1 ring-black/5 dark:ring-white/10", className)}>
+    <div
+      className={cn(
+        "relative aspect-[2/3] overflow-hidden rounded-[2px_5px_5px_2px] bg-muted shadow-book",
+        className,
+      )}
+    >
       {showImage ? (
         <Image
           src={src}
@@ -50,19 +63,32 @@ export function BookCover({ title, authors = [], src, sizes, priority, className
           onError={() => setFailed(true)}
         />
       ) : (
-        <div
-          lang={lang}
-          role="img"
-          aria-label={`${title} (no cover)`}
-          className={cn(
-            "flex size-full flex-col justify-between p-[8%] font-heading",
-            PLACEHOLDER_COLOURS[hash(title) % PLACEHOLDER_COLOURS.length],
+        <div lang={lang} role="img" aria-label={`${title} (no cover)`} className={cn("size-full p-[7%]", jacket.bg, jacket.fg)}>
+          {!compact && (
+            <div className={cn("flex size-full flex-col items-center justify-between border px-[8%] py-[12%] text-center", jacket.line)}>
+              <span className="line-clamp-5 font-heading text-[clamp(0.8rem,1.2vw+0.45rem,1.15rem)] leading-tight font-semibold text-balance">
+                {title}
+              </span>
+              <span aria-hidden className="text-[0.6rem] tracking-[0.3em] opacity-60">
+                ◆
+              </span>
+              {authors.length > 0 ? (
+                <span className="line-clamp-2 text-[0.6rem] font-medium tracking-[0.12em] uppercase opacity-80">
+                  {authors.join(", ")}
+                </span>
+              ) : (
+                <span />
+              )}
+            </div>
           )}
-        >
-          <span className="line-clamp-5 text-[clamp(0.7rem,1.1vw+0.4rem,1.05rem)] leading-tight font-semibold">{title}</span>
-          {authors.length > 0 && <span className="line-clamp-2 text-[0.7rem] opacity-80">{authors.join(", ")}</span>}
         </div>
       )}
+      {/* Spine shading and a faint page-edge highlight, on top of image or jacket. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 w-[7%] bg-gradient-to-r from-black/30 via-white/15 to-transparent"
+      />
+      <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-black/10 ring-inset dark:ring-white/10" />
     </div>
   );
 }

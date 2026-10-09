@@ -11,7 +11,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 bg-background/90 shadow-[0_-10px_30px_-18px_rgb(0_0_0/0.35)] pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       {/* The current path is only known at request time on dynamic routes, so the
           prerendered version shows no active tab and the highlight streams in. */}

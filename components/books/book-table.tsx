@@ -51,7 +51,7 @@ const columns = helper.columns([
     header: () => <span className="sr-only">Cover</span>,
     enableHiding: false,
     cell: ({ row }) => (
-      <BookCover title={row.original.title} src={row.original.coverSrc} sizes="40px" className="w-9 rounded-sm" />
+      <BookCover title={row.original.title} src={row.original.coverSrc} sizes="40px" className="w-9" compact />
     ),
   }),
   helper.accessor("title", {
@@ -61,7 +61,7 @@ const columns = helper.columns([
       <Link
         href={`/books/${row.original.id}`}
         lang={row.original.language}
-        className="font-medium hover:underline focus-visible:underline focus-visible:outline-none"
+        className="font-heading font-semibold text-heading decoration-highlight decoration-2 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {row.original.title}
@@ -113,7 +113,7 @@ export function BookTable({ books, sort, dir, onSort, initialColumns }: BookTabl
     <div className="flex flex-col gap-2">
       <div className="flex justify-end">
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="rounded-full px-3" />}>
             <Columns3 aria-hidden />
             Columns
           </DropdownMenuTrigger>
@@ -138,7 +138,7 @@ export function BookTable({ books, sort, dir, onSort, initialColumns }: BookTabl
         </DropdownMenu>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border bg-card">
+      <div className="overflow-x-auto rounded-2xl bg-card shadow-sm ring-1 ring-border/60 dark:bg-card/70">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((group) => (

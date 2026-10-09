@@ -40,6 +40,9 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-heading: var(--heading);
+  --shadow-book: var(--book-shadow);
+  --shadow-book-hover: var(--book-shadow-hover);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
@@ -65,26 +68,30 @@
  * Taupe-grey is too low-contrast for text on black, so it is only used for borders.
  */
 :root {
-  --background: #faf8f6;
+  /* warm "paper" background, like the page of a book */
+  --background: #f7f3ee;
   --foreground: #28231c;
-  --card: #ffffff;
+  --heading: #513b3c;
+  --card: #fcfaf7;
   --card-foreground: #28231c;
   --popover: #ffffff;
   --popover-foreground: #28231c;
   --primary: #513b3c;
   --primary-foreground: #ffffff;
-  --secondary: #efe9e5;
+  --secondary: #ebe3dc;
   --secondary-foreground: #28231c;
-  --muted: #f1ece8;
+  --muted: #ede5dd;
   --muted-foreground: #655356;
-  --accent: #e4f7fe;
+  --accent: #e2f6fd;
   --accent-foreground: #28231c;
   --highlight: #c1eeff;
   --highlight-foreground: #070707;
   --destructive: #b42318;
-  --border: #e3dbd6;
-  --input: #9c8c8e;
+  --border: #e4dad1;
+  --input: #8f7e81;
   --ring: #513b3c;
+  --book-shadow: 0 1px 2px rgb(40 35 28 / 0.12), 0 8px 20px -6px rgb(40 35 28 / 0.28);
+  --book-shadow-hover: 0 2px 4px rgb(40 35 28 / 0.14), 0 18px 32px -10px rgb(40 35 28 / 0.38);
   --chart-1: #513b3c;
   --chart-2: #3f97b8;
   --chart-3: #a58b8f;
@@ -104,6 +111,9 @@
 .dark {
   --background: #0c0b09;
   --foreground: #f3efea;
+  --heading: #f3efea;
+  --book-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.8);
+  --book-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 22px 36px -10px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(193 238 255 / 0.25);
   --card: #17140f;
   --card-foreground: #f3efea;
   --popover: #1c1813;

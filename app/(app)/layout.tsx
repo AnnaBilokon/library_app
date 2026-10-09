@@ -1,72 +1,53 @@
 import { Suspense } from "react";
-import { LogOut } from "lucide-react";
-import { signOut } from "@/app/actions/auth";
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import Link from "next/link";
 import { CommandMenu } from "@/components/layout/command-menu";
+import { MainNav } from "@/components/layout/main-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Button } from "@/components/ui/button";
-import { SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { UserMenu } from "@/components/layout/user-menu";
 import { requireUser } from "@/lib/auth";
 import { getBooks } from "@/lib/data/books";
 
 /**
  * Shell for every signed-in page. The layout itself is static, so it is prerendered and shows
- * instantly. Only the parts that need the session (user menu, search index, page content)
+ * instantly. Only the parts that need the session (account menu, search index, page content)
  * wait for the request, each behind its own <Suspense>.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <AppSidebar
-        footer={
-          <Suspense>
-            <UserMenu />
-          </Suspense>
-        }
-      />
-      <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
-          <SidebarTrigger className="-ml-1 hidden md:inline-flex" />
-          <div className="flex-1">
-            <Suspense fallback={<SearchPlaceholder />}>
+    <div className="flex min-h-svh flex-col">
+      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/70">
+        <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center gap-4 px-4 md:px-8">
+          <Link
+            href="/"
+            className="font-heading text-xl font-semibold tracking-tight text-heading focus-visible:underline focus-visible:outline-none"
+          >
+            My library
+          </Link>
+          <MainNav />
+          <div className="ml-auto flex items-center gap-1.5">
+            <Suspense fallback={<div className="size-9 md:w-56" />}>
               <SearchIndex />
             </Suspense>
+            <ThemeToggle />
+            <Suspense fallback={<div className="size-9 rounded-full bg-muted" />}>
+              <Account />
+            </Suspense>
           </div>
-          <ThemeToggle />
-        </header>
-        <div className="flex-1 pb-20 md:pb-0">{children}</div>
-      </SidebarInset>
+        </div>
+      </header>
+      <div className="flex-1 pb-20 md:pb-0">{children}</div>
       <MobileNav />
-    </SidebarProvider>
+    </div>
   );
 }
 
-async function UserMenu() {
+async function Account() {
   const user = await requireUser();
-  return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <form action={signOut}>
-          <SidebarMenuButton type="submit" tooltip="Sign out" className="text-muted-foreground">
-            <LogOut aria-hidden />
-            <span className="truncate">Sign out ({user.email})</span>
-          </SidebarMenuButton>
-        </form>
-      </SidebarMenuItem>
-    </SidebarMenu>
-  );
+  return <UserMenu email={user.email} />;
 }
 
 async function SearchIndex() {
   const books = await getBooks();
   return <CommandMenu books={books.map(({ id, title, authors }) => ({ id, title, authors }))} />;
-}
-
-function SearchPlaceholder() {
-  return (
-    <Button variant="outline" disabled className="h-9 w-full max-w-64 justify-start text-muted-foreground sm:w-64">
-      Search…
-    </Button>
-  );
 }
