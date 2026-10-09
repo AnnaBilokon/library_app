@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      book_battle_picks: {
+        Row: {
+          book_id: string
+          bracket: string
+          slot: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          book_id: string
+          bracket: string
+          slot: string
+          updated_at?: string
+          user_id?: string
+          year: number
+        }
+        Update: {
+          book_id?: string
+          bracket?: string
+          slot?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_battle_picks_book_id_user_id_fkey"
+            columns: ["book_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       books: {
         Row: {
           acquired_at: string | null
