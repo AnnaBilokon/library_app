@@ -15,6 +15,7 @@ import { todayLocal } from "@/lib/dates";
 import { progressSchema, type ProgressInput as Progress } from "@/lib/schemas";
 import type { Book, Reading } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { RatingStars } from "./rating-stars";
 
 // ───────────────────────── page / % input ─────────────────────────
 
@@ -428,5 +429,115 @@ export function ShelfProgress({ book }: { book: Book }) {
         </Popover>
       </div>
     </div>
+  );
+}
+
+// ───────────────────────── finished ─────────────────────────
+
+/** Asks for the dates and your rating when you mark a book finished. */
+export function FinishDialog({ book, open, onOpenChange }: { book: Book; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const current = openReading(book.readings);
+  const [startedAt, setStartedAt] = useState(current?.startedAt ?? "");
+  const [finishedAt, setFinishedAt] = useState(() => todayLocal());
+  const [rating, setRatingValue] = useState<number | null>(book.rating ?? null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const startId = useId();
+  const endId = useId();
+
+  const save = () => {
+    if (startedAt && finishedAt && finishedAt < startedAt) {
+      setError("Can't finish before you started.");
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const r = await setBookStatus(book.id, "finished", todayLocal(), { startedAt, finishedAt, rating });
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success(book.timesRead > 0 ? "Finished again!" : "Finished!");
+      onOpenChange(false);
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Finished “{book.title}”</DialogTitle>
+          <DialogDescription>When did you read it, and how was it?</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label htmlFor={startId} className="flex flex-col gap-1.5 text-sm font-medium">
+              Started
+              <Input id={startId} type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} className="h-10" />
+            </label>
+            <label htmlFor={endId} className="flex flex-col gap-1.5 text-sm font-medium">
+              Finished
+              <Input
+                id={endId}
+                type="date"
+                value={finishedAt}
+                max={todayLocal()}
+                onChange={(e) => setFinishedAt(e.target.value)}
+                aria-invalid={Boolean(error) || undefined}
+                className="h-10"
+              />
+            </label>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">My rating</span>
+            <RatingStars value={rating} onChange={setRatingValue} size="lg" />
+          </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={pending || !finishedAt}>
+            {pending && <Loader2 className="animate-spin" aria-hidden />}
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ───────────────────────── description ─────────────────────────
+
+/** "About the book": the description, folded to a few lines when it's long. */
+export function DescriptionSection({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 420 || text.split("\n\n").length > 3;
+  return (
+    <section aria-labelledby="about-title" className="flex flex-col gap-3">
+      <h2 id="about-title" className="font-heading text-2xl font-semibold text-heading">
+        About the book
+      </h2>
+      <div className={cn("flex flex-col gap-3 leading-relaxed", long && !expanded && "line-clamp-5")}>
+        {text.split("\n\n").map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          aria-expanded={expanded}
+          className="w-fit text-sm font-medium text-primary underline-offset-4 hover:underline dark:text-highlight"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </section>
   );
 }

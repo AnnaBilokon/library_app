@@ -105,3 +105,22 @@ describe("decodeEntities", () => {
     expect(decodeEntities("&laquo;Емма&raquo; &amp; &#1042;&#x456;")).toBe("«Емма» & Ві");
   });
 });
+
+describe("descriptions", () => {
+  const long = "Блискуча дебютантка, рішуча й потайлива подруга і тиха розгадувачка кросвордів зустрічаються у Блечлі-Парку.";
+
+  it("reads the description from JSON-LD and keeps paragraphs from HTML", () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({ "@type": "Book", name: "Код Троянди", description: `<p>${long}</p><p>Друга частина історії.</p>` })}</script>`;
+    expect(parseBookPage(html, "https://x.example/b").description).toBe(`${long}\n\nДруга частина історії.`);
+  });
+
+  it("reads the text under an 'Анотація' heading, up to the next section", () => {
+    const html = `<h3>Анотація</h3><p>${long}</p><p>&nbsp;</p><p>Ще абзац про книжку.</p><h3>Відгуки</h3><p>Чудово!</p>`;
+    expect(parseBookPage(html, "https://x.example/b").description).toBe(`${long}\n\nЩе абзац про книжку.`);
+  });
+
+  it("ignores shop marketing in og:description", () => {
+    const html = `<meta property="og:description" content="Купити книгу в інтернет-магазині ✓ Швидка доставка по всій Україні та найкращі ціни">`;
+    expect(parseBookPage(html, "https://x.example/b").description).toBeUndefined();
+  });
+});

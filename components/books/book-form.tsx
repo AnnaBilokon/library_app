@@ -55,6 +55,7 @@ export function bookToFormValues(book: Book): BookFormValues {
     acquiredAt: book.acquiredAt ?? "",
     purchasePrice: book.purchasePrice,
     notes: book.notes ?? "",
+    description: book.description ?? "",
   };
 }
 
@@ -74,6 +75,7 @@ const EMPTY: BookFormValues = {
   owned: true,
   acquiredAt: "",
   notes: "",
+  description: "",
   startedAt: "",
   finishedAt: "",
 };
@@ -149,6 +151,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
     fill("publishedYear", p.publishedYear, "year");
     fill("pages", p.pages, "pages");
     fill("isbn", p.isbn, "ISBN");
+    fill("description", p.description, "description");
     if (p.language && !editing) form.setValue("language", p.language, { shouldDirty: true });
     if (p.coverUrl && !coverFile) {
       setCoverUrl(p.coverUrl);
@@ -291,7 +294,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
                   onClick={() => field.onChange(!field.value)}
                   className={cn(
                     "mt-6 inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium ring-1 ring-border transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                    field.value && "bg-primary text-primary-foreground ring-primary hover:bg-primary/90",
+                    field.value && "text-red-700 ring-red-500 hover:bg-red-500/10 dark:text-red-400 dark:ring-red-400",
                   )}
                 >
                   <Heart className={cn("size-4", field.value && "fill-current")} aria-hidden />
@@ -304,6 +307,9 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
       </div>
 
       <Section title="About the book">
+        <Field label="Description" hint="What the book is about. Filled in automatically from a link when the page has one.">
+          {(id, d) => <Textarea id={id} {...register("description")} rows={5} aria-describedby={d} className="text-base" />}
+        </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Genres" hint="Press Enter after each.">
             {(id, d) => (

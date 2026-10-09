@@ -303,11 +303,14 @@ export function parseBookPage(html: string, url: string): Prefill {
   const nodes = jsonLdNodes(html);
   const book = nodes.find((n) => hasType(n, "Book"));
   const product = nodes.find((n) => hasType(n, "Product"));
-  return merge(
-    book ? fromBookLd(book, url) : {},
-    fromNextData(html, url),
-    product ? fromProductLd(product, url) : {},
-    fromSpecTable(html),
-    fromMeta(html, url),
-  );
+  const fromBook = book ? fromBookLd(book, url) : {};
+  const fromNext = fromNextData(html, url);
+  const fromProduct = product ? fromProductLd(product, url) : {};
+  const fromSpecs = fromSpecTable(html);
+  const fromOg = fromMeta(html, url);
+  const merged = merge(fromBook, fromNext, fromProduct, fromSpecs, fromOg);
+  // For the description the visible "Анотація" section beats a Product record: shops often
+  // flatten the Product text into one paragraph, while the page keeps the paragraphs.
+  const description = fromBook.description ?? fromNext.description ?? fromSpecs.description ?? fromProduct.description ?? fromOg.description;
+  return description ? { ...merged, description } : merged;
 }

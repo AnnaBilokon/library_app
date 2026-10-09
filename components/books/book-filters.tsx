@@ -40,7 +40,7 @@ export function BookFiltersPanel({ filters, facets, onChange }: BookFiltersPanel
         </ToggleGroup>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={filters.favorite === true} onCheckedChange={(c) => onChange({ favorite: c ? true : null })} />
-          <Heart className="size-4 text-primary" aria-hidden />
+          <Heart className="size-4 fill-current text-red-500 dark:text-red-400" aria-hidden />
           Favourites only
         </label>
         <label className="flex items-center gap-2 text-sm">

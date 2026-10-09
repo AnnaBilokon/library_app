@@ -27,7 +27,7 @@ import { BOOK_STATUSES, type Book, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookForm, type BookFormSuggestions } from "./book-form";
 import { RatingStars } from "./rating-stars";
-import { DnfDialog } from "./reading-tools";
+import { DnfDialog, FinishDialog } from "./reading-tools";
 import { STATUS_ICON } from "./status-badge";
 
 /**
@@ -40,6 +40,7 @@ export function BookQuickControls({ book }: { book: Book }) {
   const [rating, setOptimisticRating] = useOptimistic(book.rating ?? null);
   const [favorite, setOptimisticFavorite] = useOptimistic(book.favorite);
   const [dnfOpen, setDnfOpen] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
 
   const changeStatus = (next: BookStatus) =>
     startTransition(async () => {
@@ -47,7 +48,6 @@ export function BookQuickControls({ book }: { book: Book }) {
       const r = await setBookStatus(book.id, next, todayLocal());
       if (!r.ok) toast.error(r.error);
       else if (next === "reading" && book.status !== "paused") toast.success("Started today. You can change the date below.");
-      else if (next === "finished") toast.success("Finished today. You can change the date below.");
     });
 
   const changeRating = (next: number | null) =>
@@ -77,7 +77,8 @@ export function BookQuickControls({ book }: { book: Book }) {
               role="radio"
               aria-checked={active}
               // "Did not finish" first asks where you stopped and why.
-              onClick={() => !active && (s === "abandoned" ? setDnfOpen(true) : changeStatus(s))}
+              // "Finished" asks for the dates and a rating; "Did not finish" asks where you stopped and why.
+              onClick={() => !active && (s === "abandoned" ? setDnfOpen(true) : s === "finished" ? setFinishOpen(true) : changeStatus(s))}
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium ring-1 ring-border transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                 active && "bg-primary text-primary-foreground ring-primary hover:bg-primary",
@@ -97,7 +98,7 @@ export function BookQuickControls({ book }: { book: Book }) {
           onClick={toggleFavorite}
           className={cn(
             "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-muted-foreground ring-1 ring-border transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-            favorite && "text-primary ring-primary dark:text-highlight dark:ring-highlight",
+            favorite && "text-red-700 ring-red-500 dark:text-red-400 dark:ring-red-400",
           )}
         >
           <Heart className={cn("size-4", favorite && "fill-current")} aria-hidden />
@@ -105,6 +106,7 @@ export function BookQuickControls({ book }: { book: Book }) {
         </button>
       </div>
       <DnfDialog book={book} open={dnfOpen} onOpenChange={setDnfOpen} />
+      <FinishDialog book={book} open={finishOpen} onOpenChange={setFinishOpen} />
     </div>
   );
 }
