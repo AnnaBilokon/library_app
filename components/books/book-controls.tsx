@@ -27,6 +27,7 @@ import { BOOK_STATUSES, type Book, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookForm, type BookFormSuggestions } from "./book-form";
 import { RatingStars } from "./rating-stars";
+import { DnfDialog } from "./reading-tools";
 import { STATUS_ICON } from "./status-badge";
 
 /**
@@ -38,6 +39,7 @@ export function BookQuickControls({ book }: { book: Book }) {
   const [status, setOptimisticStatus] = useOptimistic(book.status);
   const [rating, setOptimisticRating] = useOptimistic(book.rating ?? null);
   const [favorite, setOptimisticFavorite] = useOptimistic(book.favorite);
+  const [dnfOpen, setDnfOpen] = useState(false);
 
   const changeStatus = (next: BookStatus) =>
     startTransition(async () => {
@@ -74,7 +76,8 @@ export function BookQuickControls({ book }: { book: Book }) {
               type="button"
               role="radio"
               aria-checked={active}
-              onClick={() => !active && changeStatus(s)}
+              // "Did not finish" first asks where you stopped and why.
+              onClick={() => !active && (s === "abandoned" ? setDnfOpen(true) : changeStatus(s))}
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium ring-1 ring-border transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                 active && "bg-primary text-primary-foreground ring-primary hover:bg-primary",
@@ -101,6 +104,7 @@ export function BookQuickControls({ book }: { book: Book }) {
           {favorite ? "Favourite" : "Add to favourites"}
         </button>
       </div>
+      <DnfDialog book={book} open={dnfOpen} onOpenChange={setDnfOpen} />
     </div>
   );
 }

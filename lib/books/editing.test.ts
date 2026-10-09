@@ -59,7 +59,7 @@ describe("bookInputSchema + bookInputToRow", () => {
 describe("readingInputSchema", () => {
   it("drops the finish date for a reading in progress", () => {
     expect(readingInputSchema.safeParse({ startedAt: "2024-01-01", finishedAt: "2024-02-01", outcome: "in-progress" }).success).toBe(false);
-    expect(readingInputToRow(readingInputSchema.parse({ startedAt: "2024-01-01", outcome: "in-progress" }))).toEqual({
+    expect(readingInputToRow(readingInputSchema.parse({ startedAt: "2024-01-01", outcome: "in-progress" }))).toMatchObject({
       started_at: "2024-01-01",
       finished_at: null,
       outcome: null,
@@ -82,9 +82,9 @@ describe("planStatusChange", () => {
     expect(planStatusChange([done], "finished", today)).toEqual({ insert: { startedAt: null, finishedAt: today, outcome: "finished" } });
   });
 
-  it("records abandoning only for an open reading; to-read and paused record nothing", () => {
+  it("records not finishing (closing the open reading, or a new one); to-read and paused record nothing", () => {
     expect(planStatusChange([open], "abandoned", today)).toEqual({ update: { id: "r2", finishedAt: today, outcome: "abandoned" } });
-    expect(planStatusChange([done], "abandoned", today)).toEqual({});
+    expect(planStatusChange([done], "abandoned", today)).toEqual({ insert: { startedAt: null, finishedAt: today, outcome: "abandoned" } });
     expect(planStatusChange([open], "paused", today)).toEqual({});
     expect(planStatusChange([open], "to-read", today)).toEqual({});
   });
@@ -92,5 +92,32 @@ describe("planStatusChange", () => {
   it("finds the latest open reading", () => {
     expect(openReading([done, open])?.id).toBe("r2");
     expect(openReading([done])).toBeUndefined();
+  });
+});
+
+describe("reading progress and did-not-finish details", () => {
+  it("keeps progress and the reason for a DNF reading", () => {
+    const row = readingInputToRow(
+      readingInputSchema.parse({ outcome: "abandoned", finishedAt: "2026-10-01", progress: { mode: "page", value: 120 }, stopReason: " Too slow " }),
+    );
+    expect(row).toMatchObject({ outcome: "abandoned", progress_page: 120, progress_percent: null, stop_reason: "Too slow" });
+  });
+
+  it("stores a percentage for a reading in progress, and clears it when finished", () => {
+    expect(readingInputToRow(readingInputSchema.parse({ outcome: "in-progress", progress: { mode: "percent", value: 40 } }))).toMatchObject({
+      progress_page: null,
+      progress_percent: 40,
+      stop_reason: null,
+    });
+    expect(readingInputToRow(readingInputSchema.parse({ outcome: "finished", progress: { mode: "page", value: 10 }, stopReason: "x" }))).toMatchObject({
+      progress_page: null,
+      progress_percent: null,
+      stop_reason: null,
+    });
+  });
+
+  it("rejects impossible progress", () => {
+    expect(readingInputSchema.safeParse({ outcome: "in-progress", progress: { mode: "percent", value: 120 } }).success).toBe(false);
+    expect(readingInputSchema.safeParse({ outcome: "in-progress", progress: { mode: "page", value: 1.5 } }).success).toBe(false);
   });
 });

@@ -37,6 +37,8 @@ export interface BookFilters {
   series: string | null;
   owned: boolean | null;
   favorite: boolean | null;
+  /** Only books read more than once. */
+  reread: boolean | null;
   ratingMin: number | null;
   ratingMax: number | null;
   finishedYear: number | null;
@@ -56,6 +58,7 @@ export const EMPTY_FILTERS: BookFilters = {
   series: null,
   owned: null,
   favorite: null,
+  reread: null,
   ratingMin: null,
   ratingMax: null,
   finishedYear: null,
@@ -92,6 +95,7 @@ export function filterBooks(books: Book[], f: BookFilters): Book[] {
     if (f.series && b.series !== f.series) return false;
     if (f.owned !== null && b.owned !== f.owned) return false;
     if (f.favorite !== null && b.favorite !== f.favorite) return false;
+    if (f.reread && b.timesRead < 2) return false;
     if (!within(b.rating, f.ratingMin, f.ratingMax)) return false;
     if (!within(b.pages, f.pagesMin, f.pagesMax)) return false;
     if (f.finishedYear !== null && !b.readings.some((r) => r.finishedAt?.startsWith(String(f.finishedYear))))

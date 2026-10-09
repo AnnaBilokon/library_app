@@ -10,6 +10,7 @@ export const DEFAULT_COLUMNS: Record<string, boolean> = {
   rating: false,
   owned: false,
   lastFinishedAt: false,
+  timesRead: false,
 };
 
 export function parseColumns(raw: string | undefined): Record<string, boolean> {

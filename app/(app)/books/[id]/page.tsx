@@ -6,6 +6,7 @@ import { ArrowLeft, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
 import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls } from "@/components/books/book-controls";
 import { ReadingHistory } from "@/components/books/reading-history";
+import { ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
@@ -91,6 +92,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
 
           {/* key: start fresh when the server sends new values (e.g. after editing) */}
           <BookQuickControls key={`${book.status}-${book.rating}-${book.favorite}`} book={book} />
+          <RereadControls book={book} />
 
           <div className="flex flex-wrap gap-2">
             <BookQueueButton book={book} />
@@ -118,7 +120,11 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
           </div>
         )}
 
-        <ReadingHistory bookId={book.id} readings={book.readings} />
+        {(book.status === "reading" || book.status === "paused") && (
+          <ProgressPanel key={book.readings.map((r) => `${r.id}:${r.progressPage}:${r.progressPercent}`).join()} book={book} />
+        )}
+        <ReviewSection key={book.review ?? ""} book={book} />
+        <ReadingHistory bookId={book.id} readings={book.readings} totalPages={book.pages} />
         <Details book={book} />
 
         {book.notes && (

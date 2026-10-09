@@ -50,11 +50,24 @@ export const bookInputSchema = z
 export type BookFormValues = z.input<typeof bookInputSchema>;
 export type BookInput = z.output<typeof bookInputSchema>;
 
+/** Progress as a page number or a percentage (never both). */
+export const progressSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("page"), value: z.number().int("Whole pages only.").min(0).max(100_000) }),
+  z.object({ mode: z.literal("percent"), value: z.number().min(0).max(100, "At most 100%.") }),
+]);
+export type ProgressInput = z.infer<typeof progressSchema>;
+
+export const stopReasonSchema = z.string().trim().max(2000).optional();
+export const reviewSchema = z.string().trim().max(20_000);
+
 export const readingInputSchema = z
   .object({
     startedAt: isoDate.optional().or(z.literal("")),
     finishedAt: isoDate.optional().or(z.literal("")),
     outcome: z.enum(["finished", "abandoned", "in-progress"]),
+    /** Current page (in progress) or where you stopped (did not finish). */
+    progress: progressSchema.nullable().optional(),
+    stopReason: stopReasonSchema,
   })
   .refine((v) => !v.startedAt || !v.finishedAt || v.finishedAt >= v.startedAt, {
     path: ["finishedAt"],
@@ -100,10 +113,22 @@ export function bookInputToRow(input: BookInput): BookRowUpdate {
   };
 }
 
+export function progressToRow(progress: ProgressInput | null | undefined): ReadingRowUpdate {
+  return {
+    progress_page: progress?.mode === "page" ? progress.value : null,
+    progress_percent: progress?.mode === "percent" ? progress.value : null,
+    progress_updated_at: progress ? new Date().toISOString() : null,
+  };
+}
+
 export function readingInputToRow(input: ReadingInput): ReadingRowUpdate {
+  const finished = input.outcome === "finished";
   return {
     started_at: orNull(input.startedAt),
     finished_at: input.outcome === "in-progress" ? null : orNull(input.finishedAt),
     outcome: input.outcome === "in-progress" ? null : input.outcome,
+    // A finished reading has no "where you are" or "why you stopped".
+    ...progressToRow(finished ? null : input.progress),
+    stop_reason: input.outcome === "abandoned" ? textOrNull(input.stopReason) : null,
   };
 }

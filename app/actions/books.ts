@@ -10,9 +10,18 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { LEAVES_QUEUE } from "@/lib/books/queue";
-import { planStatusChange } from "@/lib/books/reading-logic";
+import { openReading, planStatusChange } from "@/lib/books/reading-logic";
 import { getBook } from "@/lib/data/books";
-import { bookInputSchema, bookInputToRow, readingInputSchema, readingInputToRow } from "@/lib/schemas";
+import {
+  bookInputSchema,
+  bookInputToRow,
+  progressSchema,
+  progressToRow,
+  readingInputSchema,
+  readingInputToRow,
+  reviewSchema,
+  stopReasonSchema,
+} from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/server";
 import { BOOK_STATUSES } from "@/lib/types";
 
@@ -76,11 +85,26 @@ export async function updateBook(bookId: string, raw: unknown): Promise<ActionRe
   return ok(undefined);
 }
 
-/** Change status and record the matching reading dates (see planStatusChange). */
-export async function setBookStatus(bookId: string, status: string, today: string): Promise<ActionResult> {
+/**
+ * Change status and record the matching reading dates (see planStatusChange).
+ * For "did not finish", the dnf argument saves where you stopped and why.
+ */
+export async function setBookStatus(
+  bookId: string,
+  status: string,
+  today: string,
+  dnf?: { progress?: unknown; reason?: unknown },
+): Promise<ActionResult> {
   const user = await requireUser();
   const s = z.enum(BOOK_STATUSES).safeParse(status);
   if (!id.safeParse(bookId).success || !s.success || !isoDate.safeParse(today).success) return fail("Invalid input.");
+  const progress = progressSchema.nullable().optional().safeParse(dnf?.progress);
+  const reason = stopReasonSchema.safeParse(dnf?.reason ?? undefined);
+  if (!progress.success || !reason.success) return fail("Invalid input.");
+  const dnfColumns =
+    s.data === "abandoned" && dnf
+      ? { ...progressToRow(progress.data), stop_reason: reason.data?.trim() || null }
+      : {};
 
   const book = await getBook(bookId);
   if (!book) return fail("Unknown book.");
@@ -90,7 +114,7 @@ export async function setBookStatus(bookId: string, status: string, today: strin
   if (change.update) {
     const { error } = await supabase
       .from("readings")
-      .update({ finished_at: change.update.finishedAt, outcome: change.update.outcome })
+      .update({ finished_at: change.update.finishedAt, outcome: change.update.outcome, ...dnfColumns })
       .eq("id", change.update.id);
     if (error) return fail(dbError(error));
   }
@@ -101,6 +125,7 @@ export async function setBookStatus(bookId: string, status: string, today: strin
       started_at: change.insert.startedAt,
       finished_at: change.insert.finishedAt,
       outcome: change.insert.outcome,
+      ...dnfColumns,
     });
     if (error) return fail(dbError(error));
   }
@@ -236,6 +261,51 @@ export async function purgeBook(bookId: string): Promise<ActionResult> {
   const { error } = await supabase.from("books").delete().eq("id", bookId);
   if (error) return fail(dbError(error));
   if (book.cover_path) await supabase.storage.from("covers").remove([book.cover_path]);
+  refreshAll();
+  return ok(undefined);
+}
+
+// ───────────────────────── Progress & review ─────────────────────────
+
+/**
+ * Save where you are in the book. Logging progress on a book you haven't started yet starts a
+ * reading today and sets the status to Reading (and takes it out of Up next).
+ */
+export async function updateProgress(bookId: string, rawProgress: unknown, today: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const progress = progressSchema.safeParse(rawProgress);
+  if (!id.safeParse(bookId).success || !isoDate.safeParse(today).success) return fail("Invalid input.");
+  if (!progress.success) return fail(progress.error.issues[0]?.message ?? "Invalid progress.");
+
+  const book = await getBook(bookId);
+  if (!book) return fail("Unknown book.");
+  const supabase = await createClient();
+  const open = openReading(book.readings);
+
+  if (open) {
+    const { error } = await supabase.from("readings").update(progressToRow(progress.data)).eq("id", open.id);
+    if (error) return fail(dbError(error));
+  } else {
+    const { error } = await supabase
+      .from("readings")
+      .insert({ book_id: bookId, user_id: user.id, started_at: today, outcome: null, ...progressToRow(progress.data) });
+    if (error) return fail(dbError(error));
+  }
+  if (book.status !== "reading" && book.status !== "paused") {
+    const { error } = await supabase.from("books").update({ status: "reading", queue_position: null }).eq("id", bookId);
+    if (error) return fail(dbError(error));
+  }
+  refreshAll();
+  return ok(undefined);
+}
+
+export async function setReview(bookId: string, text: string): Promise<ActionResult> {
+  await requireUser();
+  const review = reviewSchema.safeParse(text);
+  if (!id.safeParse(bookId).success || !review.success) return fail("Invalid review.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("books").update({ review: review.data || null }).eq("id", bookId);
+  if (error) return fail(dbError(error));
   refreshAll();
   return ok(undefined);
 }

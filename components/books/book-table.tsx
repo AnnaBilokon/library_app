@@ -79,6 +79,7 @@ const columns = helper.columns([
   helper.accessor("format", { header: "Format", cell: ({ getValue }) => (getValue() ? FORMAT_LABEL[getValue()!] : "") }),
   helper.accessor("rating", { header: "Rating", cell: ({ getValue }) => (getValue() !== undefined ? `${getValue()} ★` : "") }),
   helper.accessor("owned", { header: "Owned", cell: ({ getValue }) => (getValue() ? "Yes" : "No") }),
+  helper.accessor("timesRead", { header: "Times read", cell: ({ getValue }) => (getValue() > 0 ? getValue() : "") }),
   helper.accessor("lastFinishedAt", { header: "Finished", cell: ({ getValue }) => (getValue() ? formatDate(getValue()!) : "") }),
   helper.accessor("acquiredAt", { header: "Added", cell: ({ getValue }) => (getValue() ? formatDate(getValue()!) : "") }),
 ]);

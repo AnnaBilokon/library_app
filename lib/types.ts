@@ -15,6 +15,13 @@ export interface Reading {
   startedAt?: string;
   finishedAt?: string;
   outcome?: ReadingOutcome;
+  /** Current page (open reading) or where you stopped (did not finish). */
+  progressPage?: number;
+  /** Same, as a percentage, when you track by % instead of pages. */
+  progressPercent?: number;
+  progressUpdatedAt?: string;
+  /** Why you stopped (did not finish). */
+  stopReason?: string;
 }
 
 /** A book as the app sees it (camelCase, no nulls). Built from DB rows in lib/books/mapping.ts. */
@@ -39,6 +46,8 @@ export interface Book {
   series?: string;
   seriesIndex?: number;
   notes?: string;
+  /** Your personal review. */
+  review?: string;
 
   owned: boolean;
   acquiredAt?: string;

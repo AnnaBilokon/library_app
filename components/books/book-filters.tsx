@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { Check, Heart } from "lucide-react";
+import { Check, Heart, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,11 @@ export function BookFiltersPanel({ filters, facets, onChange }: BookFiltersPanel
           <Checkbox checked={filters.favorite === true} onCheckedChange={(c) => onChange({ favorite: c ? true : null })} />
           <Heart className="size-4 text-primary" aria-hidden />
           Favourites only
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={filters.reread === true} onCheckedChange={(c) => onChange({ reread: c ? true : null })} />
+          <RotateCcw className="size-4 text-primary" aria-hidden />
+          Read more than once
         </label>
       </Section>
 

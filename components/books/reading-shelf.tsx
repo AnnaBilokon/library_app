@@ -6,6 +6,7 @@ import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookCard } from "./book-grid";
 import { QueueShelf } from "./queue-shelf";
+import { ShelfProgress } from "./reading-tools";
 
 type Tab = "reading" | "queue" | "paused";
 
@@ -77,7 +78,9 @@ function BookRow({ books, empty }: { books: Book[]; empty: React.ReactNode }) {
     <ul className="-mx-5 flex snap-x scroll-px-5 gap-5 overflow-x-auto px-5 pb-2 md:-mx-8 md:scroll-px-8 md:px-8">
       {books.map((book) => (
         <li key={book.id} className="w-32 shrink-0 snap-start sm:w-36">
-          <BookCard book={book} sizes="144px" priority />
+          <BookCard book={book} sizes="144px" priority hideProgress />
+          {/* key: start fresh when the saved progress changes */}
+          <ShelfProgress key={book.readings.map((r) => `${r.id}:${r.progressPage}:${r.progressPercent}`).join()} book={book} />
         </li>
       ))}
     </ul>
