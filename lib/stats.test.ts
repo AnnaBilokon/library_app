@@ -90,6 +90,16 @@ describe("stats", () => {
     expect(s.authors[0]).toEqual({ label: "Ліз Мур", count: 3 });
   });
 
+  it("tells what happened to books after reading", () => {
+    expect(computeStats(library, null).afterReading).toEqual({ kept: 3, forSale: 0, sold: 1, notOwned: 0 });
+    const shelf = [
+      book({ title: "Kept", readings: [read("2026-02-01")] }),
+      book({ title: "Selling", forSale: true, readings: [read("2026-02-02")] }),
+      book({ title: "Borrowed", owned: false, readings: [read("2026-02-03")] }),
+    ];
+    expect(computeStats(shelf, 2026).afterReading).toEqual({ kept: 1, forSale: 1, sold: 0, notOwned: 1 });
+  });
+
   it("works out pace from readings with both dates", () => {
     const s = computeStats(library, null);
     expect(s.pace?.count).toBe(2);

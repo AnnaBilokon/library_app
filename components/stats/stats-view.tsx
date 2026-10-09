@@ -129,9 +129,9 @@ export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }
             </div>
           </div>
 
-          {(s.languages.length > 1 || s.formats.length > 1) && (
-            <div className="grid gap-6 lg:grid-cols-2">
-              {s.languages.length > 1 && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <AfterReading stats={s} scope={scope} />
+            {s.languages.length > 1 && (
                 <Card title="Languages" subtitle={`Books you finished (${scope})`}>
                   <BarList rows={s.languages.map((l) => ({ key: l.label, label: languageLabel(l.label), value: l.count }))} />
                 </Card>
@@ -141,11 +141,33 @@ export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }
                   <BarList rows={s.formats.map((f) => ({ key: f.label, label: FORMAT_LABEL[f.label as BookFormat] ?? f.label, value: f.count }))} />
                 </Card>
               )}
-            </div>
-          )}
+          </div>
         </>
       )}
     </div>
+  );
+}
+
+/** Of the books you read: how many stayed on your shelf, wait on the sell shelf, or were sold. */
+function AfterReading({ stats: s, scope }: { stats: Stats; scope: string }) {
+  const a = s.afterReading;
+  const owned = a.kept + a.forSale + a.sold;
+  const keptShare = owned ? Math.round((a.kept / owned) * 100) : null;
+  const rows = [
+    { key: "kept", label: "Stayed on your shelf", value: a.kept, href: libraryUrl({ status: ["finished"], owned: true, finishedYear: s.year }) },
+    { key: "forSale", label: "On the sell shelf", value: a.forSale, href: "/sell" },
+    { key: "sold", label: "Sold", value: a.sold, href: "/sell" },
+    ...(a.notOwned ? [{ key: "notOwned", label: "Not yours (borrowed or given away)", value: a.notOwned }] : []),
+  ];
+  return (
+    <Card title="After reading" subtitle={`What happened to the books you finished (${scope})`}>
+      {keptShare !== null && (
+        <p className="text-2xl font-semibold">
+          {keptShare}% <span className="text-sm font-normal text-muted-foreground">of the books you owned stayed on your shelf</span>
+        </p>
+      )}
+      <BarList rows={rows} />
+    </Card>
   );
 }
 
@@ -274,7 +296,7 @@ function BarList({ rows, empty }: { rows: BarRow[]; empty?: string }) {
               </span>
             </div>
             <div className="h-2 rounded-full bg-muted" aria-hidden>
-              <div className="h-full rounded-full bg-(--chart-actual)" style={{ width: `${(r.value / max) * 100}%` }} />
+              <div className="h-full rounded-full bg-chart-actual" style={{ width: `${(r.value / max) * 100}%` }} />
             </div>
           </li>
         );
