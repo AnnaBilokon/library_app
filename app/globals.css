@@ -309,3 +309,70 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Book battle bracket. A group is a column of inputs joined by a "]" into one output:
+ * each input draws a stub and its share of the vertical bar, and the output draws the line in
+ * with an arrowhead. Logical properties (inline-start/end) make dir="rtl" mirror it for free.
+ */
+@layer components {
+  .bracket {
+    --bracket-line: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+  }
+  .bracket-in {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--bracket-gap, 1rem);
+  }
+  .bracket-in > * {
+    position: relative;
+    padding-inline-end: 0.875rem;
+  }
+  .bracket-in > *::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: 0;
+    top: 50%;
+    width: 0.875rem;
+    border-top: 2px solid var(--bracket-line);
+  }
+  .bracket-in > *::before {
+    content: "";
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(var(--bracket-gap, 1rem) / -2);
+    bottom: calc(var(--bracket-gap, 1rem) / -2);
+    border-inline-end: 2px solid var(--bracket-line);
+  }
+  .bracket-in > *:first-child::before {
+    top: calc(50% - 1px);
+  }
+  .bracket-in > *:last-child::before {
+    bottom: calc(50% - 1px);
+  }
+  .bracket-in > *:only-child::before {
+    display: none;
+  }
+  .bracket-out {
+    position: relative;
+    padding-inline-start: 1.25rem;
+  }
+  .bracket-out::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    width: 0.9rem;
+    border-top: 2px solid var(--bracket-line);
+  }
+  .bracket-out::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(0.9rem - 1px);
+    top: calc(50% + 1px);
+    translate: 0 -50%;
+    border-block: 5px solid transparent;
+    border-inline-start: 6px solid var(--bracket-line);
+  }
+}
