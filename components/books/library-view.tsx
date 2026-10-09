@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
+import Link from "next/link";
 import { debounce, useQueryStates } from "nuqs";
 import { ArrowDownUp, LayoutGrid, Rows3, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,9 +47,11 @@ interface LibraryViewProps {
   books: Book[];
   initialLayout: LibraryLayout;
   initialColumns: Record<string, boolean>;
+  /** Wishlist books left out of the Library. */
+  wishlistCount?: number;
 }
 
-export function LibraryView({ books, initialLayout, initialColumns }: LibraryViewProps) {
+export function LibraryView({ books, initialLayout, initialColumns, wishlistCount = 0 }: LibraryViewProps) {
   // Like a reactive `route.query` in Nuxt: reading and writing these updates the URL,
   // so a filtered view survives a refresh and can be shared as a link.
   const [params, setParams] = useQueryStates(libraryParams, { urlKeys: libraryUrlKeys });
@@ -170,6 +173,14 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
           <p className="text-sm text-muted-foreground" aria-live="polite">
             {results.length === books.length ? `${books.length} books` : `${results.length} of ${books.length} books`}
             {" · "}sorted by {SORT_LABEL[sort].toLowerCase()}
+            {wishlistCount > 0 && (
+              <>
+                {" · "}
+                <Link href="/wishlist" className="underline-offset-4 hover:text-foreground hover:underline">
+                  {wishlistCount} on your wishlist
+                </Link>
+              </>
+            )}
           </p>
           <ActiveFilters filters={filters} onChange={update} onClear={clearFilters} />
         </div>

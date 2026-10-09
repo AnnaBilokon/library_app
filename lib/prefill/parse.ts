@@ -41,7 +41,12 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 // ───────────────────────── small helpers ─────────────────────────
 
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", laquo: "«", raquo: "»", mdash: "—", ndash: "–", hellip: "…", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“" };
+const ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ensp: " ", emsp: " ", thinsp: " ", shy: "",
+  laquo: "«", raquo: "»", lsaquo: "‹", rsaquo: "›", bdquo: "„", sbquo: "‚", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“",
+  mdash: "—", ndash: "–", minus: "−", hellip: "…", bull: "•", middot: "·", prime: "′", Prime: "″",
+  copy: "©", reg: "®", trade: "™", deg: "°", times: "×", divide: "÷", sect: "§", para: "¶", numero: "№",
+};
 
 export function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, code: string) => {
@@ -61,6 +66,17 @@ const clean = (v: unknown): string | undefined => {
 
 const MARKETING = /(купити|замовляйте|замовити|інтернет-(магазин|книгарн)|доставка|вигідні ціни)/i;
 
+/** Shop badges and promo lines that aren't part of the book's blurb. */
+// (?!\p{L}) instead of \b, which only understands Latin letters.
+const BADGE =
+  /^(готується екранізація|екранізація|новинка|бестселер|хіт продажів|топ продажів|знижка|акція|розпродаж|передзамовлення|предзаказ|в наявності|немає в наявності|скоро у продажу|ексклюзив|подарунок)(?!\p{L})/iu;
+
+/** Paragraphs to drop: bullets or dashes on their own, and short shop badges like "Готується екранізація!". */
+export function isJunkParagraph(p: string): boolean {
+  if (/^[\s•·*\-–—|_~]+$/.test(p)) return true;
+  return p.length <= 60 && BADGE.test(p.replace(/^[^\p{L}]+/u, ""));
+}
+
 /** HTML or text → plain text with paragraphs; shop marketing blurbs are rejected. */
 export function cleanDescription(v: unknown): string | undefined {
   if (typeof v !== "string") return undefined;
@@ -72,7 +88,7 @@ export function cleanDescription(v: unknown): string | undefined {
   )
     .split(/\n{2,}/)
     .map((p) => p.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
+    .filter((p) => p && !isJunkParagraph(p))
     .join("\n\n");
   if (text.length < 60 || MARKETING.test(text.slice(0, 200))) return undefined;
   return text.length > 6000 ? `${text.slice(0, 6000).replace(/\s+\S*$/, "")}…` : text;

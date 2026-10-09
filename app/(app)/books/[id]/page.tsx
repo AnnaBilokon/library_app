@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
-import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls } from "@/components/books/book-controls";
+import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls, BookWishlistButton } from "@/components/books/book-controls";
 import { ReadingHistory } from "@/components/books/reading-history";
 import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -96,6 +96,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
 
           <div className="flex flex-wrap gap-2">
             <BookQueueButton book={book} />
+            <BookWishlistButton book={book} />
             <BookEditButton book={book} suggestions={buildSuggestions(all)} />
             <BookDeleteButton book={book} />
           </div>

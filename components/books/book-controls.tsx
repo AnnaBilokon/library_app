@@ -3,10 +3,11 @@
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, ListOrdered, ListPlus, Pencil, Pin, Trash2, X } from "lucide-react";
+import { Gift, Heart, ListOrdered, ListPlus, Pencil, Pin, ShoppingBag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { deleteBook, restoreBook, setBookStatus, setFavorite, setRating } from "@/app/actions/books";
 import { changeQueue } from "@/app/actions/queue";
+import { addToWishlist, markBought, removeFromWishlist } from "@/app/actions/wishlist";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -241,6 +242,51 @@ export function BookQueueButton({ book }: { book: Book }) {
         <DropdownMenuItem onClick={() => run("remove", "Removed from Up next")}>
           <X aria-hidden />
           Remove from Up next
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Put the book on the wishlist, or (once it's there) mark it bought or take it off. */
+export function BookWishlistButton({ book }: { book: Book }) {
+  const [pending, startTransition] = useTransition();
+  const run = (action: () => Promise<{ ok: boolean; error?: string }>, message: string) =>
+    startTransition(async () => {
+      const r = await action();
+      if (r.ok) toast.success(message);
+      else toast.error(r.error ?? "Couldn't save.");
+    });
+
+  if (!book.wanted) {
+    return (
+      <Button variant="outline" className="h-9 rounded-full px-4" disabled={pending} onClick={() => run(() => addToWishlist(book.id), "Added to your wishlist")}>
+        <Gift aria-hidden />
+        Add to wishlist
+      </Button>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" className="h-9 rounded-full px-4" disabled={pending} />}>
+        <Gift aria-hidden />
+        On wishlist
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-52">
+        {!book.owned && (
+          <DropdownMenuItem onClick={() => run(() => markBought(book.id, todayLocal()), "On your shelves now")}>
+            <ShoppingBag aria-hidden />
+            Bought it!
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem render={<Link href="/wishlist" />}>
+          <Gift aria-hidden />
+          Open the wishlist
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => run(() => removeFromWishlist(book.id), "Removed from the wishlist")}>
+          <X aria-hidden />
+          Remove from wishlist
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

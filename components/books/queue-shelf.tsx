@@ -95,7 +95,8 @@ export function QueueShelf({ queue }: { queue: Book[] }) {
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements }}>
+    // A fixed id keeps dnd-kit's accessibility ids the same on the server and in the browser.
+    <DndContext id="up-next-queue" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements }}>
       <SortableContext items={order} strategy={horizontalListSortingStrategy}>
         <ol
           className="-mx-5 flex gap-5 overflow-x-auto px-5 pt-1 pb-2 md:-mx-8 md:px-8"
