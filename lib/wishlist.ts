@@ -1,4 +1,4 @@
-import type { Book, WishPriority } from "@/lib/types";
+import { BOOK_STATUSES, type Book, type BookStatus, type WishPriority } from "@/lib/types";
 
 /** Where a wishlist book sits on the Wishlist page. */
 export type WishGroup = "inbox" | "most" | "maybe";
@@ -44,4 +44,13 @@ export function wishlistCost(books: Book[]): { currency: string; total: number; 
     totals.set(b.currency, t);
   }
   return [...totals].map(([currency, t]) => ({ currency, ...t }));
+}
+
+/** What the status buttons offer: "Wishlist" plus the reading statuses. */
+export type StatusChoice = BookStatus | "wishlist";
+export const STATUS_CHOICES: readonly StatusChoice[] = ["wishlist", ...BOOK_STATUSES];
+
+/** The status button that should look selected: a wishlist book shows "Wishlist". */
+export function statusChoice(book: Pick<Book, "wanted" | "status">): StatusChoice {
+  return book.wanted ? "wishlist" : book.status;
 }

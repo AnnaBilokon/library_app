@@ -93,7 +93,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           {/* key: start fresh when the server sends new values (e.g. after editing) */}
-          <BookQuickControls key={`${book.status}-${book.rating}-${book.favorite}`} book={book} />
+          <BookQuickControls key={`${book.status}-${book.wanted}-${book.rating}-${book.favorite}`} book={book} />
           <RereadControls book={book} />
 
           <div className="flex flex-wrap gap-2">

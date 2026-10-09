@@ -22,9 +22,10 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { STATUS_LABEL } from "@/lib/books/labels";
+import { STATUS_CHOICES, statusChoice, type StatusChoice } from "@/lib/wishlist";
 import type { QueueChange } from "@/lib/books/queue";
 import { todayLocal } from "@/lib/dates";
-import { BOOK_STATUSES, type Book, type BookStatus } from "@/lib/types";
+import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookForm, type BookFormSuggestions } from "./book-form";
 import { RatingStars } from "./rating-stars";
@@ -37,17 +38,20 @@ import { STATUS_ICON } from "./status-badge";
  */
 export function BookQuickControls({ book }: { book: Book }) {
   const [, startTransition] = useTransition();
-  const [status, setOptimisticStatus] = useOptimistic(book.status);
+  // "Wishlist" shows as a status too (it's the book's wishlist flag underneath).
+  const [status, setOptimisticStatus] = useOptimistic<StatusChoice>(statusChoice(book));
   const [rating, setOptimisticRating] = useOptimistic(book.rating ?? null);
   const [favorite, setOptimisticFavorite] = useOptimistic(book.favorite);
   const [dnfOpen, setDnfOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
 
-  const changeStatus = (next: BookStatus) =>
+  const changeStatus = (next: StatusChoice) =>
     startTransition(async () => {
       setOptimisticStatus(next);
       const r = await setBookStatus(book.id, next, todayLocal());
       if (!r.ok) toast.error(r.error);
+      else if (next === "wishlist") toast.success("Moved to your wishlist");
+      else if (book.wanted) toast.success("Moved from the wishlist to your library");
       else if (next === "reading" && book.status !== "paused") toast.success("Started today. You can change the date below.");
     });
 
@@ -68,8 +72,8 @@ export function BookQuickControls({ book }: { book: Book }) {
   return (
     <div className="flex flex-col gap-4">
       <div role="radiogroup" aria-label="Reading status" className="flex flex-wrap gap-1.5">
-        {BOOK_STATUSES.map((s) => {
-          const Icon = STATUS_ICON[s];
+        {STATUS_CHOICES.map((s) => {
+          const Icon = s === "wishlist" ? Gift : STATUS_ICON[s];
           const active = status === s;
           return (
             <button
@@ -77,7 +81,6 @@ export function BookQuickControls({ book }: { book: Book }) {
               type="button"
               role="radio"
               aria-checked={active}
-              // "Did not finish" first asks where you stopped and why.
               // "Finished" asks for the dates and a rating; "Did not finish" asks where you stopped and why.
               onClick={() => !active && (s === "abandoned" ? setDnfOpen(true) : s === "finished" ? setFinishOpen(true) : changeStatus(s))}
               className={cn(
@@ -86,7 +89,7 @@ export function BookQuickControls({ book }: { book: Book }) {
               )}
             >
               <Icon className="size-4" aria-hidden />
-              {STATUS_LABEL[s]}
+              {s === "wishlist" ? "Wishlist" : STATUS_LABEL[s]}
             </button>
           );
         })}

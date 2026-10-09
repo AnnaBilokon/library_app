@@ -17,7 +17,8 @@ import { FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
 import { normalizeIsbn } from "@/lib/isbn";
 import type { Prefill } from "@/lib/prefill/parse";
 import { bookInputSchema, type BookFormValues, type BookInput } from "@/lib/schemas";
-import { BOOK_FORMATS, BOOK_STATUSES, type Book } from "@/lib/types";
+import { BOOK_FORMATS, type Book } from "@/lib/types";
+import { STATUS_CHOICES, type StatusChoice } from "@/lib/wishlist";
 import { cn } from "@/lib/utils";
 import { BookCover } from "./book-cover";
 import { RatingStars } from "./rating-stars";
@@ -257,18 +258,24 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
                 control={control}
                 name="status"
                 render={({ field }) => (
-                  <Segmented
+                  <Segmented<StatusChoice>
                     label="Status"
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={BOOK_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+                    // "Wishlist" is the wishlist flag underneath: the book is wanted, not owned, and to read.
+                    value={wanted ? "wishlist" : field.value}
+                    onChange={(v) => {
+                      const toWishlist = v === "wishlist";
+                      form.setValue("wanted", toWishlist, { shouldDirty: true });
+                      if (toWishlist) form.setValue("owned", false, { shouldDirty: true });
+                      field.onChange(toWishlist ? "to-read" : v);
+                    }}
+                    options={STATUS_CHOICES.map((s) => ({ value: s, label: s === "wishlist" ? "Wishlist" : STATUS_LABEL[s] }))}
                   />
                 )}
               />
             )}
           </Field>
 
-          {!editing && status !== "to-read" && (
+          {!editing && !wanted && status !== "to-read" && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Started" error={errors.startedAt}>
                 {(id, d) => <Input id={id} type="date" {...register("startedAt")} aria-describedby={d} className="h-10" />}
@@ -415,24 +422,9 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
         </div>
       </Section>
 
-      <Section title="Wishlist">
-        <Controller
-          control={control}
-          name="wanted"
-          render={({ field }) => (
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <Checkbox
-                checked={Boolean(field.value)}
-                onCheckedChange={(c) => {
-                  field.onChange(Boolean(c));
-                  if (c) form.setValue("owned", false, { shouldDirty: true });
-                }}
-              />
-              On my wishlist (I want to buy it; it will only show on the Wishlist)
-            </label>
-          )}
-        />
-        {wanted && (
+      {wanted && (
+        <Section title="Wishlist details">
+          <p className="-mt-2 text-sm text-muted-foreground">This book will only show on your Wishlist until you mark it bought.</p>
           <div className="grid gap-5 sm:grid-cols-3">
             <Field label="Expected price (UAH)" error={errors.wishPrice}>
               {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("wishPrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
@@ -444,8 +436,8 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
               {(id) => <Input id={id} {...register("wishlistReason")} placeholder="Recommended by…" className="h-10" />}
             </Field>
           </div>
-        )}
-      </Section>
+        </Section>
+      )}
 
       <Section title="Notes">
         <Textarea {...register("notes")} rows={5} placeholder="Thoughts, quotes, who recommended it…" aria-label="Notes" className="text-base" />

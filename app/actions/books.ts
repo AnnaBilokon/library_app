@@ -120,6 +120,7 @@ async function syncBookRating(supabase: Awaited<ReturnType<typeof createClient>>
  */
 export async function setBookStatus(bookId: string, status: string, today: string, details?: unknown): Promise<ActionResult> {
   const user = await requireUser();
+  if (status === "wishlist") return moveToWishlist(bookId);
   const s = z.enum(BOOK_STATUSES).safeParse(status);
   if (!id.safeParse(bookId).success || !s.success || !isoDate.safeParse(today).success) return fail("Invalid input.");
   const d = statusDetailsSchema.optional().safeParse(details);
@@ -164,15 +165,33 @@ export async function setBookStatus(bookId: string, status: string, today: strin
     });
     if (error) return fail(dbError(error));
   }
-  // Starting or finishing a book takes it out of the "Up next" queue.
+  // Starting or finishing a book takes it out of the "Up next" queue;
+  // any reading status takes a wishlist book back into your library.
   const leaves = LEAVES_QUEUE.has(s.data) && book.queuePosition !== undefined;
   const { error } = await supabase
     .from("books")
-    .update(leaves ? { status: s.data, queue_position: null } : { status: s.data })
+    .update({
+      status: s.data,
+      ...(leaves ? { queue_position: null } : {}),
+      ...(book.wanted ? { wanted: false, priority: null } : {}),
+    })
     .eq("id", bookId);
   if (error) return fail(dbError(error));
   if (s.data === "finished" && extra?.rating) await syncBookRating(supabase, bookId);
 
+  refreshAll();
+  return ok(undefined);
+}
+
+/** The "Wishlist" status: the book moves to the Wishlist only (not owned, not in Up next). */
+async function moveToWishlist(bookId: string): Promise<ActionResult> {
+  if (!id.safeParse(bookId).success) return fail("Invalid input.");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("books")
+    .update({ wanted: true, owned: false, queue_position: null, status: "to-read" })
+    .eq("id", bookId);
+  if (error) return fail(dbError(error));
   refreshAll();
   return ok(undefined);
 }
