@@ -77,6 +77,21 @@ describe("sortBooks", () => {
     expect(titles(sortBooks(books, "pages", "desc"))).toEqual(["Емма", "Лісовий бог", "Абетка", "Dear Juliet"]);
   });
 
+  it("sorts by when a book joined the library, newest first (a bought wishlist book counts from the purchase)", () => {
+    const added = [
+      book({ title: "Imported, bought 2024", createdAt: "2024-03-02T12:00:00Z", acquiredAt: "2024-03-02" }),
+      book({ title: "Added today, bought long ago", createdAt: "2026-10-09T09:00:00Z", acquiredAt: "2019-01-01" }),
+      book({ title: "Wishlisted in May, bought in Sept", createdAt: "2026-05-01T10:00:00Z", acquiredAt: "2026-09-15" }),
+      book({ title: "Added in June", createdAt: "2026-06-01T10:00:00Z" }),
+    ];
+    expect(titles(sortBooks(added, "added", "desc"))).toEqual([
+      "Added today, bought long ago",
+      "Wishlisted in May, bought in Sept",
+      "Added in June",
+      "Imported, bought 2024",
+    ]);
+  });
+
   it("does not mutate its input", () => {
     const copy = [...books];
     sortBooks(books, "pages", "desc");
