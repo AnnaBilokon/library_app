@@ -3,10 +3,11 @@
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm, useWatch, type FieldError } from "react-hook-form";
-import { Heart, ImagePlus, Loader2, TriangleAlert } from "lucide-react";
+import { Controller, useForm, useWatch, type FieldError, type Path, type PathValue } from "react-hook-form";
+import { Heart, ImagePlus, Link2, Loader2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { createBook, updateBook, uploadCover } from "@/app/actions/books";
+import { importCoverFromUrl, prefillFromUrl } from "@/app/actions/prefill";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
 import { normalizeIsbn } from "@/lib/isbn";
+import type { Prefill } from "@/lib/prefill/parse";
 import { bookInputSchema, type BookFormValues, type BookInput } from "@/lib/schemas";
 import { BOOK_FORMATS, BOOK_STATUSES, type Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -110,15 +112,50 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
     const normalized = isbn ? normalizeIsbn(isbn) : null;
     if (normalized) {
       const sameIsbn = others.find((b) => b.isbn === normalized);
-      if (sameIsbn) return { book: sameIsbn, reason: "the same ISBN" };
+      // The database allows each ISBN only once per library, so this one blocks saving.
+      if (sameIsbn) return { book: sameIsbn, sameIsbn: true };
     }
     if (title.trim() && authors.length) {
       const key = duplicateKey({ title, authors });
       const same = others.find((b) => duplicateKey(b) === key);
-      if (same) return { book: same, reason: "the same title and author" };
+      if (same) return { book: same, sameIsbn: false };
     }
     return null;
   }, [suggestions.existing, book?.id, isbn, title, authors]);
+
+  // A cover found by "Fill from a link"; copied into Storage when the book is saved.
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
+  /**
+   * Puts details read from a web page into the form. For a new book everything found is used;
+   * when editing, only empty fields are filled, so nothing you typed is overwritten.
+   */
+  const applyPrefill = (p: Prefill): { filled: string[]; kept: string[] } => {
+    const filled: string[] = [];
+    const kept: string[] = [];
+    const isEmpty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0) || Number.isNaN(v);
+    const fill = <K extends Path<BookFormValues>>(name: K, value: PathValue<BookFormValues, K> | undefined, label: string) => {
+      if (isEmpty(value)) return;
+      if (editing && !isEmpty(form.getValues(name))) {
+        kept.push(label);
+        return;
+      }
+      form.setValue(name, value as PathValue<BookFormValues, K>, { shouldDirty: true, shouldValidate: true });
+      filled.push(label);
+    };
+    fill("title", p.title, "title");
+    fill("authors", p.authors, "authors");
+    fill("publisher", p.publisher, "publisher");
+    fill("publishedYear", p.publishedYear, "year");
+    fill("pages", p.pages, "pages");
+    fill("isbn", p.isbn, "ISBN");
+    if (p.language && !editing) form.setValue("language", p.language, { shouldDirty: true });
+    if (p.coverUrl && !coverFile) {
+      setCoverUrl(p.coverUrl);
+      filled.push("cover");
+    }
+    return { filled, kept };
+  };
 
   const onSubmit = (values: BookInput) =>
     startSaving(async () => {
@@ -133,6 +170,9 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
         fd.set("cover", coverFile);
         const upload = await uploadCover(bookId, fd);
         if (!upload.ok) toast.error(upload.error);
+      } else if (coverUrl) {
+        const imported = await importCoverFromUrl(bookId, coverUrl);
+        if (!imported.ok) toast.warning(imported.error);
       }
       toast.success(book ? "Saved" : `Added “${values.title}”`);
       if (book) onDone?.();
@@ -141,8 +181,21 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-8">
+      <PrefillFromLink onPrefill={applyPrefill} editing={editing} />
+
       <div className="grid gap-8 md:grid-cols-[11rem_1fr]">
-        <CoverPicker book={book} title={title} authors={authors} file={coverFile} onFile={setCoverFile} />
+        <CoverPicker
+          book={book}
+          title={title}
+          authors={authors}
+          file={coverFile}
+          linkedUrl={coverUrl}
+          onFile={(f) => {
+            setCoverFile(f);
+            if (f) setCoverUrl(null);
+          }}
+          onClearLinked={() => setCoverUrl(null)}
+        />
 
         <div className="flex min-w-0 flex-col gap-5">
           <Field label="Title" error={errors.title} required>
@@ -174,11 +227,14 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
             <p role="status" className="flex items-start gap-2 rounded-xl bg-accent p-3 text-sm">
               <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
-                You already have a book with {duplicate.reason}:{" "}
+                You already have a book with {duplicate.sameIsbn ? "this ISBN" : "the same title and author"}:{" "}
                 <a href={`/books/${duplicate.book.id}`} target="_blank" rel="noreferrer" className="font-medium underline">
                   {duplicate.book.title}
                 </a>
-                . You can still save it, e.g. for a second copy.
+                .{" "}
+                {duplicate.sameIsbn
+                  ? "Each ISBN can only be saved once. For a second copy, clear the ISBN field."
+                  : "You can still save it, e.g. for a second copy."}
               </span>
             </p>
           )}
@@ -352,7 +408,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
             Cancel
           </Button>
         )}
-        <Button type="submit" className="h-10 rounded-full px-6" disabled={saving}>
+        <Button type="submit" className="h-10 rounded-full px-6" disabled={saving || Boolean(duplicate?.sameIsbn)}>
           {saving && <Loader2 className="animate-spin" aria-hidden />}
           {editing ? "Save changes" : "Add book"}
         </Button>
@@ -363,6 +419,75 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet }: BookF
 
 const selectClass =
   "h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
+
+/** "Paste a link" box: reads a publisher's or shop's page and fills the form. */
+function PrefillFromLink({ onPrefill, editing }: { onPrefill: (p: Prefill) => { filled: string[]; kept: string[] }; editing: boolean }) {
+  const [url, setUrl] = useState("");
+  const [loading, startLoading] = useTransition();
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const inputId = useId();
+
+  const run = (link: string) => {
+    if (!link.trim()) return;
+    setMessage(null);
+    startLoading(async () => {
+      const r = await prefillFromUrl(link);
+      if (!r.ok) {
+        setMessage({ kind: "error", text: r.error });
+        return;
+      }
+      const { filled, kept } = onPrefill(r.data);
+      if (filled.length === 0) {
+        setMessage({ kind: "ok", text: `Nothing new on ${r.data.site}: your fields are already filled.` });
+        return;
+      }
+      const extra = kept.length ? ` Kept your ${kept.join(", ")}.` : "";
+      setMessage({ kind: "ok", text: `Filled from ${r.data.site}: ${filled.join(", ")}. Check it, then save.${extra}` });
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl bg-accent/70 p-4 dark:bg-accent/60">
+      <label htmlFor={inputId} className="flex items-center gap-2 text-sm font-medium">
+        <Link2 className="size-4" aria-hidden />
+        {editing ? "Fill in missing details from a link" : "Fill in from a link"}
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id={inputId}
+          type="url"
+          inputMode="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onPaste={(e) => {
+            // Pasting a link starts right away.
+            const text = e.clipboardData.getData("text").trim();
+            if (/^https?:\/\//i.test(text)) {
+              e.preventDefault();
+              setUrl(text);
+              run(text);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              run(url);
+            }
+          }}
+          placeholder="Paste the book's page from a publisher or bookshop"
+          className="h-10 bg-background"
+        />
+        <Button type="button" variant="secondary" className="h-10 rounded-full px-4" onClick={() => run(url)} disabled={loading || !url.trim()}>
+          {loading ? <Loader2 className="animate-spin" aria-hidden /> : null}
+          Fill in
+        </Button>
+      </div>
+      <p className={cn("text-xs", message?.kind === "error" ? "text-destructive" : "text-muted-foreground")} role={message ? "status" : undefined}>
+        {message?.text ?? "Works with most publishers (Лабораторія, Старий Лев, Віват, КСД…). Yakaboo and Наш формат block it."}
+      </p>
+    </div>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -457,13 +582,18 @@ function CoverPicker({
   title,
   authors,
   file,
+  linkedUrl,
   onFile,
+  onClearLinked,
 }: {
   book?: Book;
   title: string;
   authors: string[];
   file: File | null;
+  /** A cover found via "Fill from a link", not saved yet. */
+  linkedUrl: string | null;
   onFile: (f: File | null) => void;
+  onClearLinked: () => void;
 }) {
   const inputId = useId();
   // A temporary URL shows the chosen photo before it's uploaded.
@@ -479,7 +609,8 @@ function CoverPicker({
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
   }, []);
 
-  const src = file ? (preview ?? undefined) : book?.coverSrc;
+  const src = file ? (preview ?? undefined) : (linkedUrl ?? book?.coverSrc);
+  const pending = Boolean(file || linkedUrl);
 
   return (
     <div className="mx-auto flex w-36 flex-col gap-2 md:mx-0 md:w-full">
@@ -494,14 +625,20 @@ function CoverPicker({
           id={inputId}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/avif"
-          capture="environment"
           className="sr-only"
           onChange={(e) => choose(e.target.files?.[0] ?? null)}
         />
       </label>
-      {file && (
-        <button type="button" onClick={() => choose(null)} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
-          Keep the old cover
+      {pending && (
+        <button
+          type="button"
+          onClick={() => {
+            choose(null);
+            onClearLinked();
+          }}
+          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {book?.coverSrc ? "Keep the old cover" : "Remove this cover"}
         </button>
       )}
     </div>
