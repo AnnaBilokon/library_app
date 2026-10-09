@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
 import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls, BookWishlistButton } from "@/components/books/book-controls";
+import { BookCard } from "@/components/books/book-grid";
+import { AuthorLinks, PublisherLink } from "@/components/books/name-links";
 import { ReadingHistory } from "@/components/books/reading-history";
 import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { SellBanner, SellButton } from "@/components/selling/selling-controls";
@@ -13,8 +15,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
 import { libraryUrl } from "@/lib/books/library-url";
+import { sortBooks } from "@/lib/books/filters";
 import { buildSuggestions } from "@/lib/books/suggestions";
 import { getBook, getBooks } from "@/lib/data/books";
+import { inLibrary } from "@/lib/selling";
 import type { Book } from "@/lib/types";
 
 export async function generateMetadata({ params }: PageProps<"/books/[id]">): Promise<Metadata> {
@@ -63,15 +67,8 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
               {book.title}
             </h1>
             {book.authors.length > 0 && (
-              <p lang={book.language} className="text-xl text-muted-foreground">
-                {book.authors.map((a, i) => (
-                  <span key={a}>
-                    {i > 0 && ", "}
-                    <Link href={libraryUrl({ author: a })} className="hover:text-foreground hover:underline">
-                      {a}
-                    </Link>
-                  </span>
-                ))}
+              <p className="text-xl text-muted-foreground">
+                <AuthorLinks authors={book.authors} lang={book.language} />
               </p>
             )}
             {(book.genres.length > 0 || book.tags.length > 0) && (
@@ -142,6 +139,8 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
             </blockquote>
           </section>
         )}
+
+        <MoreBooks book={book} all={all} />
       </div>
     </article>
   );
@@ -154,11 +153,7 @@ function Details({ book }: { book: Book }) {
   };
   add(
     "Publisher",
-    book.publisher && (
-      <Link href={libraryUrl({ publisher: [book.publisher] })} className="hover:underline">
-        {book.publisher}
-      </Link>
-    ),
+    book.publisher && <PublisherLink publisher={book.publisher} />,
   );
   add("Published", book.publishedYear);
   add("Pages", book.pages);
@@ -190,6 +185,51 @@ function Details({ book }: { book: Book }) {
         ))}
       </dl>
     </section>
+  );
+}
+
+const SHELF_LIMIT = 12;
+
+/** Other books in your library by the same author(s) and from the same publisher, newest added first. */
+function MoreBooks({ book, all }: { book: Book; all: Book[] }) {
+  const library = sortBooks(
+    all.filter((b) => inLibrary(b) && b.id !== book.id),
+    "added",
+    "desc",
+  );
+  const shelves = [
+    ...book.authors.slice(0, 3).map((a) => ({
+      key: `author:${a}`,
+      title: `More by ${a}`,
+      href: libraryUrl({ author: a }),
+      books: library.filter((b) => b.authors.includes(a)),
+    })),
+    ...(book.publisher
+      ? [{ key: "publisher", title: `More from ${book.publisher}`, href: libraryUrl({ publisher: [book.publisher] }), books: library.filter((b) => b.publisher === book.publisher) }]
+      : []),
+  ].filter((s) => s.books.length > 0);
+  if (shelves.length === 0) return null;
+
+  return (
+    <>
+      {shelves.map((s) => (
+        <section key={s.key} aria-label={s.title} className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="font-heading text-2xl font-semibold text-heading">{s.title}</h2>
+            <Link href={s.href} className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+              {s.books.length > SHELF_LIMIT ? `See all ${s.books.length}` : s.books.length === 1 ? "1 book · open in Library" : `${s.books.length} books · open in Library`}
+            </Link>
+          </div>
+          <ul className="-mx-4 flex snap-x scroll-px-4 gap-5 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+            {s.books.slice(0, SHELF_LIMIT).map((b) => (
+              <li key={b.id} className="w-28 shrink-0 snap-start sm:w-32">
+                <BookCard book={b} sizes="128px" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </>
   );
 }
 

@@ -27,6 +27,7 @@ import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { COLUMNS_COOKIE } from "@/lib/books/layout";
 import { BookCover } from "./book-cover";
+import { AuthorLinks, PublisherLink } from "./name-links";
 import { StatusBadge } from "./status-badge";
 
 // Features, helper and columns live at module scope so they stay the same object between
@@ -69,10 +70,26 @@ const columns = helper.columns([
       </Link>
     ),
   }),
-  helper.accessor("authors", { header: "Author", cell: ({ getValue }) => getValue().join(", ") }),
+  helper.accessor("authors", {
+    header: "Author",
+    // The row opens the book; a click on a name opens that author's books instead.
+    cell: ({ getValue, row }) => (
+      <span onClick={(e) => e.stopPropagation()}>
+        <AuthorLinks authors={getValue()} lang={row.original.language} quiet />
+      </span>
+    ),
+  }),
   helper.accessor("status", { header: "Status", cell: ({ getValue }) => <StatusBadge status={getValue()} /> }),
   helper.accessor("genres", { header: "Genre", cell: ({ getValue }) => getValue().join(", ") }),
-  helper.accessor("publisher", { header: "Publisher" }),
+  helper.accessor("publisher", {
+    header: "Publisher",
+    cell: ({ getValue }) =>
+      getValue() ? (
+        <span onClick={(e) => e.stopPropagation()}>
+          <PublisherLink publisher={getValue()!} quiet />
+        </span>
+      ) : null,
+  }),
   helper.accessor("publishedYear", { header: "Year" }),
   helper.accessor("pages", { header: "Pages" }),
   helper.accessor("language", { header: "Language", cell: ({ getValue }) => (getValue() ? languageLabel(getValue()!) : "") }),
