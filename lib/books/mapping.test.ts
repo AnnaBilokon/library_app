@@ -11,6 +11,7 @@ function row(overrides: Partial<BookRowWithReadings> = {}): BookRowWithReadings 
     authors: ["Джейн Остін"],
     status: "finished",
     favorite: false,
+    for_sale: false,
     rating: null,
     cover_path: null,
     cover_url: null,
