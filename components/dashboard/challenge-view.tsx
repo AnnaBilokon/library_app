@@ -3,13 +3,16 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { Check, Loader2, Pencil, Target, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Pencil, Target, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
 import { toast } from "sonner";
 import { setYearlyGoal } from "@/app/actions/goals";
+import { BookCover } from "@/components/books/book-cover";
+import { RatingStars } from "@/components/books/rating-stars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { challengeYears, computeChallenge, type Challenge } from "@/lib/challenge";
+import { formatDate } from "@/lib/books/labels";
 import { libraryUrl } from "@/lib/books/library-url";
 import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
@@ -70,6 +73,8 @@ export function ChallengeView({ books, goals }: { books: Book[]; goals: Record<n
           <MonthlyChart months={c.months} planPerMonth={c.planPerMonth} />
         </ChartCard>
       </div>
+
+      <BooksRead books={books} year={c.year} />
 
       {/* The same numbers as a table, so nothing depends on reading a chart or hovering. */}
       <details className="group rounded-2xl bg-card p-5 ring-1 ring-border/60">
@@ -284,3 +289,64 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle: str
     </section>
   );
 }
+
+/** The books finished in the year, as a compact list grouped by month (collapsed until opened). */
+function BooksRead({ books, year }: { books: Book[]; year: number }) {
+  const entries = books
+    .flatMap((book) =>
+      book.readings
+        .filter((r) => r.outcome === "finished" && r.finishedAt?.startsWith(String(year)))
+        .map((reading) => ({ book, reading, date: reading.finishedAt! })),
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const byMonth = new Map<number, typeof entries>();
+  for (const e of entries) {
+    const m = Number(e.date.slice(5, 7)) - 1;
+    byMonth.set(m, [...(byMonth.get(m) ?? []), e]);
+  }
+
+  return (
+    <details className="group rounded-2xl bg-card p-5 ring-1 ring-border/60">
+      <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium">
+        <span>
+          Books read in {year} <span className="text-muted-foreground">({entries.length})</span>
+        </span>
+        <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      {entries.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">No finished books with a date in {year} yet.</p>
+      ) : (
+        <div className="mt-4 flex flex-col gap-5">
+          {[...byMonth].map(([month, list]) => (
+            <section key={month} aria-label={MONTH_NAMES[month]}>
+              <h4 className="mb-1 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+                {MONTH_NAMES[month]} · {list.length}
+              </h4>
+              <ul className="divide-y divide-border/60">
+                {list.map(({ book, reading, date }) => (
+                  <li key={reading.id}>
+                    <Link href={`/books/${book.id}`} className="flex items-center gap-3 rounded-md py-2 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none">
+                      <BookCover title={book.title} src={book.coverSrc} sizes="32px" className="w-8 shrink-0" compact />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span lang={book.language} className="truncate font-heading text-sm font-semibold text-heading">
+                          {book.title}
+                        </span>
+                        {book.authors.length > 0 && <span className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</span>}
+                      </span>
+                      <span className="hidden sm:block">
+                        <RatingStars value={reading.rating ?? book.rating} size="sm" />
+                      </span>
+                      <span className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{formatDate(date)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+    </details>
+  );
+}
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];

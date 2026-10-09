@@ -38,3 +38,24 @@ export function planStatusChange(readings: Reading[], status: BookStatus, today:
       return {};
   }
 }
+
+export interface ReadingRowLike {
+  outcome: ReadingOutcome | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+}
+
+/**
+ * The status a book's readings imply, so adding or editing reading dates keeps the status right:
+ * - a reading still going → Reading (or stays Paused if it was paused)
+ * - otherwise the most recent ended reading decides: Finished or Did not finish
+ * - no readings at all → the status stays as it is
+ */
+export function statusFromReadings(readings: ReadingRowLike[], current: BookStatus): BookStatus {
+  if (readings.length === 0) return current;
+  if (readings.some((r) => r.outcome === null)) return current === "paused" ? "paused" : "reading";
+  const when = (r: ReadingRowLike) => r.finished_at ?? r.started_at ?? r.created_at.slice(0, 10);
+  const latest = [...readings].sort((a, b) => when(b).localeCompare(when(a)) || b.created_at.localeCompare(a.created_at))[0];
+  return latest.outcome === "abandoned" ? "abandoned" : "finished";
+}

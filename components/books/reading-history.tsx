@@ -7,10 +7,10 @@ import { addReading, deleteReading, updateReading } from "@/app/actions/books";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDate } from "@/lib/books/labels";
+import { formatDate, STATUS_LABEL } from "@/lib/books/labels";
 import { progressInfo } from "@/lib/books/progress";
 import { readingInputSchema, type ReadingFormValues } from "@/lib/schemas";
-import type { Reading } from "@/lib/types";
+import type { BookStatus, Reading } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { RatingStars } from "./rating-stars";
 import { draftFrom, parseDraft, ProgressBar, ProgressField, type ProgressDraft } from "./reading-tools";
@@ -125,7 +125,8 @@ function Dot({ active }: { active?: boolean }) {
   );
 }
 
-type Result = { ok: true } | { ok: false; error: string };
+/** The book's status may change with its readings (e.g. a finished reading marks it Finished). */
+type Result = { ok: true; data?: { status: BookStatus | null } } | { ok: false; error: string };
 type Outcome = ReadingFormValues["outcome"];
 
 function ReadingEditor({
@@ -156,7 +157,8 @@ function ReadingEditor({
     startTransition(async () => {
       const r = await action();
       if (r.ok) {
-        toast.success(message);
+        const status = r.data?.status;
+        toast.success(status ? `${message} · status set to ${STATUS_LABEL[status]}` : message);
         onDone();
       } else toast.error(r.error);
     });
