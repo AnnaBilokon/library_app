@@ -20,6 +20,8 @@ export interface Prefill {
   isbn?: string;
   language?: string;
   coverUrl?: string;
+  /** The publisher's blurb, as plain text with blank lines between paragraphs. */
+  description?: string;
 }
 
 type Json = Record<string, unknown>;
@@ -56,6 +58,25 @@ const clean = (v: unknown): string | undefined => {
   const s = decodeEntities(String(v)).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return s || undefined;
 };
+
+const MARKETING = /(купити|замовляйте|замовити|інтернет-(магазин|книгарн)|доставка|вигідні ціни)/i;
+
+/** HTML or text → plain text with paragraphs; shop marketing blurbs are rejected. */
+export function cleanDescription(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const text = decodeEntities(
+    v
+      .replace(/<\s*br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6])>/gi, "\n\n")
+      .replace(/<[^>]+>/g, ""),
+  )
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
+  if (text.length < 60 || MARKETING.test(text.slice(0, 200))) return undefined;
+  return text.length > 6000 ? `${text.slice(0, 6000).replace(/\s+\S*$/, "")}…` : text;
+}
 
 const toInt = (v: unknown, min: number, max: number): number | undefined => {
   const m = String(v ?? "").match(/\d{1,4}/);
@@ -151,6 +172,7 @@ function fromBookLd(node: Json, base: string): Prefill {
     isbn: findIsbn(node.isbn) ?? findIsbn(node.gtin13),
     language: languageCode(node.inLanguage),
     coverUrl: absolute(node.image, base),
+    description: cleanDescription(node.description),
   };
 }
 
@@ -165,6 +187,7 @@ function fromProductLd(node: Json, base: string): Prefill {
     pages: toInt(prop(/сторін|pages/i), 1, 20000),
     isbn: findIsbn(node.isbn) ?? findIsbn(node.gtin13) ?? findIsbn(node.mpn) ?? findIsbn(prop(/isbn/i)),
     coverUrl: absolute(node.image, base),
+    description: cleanDescription(node.description),
   };
 }
 
@@ -198,6 +221,7 @@ function fromNextData(html: string, url: string): Prefill {
     publishedYear: yearOf(found.year),
     pages: toInt(found.qty_pages ?? found.pages, 1, 20000),
     isbn: findIsbn(found.isbn),
+    description: cleanDescription(found.description ?? found.annotation),
   };
 }
 
@@ -227,7 +251,16 @@ function fromSpecTable(html: string): Prefill {
     return candidates.sort((a, b) => Math.abs(a.index - anchor) - Math.abs(b.index - anchor))[0]?.value;
   };
 
+  // The blurb under an "Анотація" / "Опис" heading, up to the next section.
+  const start = lines.findIndex((l) => /^(анотація|опис|про книжку|про книгу)\s*:?$/i.test(l));
+  const blurb: string[] = [];
+  for (let i = start + 1; start >= 0 && i < lines.length && blurb.length < 30; i++) {
+    if (/^(характеристики|відгуки|рецензії|схожі|вам також|дивитися|читати|коментарі|доставка|оплата)/i.test(lines[i])) break;
+    blurb.push(lines[i]);
+  }
+
   return {
+    description: cleanDescription(blurb.join("\n\n")),
     authors: names(value(/автор(?:\(ка\)|ка|и|\(и\))?/)),
     publisher: clean(value(/видавництво|видавець/)),
     publishedYear: yearOf(value(/рік видання|рік/)),
@@ -249,6 +282,7 @@ function fromMeta(html: string, base: string): Prefill {
     authors: names(meta("book:author")),
     isbn: findIsbn(meta("book:isbn")) ?? findIsbn(image?.split("/").at(-1)),
     coverUrl: image,
+    description: cleanDescription(meta("og:description")),
   };
 }
 

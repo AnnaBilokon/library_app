@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Book } from "@/lib/types";
 
 const SELECT =
-  "*, readings(id, started_at, finished_at, outcome, created_at, progress_page, progress_percent, progress_updated_at, stop_reason)";
+  "*, readings(id, started_at, finished_at, outcome, created_at, progress_page, progress_percent, progress_updated_at, stop_reason, rating)";
 
 /**
  * All of the user's books (not in the trash). A personal library is small enough

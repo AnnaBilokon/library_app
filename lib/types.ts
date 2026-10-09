@@ -22,6 +22,8 @@ export interface Reading {
   progressUpdatedAt?: string;
   /** Why you stopped (did not finish). */
   stopReason?: string;
+  /** Your rating for this reading (re-reads can differ). */
+  rating?: number;
 }
 
 /** A book as the app sees it (camelCase, no nulls). Built from DB rows in lib/books/mapping.ts. */
@@ -48,6 +50,8 @@ export interface Book {
   notes?: string;
   /** Your personal review. */
   review?: string;
+  /** What the book is about (publisher's blurb or your own). */
+  description?: string;
 
   owned: boolean;
   acquiredAt?: string;

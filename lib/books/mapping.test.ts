@@ -27,6 +27,7 @@ function row(overrides: Partial<BookRowWithReadings> = {}): BookRowWithReadings 
     series_index: null,
     notes: null,
     review: null,
+    description: null,
     owned: true,
     acquired_at: null,
     purchase_price: null,
@@ -68,9 +69,9 @@ describe("rowToBook", () => {
     const book = rowToBook(
       row({
         readings: [
-          { id: "r2", started_at: "2025-01-01", finished_at: "2025-02-01", outcome: "finished", created_at: "2026-01-01", progress_page: null, progress_percent: null, progress_updated_at: null, stop_reason: null },
-          { id: "r1", started_at: "2023-01-01", finished_at: "2023-03-01", outcome: "finished", created_at: "2026-01-02", progress_page: null, progress_percent: null, progress_updated_at: null, stop_reason: null },
-          { id: "r3", started_at: null, finished_at: null, outcome: "finished", created_at: "2026-01-03", progress_page: null, progress_percent: null, progress_updated_at: null, stop_reason: null },
+          { id: "r2", started_at: "2025-01-01", finished_at: "2025-02-01", outcome: "finished", created_at: "2026-01-01", progress_page: null, progress_percent: null, progress_updated_at: null, stop_reason: null, rating: null },
+          { id: "r1", started_at: "2023-01-01", finished_at: "2023-03-01", outcome: "finished", created_at: "2026-01-02", progress_page: null, progress_percent: null, progress_updated_at: null, stop_reason: null, rating: null },
+          { id: "r3", started_at: null, finished_at: null, outcome: "finished", created_at: "2026-01-03", progress_page: null, progress_percent: null, progress_updated_at: null, stop_reason: null, rating: null },
         ],
       }),
       URL,

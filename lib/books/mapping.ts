@@ -4,7 +4,7 @@ import type { Book, Reading } from "@/lib/types";
 type BookRow = Database["public"]["Tables"]["books"]["Row"];
 type ReadingRow = Pick<
   Database["public"]["Tables"]["readings"]["Row"],
-  "id" | "started_at" | "finished_at" | "outcome" | "created_at" | "progress_page" | "progress_percent" | "progress_updated_at" | "stop_reason"
+  "id" | "started_at" | "finished_at" | "outcome" | "created_at" | "progress_page" | "progress_percent" | "progress_updated_at" | "stop_reason" | "rating"
 >;
 
 export type BookRowWithReadings = BookRow & { readings: ReadingRow[] };
@@ -29,6 +29,7 @@ export function rowToBook(row: BookRowWithReadings, supabaseUrl: string): Book {
       progressPercent: opt(r.progress_percent),
       progressUpdatedAt: opt(r.progress_updated_at),
       stopReason: opt(r.stop_reason),
+      rating: opt(r.rating),
     }));
 
   const finishDates = readings.map((r) => r.finishedAt).filter((d): d is string => Boolean(d));
@@ -54,6 +55,7 @@ export function rowToBook(row: BookRowWithReadings, supabaseUrl: string): Book {
     seriesIndex: opt(row.series_index),
     notes: opt(row.notes),
     review: opt(row.review),
+    description: opt(row.description),
     owned: row.owned,
     acquiredAt: opt(row.acquired_at),
     purchasePrice: opt(row.purchase_price),

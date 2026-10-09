@@ -37,6 +37,7 @@ export const bookInputSchema = z
     acquiredAt: isoDate.optional().or(z.literal("")),
     purchasePrice: optionalNumber(z.number().min(0)),
     notes: optionalText,
+    description: z.string().trim().max(20_000).optional(),
     /** Only used when creating a book: dates for its first reading. */
     startedAt: isoDate.optional().or(z.literal("")),
     finishedAt: isoDate.optional().or(z.literal("")),
@@ -68,6 +69,7 @@ export const readingInputSchema = z
     /** Current page (in progress) or where you stopped (did not finish). */
     progress: progressSchema.nullable().optional(),
     stopReason: stopReasonSchema,
+    rating: z.number().min(0.5).max(5).multipleOf(0.5).nullable().optional(),
   })
   .refine((v) => !v.startedAt || !v.finishedAt || v.finishedAt >= v.startedAt, {
     path: ["finishedAt"],
@@ -110,6 +112,7 @@ export function bookInputToRow(input: BookInput): BookRowUpdate {
     acquired_at: orNull(input.acquiredAt),
     purchase_price: input.purchasePrice ?? null,
     notes: textOrNull(input.notes),
+    description: textOrNull(input.description),
   };
 }
 
@@ -130,5 +133,7 @@ export function readingInputToRow(input: ReadingInput): ReadingRowUpdate {
     // A finished reading has no "where you are" or "why you stopped".
     ...progressToRow(finished ? null : input.progress),
     stop_reason: input.outcome === "abandoned" ? textOrNull(input.stopReason) : null,
+    // Only a reading that ended can be rated.
+    rating: input.outcome === "in-progress" ? null : (input.rating ?? null),
   };
 }
