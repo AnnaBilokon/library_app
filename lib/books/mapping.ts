@@ -60,6 +60,7 @@ export function rowToBook(row: BookRowWithReadings, supabaseUrl: string): Book {
     wishPrice: opt(row.wish_price),
     whereToBuy: opt(row.where_to_buy),
     wishlistReason: opt(row.wishlist_reason),
+    queuePosition: opt(row.queue_position),
     readings,
     lastFinishedAt: finishDates.sort().at(-1),
     timesRead: readings.filter((r) => r.outcome === "finished").length,

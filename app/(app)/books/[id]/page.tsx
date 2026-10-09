@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
-import { BookDeleteButton, BookEditButton, BookQuickControls } from "@/components/books/book-controls";
+import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls } from "@/components/books/book-controls";
 import { ReadingHistory } from "@/components/books/reading-history";
 import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
@@ -93,6 +93,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
           <BookQuickControls key={`${book.status}-${book.rating}-${book.favorite}`} book={book} />
 
           <div className="flex flex-wrap gap-2">
+            <BookQueueButton book={book} />
             <BookEditButton book={book} suggestions={buildSuggestions(all)} />
             <BookDeleteButton book={book} />
           </div>

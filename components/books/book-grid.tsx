@@ -28,8 +28,21 @@ export function BookGrid({ books, duplicateIds, priorityCount = 6 }: { books: Bo
   );
 }
 
-export function BookCard({ book, duplicate, priority, sizes = SIZES }: { book: Book; duplicate?: boolean; priority?: boolean; sizes?: string }) {
-  const ribbon = RIBBON[book.status];
+export function BookCard({
+  book,
+  duplicate,
+  priority,
+  sizes = SIZES,
+  hideRibbon,
+}: {
+  book: Book;
+  duplicate?: boolean;
+  priority?: boolean;
+  sizes?: string;
+  /** The Up next queue shows its own "Next read" ribbon instead. */
+  hideRibbon?: boolean;
+}) {
+  const ribbon = hideRibbon ? undefined : RIBBON[book.status];
   const meta = [book.genres[0], book.publishedYear].filter(Boolean).join(" · ");
 
   return (

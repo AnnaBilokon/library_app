@@ -38,6 +38,7 @@ export type Database = {
           published_year: number | null
           publisher: string | null
           purchase_price: number | null
+          queue_position: number | null
           rating: number | null
           sale_price: number | null
           series: string | null
@@ -76,6 +77,7 @@ export type Database = {
           published_year?: number | null
           publisher?: string | null
           purchase_price?: number | null
+          queue_position?: number | null
           rating?: number | null
           sale_price?: number | null
           series?: string | null
@@ -114,6 +116,7 @@ export type Database = {
           published_year?: number | null
           publisher?: string | null
           purchase_price?: number | null
+          queue_position?: number | null
           rating?: number | null
           sale_price?: number | null
           series?: string | null
@@ -195,7 +198,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reorder_queue: { Args: { ids: string[] }; Returns: undefined }
     }
     Enums: {
       book_format: "paper" | "ebook" | "audio"

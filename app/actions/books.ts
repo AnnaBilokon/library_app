@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { LEAVES_QUEUE } from "@/lib/books/queue";
 import { planStatusChange } from "@/lib/books/reading-logic";
 import { getBook } from "@/lib/data/books";
 import { bookInputSchema, bookInputToRow, readingInputSchema, readingInputToRow } from "@/lib/schemas";
@@ -103,7 +104,12 @@ export async function setBookStatus(bookId: string, status: string, today: strin
     });
     if (error) return fail(dbError(error));
   }
-  const { error } = await supabase.from("books").update({ status: s.data }).eq("id", bookId);
+  // Starting or finishing a book takes it out of the "Up next" queue.
+  const leaves = LEAVES_QUEUE.has(s.data) && book.queuePosition !== undefined;
+  const { error } = await supabase
+    .from("books")
+    .update(leaves ? { status: s.data, queue_position: null } : { status: s.data })
+    .eq("id", bookId);
   if (error) return fail(dbError(error));
 
   refreshAll();

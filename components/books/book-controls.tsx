@@ -1,10 +1,12 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, Pencil, Trash2 } from "lucide-react";
+import { Heart, ListOrdered, ListPlus, Pencil, Pin, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { deleteBook, restoreBook, setBookStatus, setFavorite, setRating } from "@/app/actions/books";
+import { changeQueue } from "@/app/actions/queue";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,8 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { STATUS_LABEL } from "@/lib/books/labels";
+import type { QueueChange } from "@/lib/books/queue";
 import { todayLocal } from "@/lib/dates";
 import { BOOK_STATUSES, type Book, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -174,5 +178,65 @@ export function BookDeleteButton({ book }: { book: Book }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Add the book to the "Up next" queue, pin it as the next read, or take it out. */
+export function BookQueueButton({ book }: { book: Book }) {
+  const [pending, startTransition] = useTransition();
+  const position = book.queuePosition;
+  if (book.status === "reading") return null;
+
+  const run = (change: QueueChange, message: string) =>
+    startTransition(async () => {
+      const r = await changeQueue(book.id, change);
+      if (r.ok) toast.success(message);
+      else toast.error(r.error);
+    });
+
+  if (position === undefined) {
+    return (
+      <div className="flex">
+        <Button variant="outline" className="h-9 rounded-l-full rounded-r-none px-4" disabled={pending} onClick={() => run("append", "Added to Up next")}>
+          <ListPlus aria-hidden />
+          Add to Up next
+        </Button>
+        <Button
+          variant="outline"
+          className="h-9 rounded-l-none rounded-r-full border-l-0 px-3"
+          disabled={pending}
+          onClick={() => run("pin", "Pinned as your next read")}
+          aria-label="Pin as my next read"
+          title="Pin as my next read"
+        >
+          <Pin aria-hidden />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" className="h-9 rounded-full px-4" disabled={pending} />}>
+        {position === 1 ? <Pin aria-hidden /> : <ListOrdered aria-hidden />}
+        {position === 1 ? "Next read" : `Up next · #${position}`}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-52">
+        {position !== 1 && (
+          <DropdownMenuItem onClick={() => run("pin", "Pinned as your next read")}>
+            <Pin aria-hidden />
+            Pin as next read
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem render={<Link href="/library" />}>
+          <ListOrdered aria-hidden />
+          Reorder the queue
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => run("remove", "Removed from Up next")}>
+          <X aria-hidden />
+          Remove from Up next
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
