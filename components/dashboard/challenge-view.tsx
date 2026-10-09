@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { Check, ChevronDown, Loader2, Pencil, Target, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
+import { Check, ChevronDown, LayoutGrid, Loader2, Pencil, Rows3, Target, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
 import { toast } from "sonner";
 import { setYearlyGoal } from "@/app/actions/goals";
 import { BookCover } from "@/components/books/book-cover";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { challengeYears, computeChallenge, type Challenge } from "@/lib/challenge";
 import { formatDate } from "@/lib/books/labels";
+import { BOOKS_READ_VIEW_COOKIE, type BooksReadView } from "@/lib/books/layout";
 import { libraryUrl } from "@/lib/books/library-url";
 import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
@@ -22,7 +23,16 @@ import { MonthlyChart, ProgressChart } from "./challenge-charts";
 const plural = (n: number, one: string, many: string) => `${n} ${Math.abs(n) === 1 ? one : many}`;
 const fmt = (n: number) => new Intl.NumberFormat("en-GB").format(n);
 
-export function ChallengeView({ books, goals }: { books: Book[]; goals: Record<number, number> }) {
+export function ChallengeView({
+  books,
+  goals,
+  initialBooksView = "list",
+}: {
+  books: Book[];
+  goals: Record<number, number>;
+  /** List or grid for "Books read", from a cookie. */
+  initialBooksView?: BooksReadView;
+}) {
   const today = todayLocal();
   const currentYear = Number(today.slice(0, 4));
   // The year lives in the URL (?year=2025), so a past year can be bookmarked.
@@ -54,6 +64,8 @@ export function ChallengeView({ books, goals }: { books: Book[]; goals: Record<n
 
       <Headline challenge={c} />
 
+      <BooksRead books={books} year={c.year} initialView={initialBooksView} />
+
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Pages read" value={fmt(c.pages)} />
         <StatTile label="Average per month" value={String(c.averagePerMonth)} />
@@ -73,8 +85,6 @@ export function ChallengeView({ books, goals }: { books: Book[]; goals: Record<n
           <MonthlyChart months={c.months} planPerMonth={c.planPerMonth} />
         </ChartCard>
       </div>
-
-      <BooksRead books={books} year={c.year} />
 
       {/* The same numbers as a table, so nothing depends on reading a chart or hovering. */}
       <details className="group rounded-2xl bg-card p-5 ring-1 ring-border/60">
@@ -290,8 +300,22 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle: str
   );
 }
 
-/** The books finished in the year, as a compact list grouped by month (collapsed until opened). */
-function BooksRead({ books, year }: { books: Book[]; year: number }) {
+/** Remember the list/grid choice so the server renders it next time. */
+function rememberBooksReadView(view: BooksReadView) {
+  document.cookie = `${BOOKS_READ_VIEW_COOKIE}=${view}; path=/; max-age=31536000; samesite=lax`;
+}
+
+/**
+ * The books finished in the year, grouped by month, as a compact list or a grid of small covers
+ * (collapsed until opened). The view choice is remembered in a cookie.
+ */
+function BooksRead({ books, year, initialView }: { books: Book[]; year: number; initialView: BooksReadView }) {
+  const [view, setView] = useState<BooksReadView>(initialView);
+  const choose = (next: BooksReadView) => {
+    rememberBooksReadView(next);
+    setView(next);
+  };
+
   const entries = books
     .flatMap((book) =>
       book.readings
@@ -307,9 +331,9 @@ function BooksRead({ books, year }: { books: Book[]; year: number }) {
 
   return (
     <details className="group rounded-2xl bg-card p-5 ring-1 ring-border/60">
-      <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium">
+      <summary className="flex cursor-pointer items-center justify-between gap-3 font-heading text-lg font-semibold text-heading">
         <span>
-          Books read in {year} <span className="text-muted-foreground">({entries.length})</span>
+          Books read in {year} <span className="font-sans text-sm font-normal text-muted-foreground">({entries.length})</span>
         </span>
         <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
       </summary>
@@ -317,30 +341,80 @@ function BooksRead({ books, year }: { books: Book[]; year: number }) {
         <p className="mt-4 text-sm text-muted-foreground">No finished books with a date in {year} yet.</p>
       ) : (
         <div className="mt-4 flex flex-col gap-5">
+          <div className="flex justify-end">
+            <div className="flex rounded-full bg-muted p-1" role="group" aria-label="View">
+              {(
+                [
+                  ["list", Rows3, "List"],
+                  ["grid", LayoutGrid, "Grid"],
+                ] as const
+              ).map(([value, Icon, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={view === value}
+                  onClick={() => choose(value)}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    view === value && "bg-background text-foreground shadow-sm",
+                  )}
+                >
+                  <Icon className="size-3.5" aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {[...byMonth].map(([month, list]) => (
             <section key={month} aria-label={MONTH_NAMES[month]}>
-              <h4 className="mb-1 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+              <h4 className="mb-2 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                 {MONTH_NAMES[month]} · {list.length}
               </h4>
-              <ul className="divide-y divide-border/60">
-                {list.map(({ book, reading, date }) => (
-                  <li key={reading.id}>
-                    <Link href={`/books/${book.id}`} className="flex items-center gap-3 rounded-md py-2 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none">
-                      <BookCover title={book.title} src={book.coverSrc} sizes="32px" className="w-8 shrink-0" compact />
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span lang={book.language} className="truncate font-heading text-sm font-semibold text-heading">
+              {view === "list" ? (
+                <ul className="divide-y divide-border/60">
+                  {list.map(({ book, reading, date }) => (
+                    <li key={reading.id}>
+                      <Link href={`/books/${book.id}`} className="flex items-center gap-3 rounded-md py-2 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none">
+                        <BookCover title={book.title} src={book.coverSrc} sizes="32px" className="w-8 shrink-0" compact />
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span lang={book.language} className="truncate font-heading text-sm font-semibold text-heading">
+                            {book.title}
+                          </span>
+                          {book.authors.length > 0 && <span className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</span>}
+                        </span>
+                        <span className="hidden sm:block">
+                          <RatingStars value={reading.rating ?? book.rating} size="sm" />
+                        </span>
+                        <span className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{formatDate(date)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 2xl:grid-cols-10">
+                  {list.map(({ book, reading, date }) => (
+                    <li key={reading.id}>
+                      <Link href={`/books/${book.id}`} className="group/book flex flex-col gap-1.5 rounded-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+                        <BookCover
+                          title={book.title}
+                          authors={book.authors}
+                          src={book.coverSrc}
+                          lang={book.language}
+                          sizes="(min-width: 1024px) 110px, (min-width: 640px) 18vw, 30vw"
+                          className="transition-transform group-hover/book:-translate-y-0.5"
+                        />
+                        <span lang={book.language} className="line-clamp-2 font-heading text-xs leading-snug font-semibold text-heading group-hover/book:underline">
                           {book.title}
                         </span>
-                        {book.authors.length > 0 && <span className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</span>}
-                      </span>
-                      <span className="hidden sm:block">
-                        <RatingStars value={reading.rating ?? book.rating} size="sm" />
-                      </span>
-                      <span className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{formatDate(date)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                        <span className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
+                          <RatingStars value={reading.rating ?? book.rating} size="sm" className="[&_svg]:size-3" />
+                          <span className="tabular-nums">{formatDate(date).replace(/ \d{4}$/, "")}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           ))}
         </div>
