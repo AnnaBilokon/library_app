@@ -63,6 +63,9 @@ export interface Money {
   total: number;
 }
 
+/** You started noting what you pay for books in September 2026; older prices are left out of spending. */
+export const SPENDING_SINCE = "2026-09-01";
+
 const inYear = (date: string | undefined, year: number | null) => year === null || (date?.startsWith(String(year)) ?? false);
 
 function finishedEntries(books: Book[], year: number | null): Entry[] {
@@ -157,7 +160,9 @@ export function computeStats(allBooks: Book[], year: number | null, topN = 8): S
       }
     : null;
 
-  const bought = books.filter((b) => b.purchasePrice !== undefined && (year === null || inYear(b.acquiredAt, year)));
+  // Spending counts by when the book joined your library, from SPENDING_SINCE on.
+  const boughtOn = (b: Book) => b.acquiredAt ?? b.createdAt.slice(0, 10);
+  const bought = books.filter((b) => b.purchasePrice !== undefined && boughtOn(b) >= SPENDING_SINCE && inYear(boughtOn(b), year));
   const sold = books.filter((b) => isSold(b) && inYear(b.soldAt, year));
 
   return {

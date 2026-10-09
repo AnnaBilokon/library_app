@@ -2,13 +2,14 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { FORMAT_LABEL, formatMoney, languageLabel } from "@/lib/books/labels";
 import { libraryUrl } from "@/lib/books/library-url";
-import type { Money, Stats } from "@/lib/stats";
+import { SPENDING_SINCE, type Money, type Stats } from "@/lib/stats";
 import type { BookFormat } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { TimelineChart } from "./stats-charts";
 
 const fmt = (n: number) => n.toLocaleString("en");
 const plural = (n: number, one: string, many: string) => `${fmt(n)} ${n === 1 ? one : many}`;
+const SPENDING_START = new Date(`${SPENDING_SINCE}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 const money = (m: Money[]) => (m.length ? m.map((x) => formatMoney(x.total, x.currency)).join(" + ") : "—");
 
 /** All-time (or one year's) reading: key numbers, books over time, ratings, genres, authors, pace, money. */
@@ -103,12 +104,16 @@ export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }
             </Card>
             <div className="flex flex-col gap-6">
               <PaceCard pace={s.pace} />
-              <Card title="Money" subtitle={s.year === null ? "All the prices you've noted" : `Bought and sold in ${s.year}`}>
+              <Card title="Money" subtitle={s.year === null ? "Everything you've noted" : `Bought and sold in ${s.year}`}>
                 <dl className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-0.5">
                     <dt className="text-sm text-muted-foreground">Spent on books</dt>
                     <dd className="text-2xl font-semibold">{money(s.money.spent)}</dd>
-                    <dd className="text-xs text-muted-foreground">{plural(s.money.spentBooks, "book", "books")} with a price</dd>
+                    <dd className="text-xs text-muted-foreground">
+                      {s.year !== null && s.year < Number(SPENDING_SINCE.slice(0, 4))
+                        ? `Counted from ${SPENDING_START}`
+                        : `${plural(s.money.spentBooks, "book", "books")} since ${SPENDING_START}`}
+                    </dd>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <dt className="text-sm text-muted-foreground">Earned from selling</dt>

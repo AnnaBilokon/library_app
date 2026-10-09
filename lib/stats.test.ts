@@ -28,7 +28,9 @@ const library = [
   book({ title: "E", genres: ["History"], status: "abandoned", readings: [read("2026-05-01", { outcome: "abandoned" })] }),
   book({ title: "Sold", genres: ["Romance"], rating: 1, owned: false, soldAt: "2026-06-01", salePrice: 120, readings: [read("2026-01-05", { startedAt: "2025-12-27" })] }),
   book({ title: "Wish", genres: ["Romance"], wanted: true, owned: false, status: "to-read" }),
-  book({ title: "Bought", genres: ["History"], status: "to-read", purchasePrice: 400, acquiredAt: "2026-04-01" }),
+  book({ title: "Bought", genres: ["History"], status: "to-read", purchasePrice: 400, acquiredAt: "2026-09-12" }),
+  book({ title: "Bought before prices", status: "to-read", purchasePrice: 999, acquiredAt: "2026-04-01" }),
+  book({ title: "Added with a price", status: "to-read", purchasePrice: 50, createdAt: "2026-10-02T09:00:00Z" }),
 ];
 
 describe("stats", () => {
@@ -97,8 +99,9 @@ describe("stats", () => {
     expect(computeStats([book({ readings: [read("2026-01-01")] })], null).pace).toBeNull();
   });
 
-  it("adds up money spent and earned", () => {
-    expect(computeStats(library, null).money).toEqual({ spent: [{ currency: "UAH", total: 400 }], spentBooks: 1, earned: [{ currency: "UAH", total: 120 }], soldBooks: 1 });
+  it("adds up money spent (from September 2026, when prices start) and earned", () => {
+    expect(computeStats(library, null).money).toEqual({ spent: [{ currency: "UAH", total: 450 }], spentBooks: 2, earned: [{ currency: "UAH", total: 120 }], soldBooks: 1 });
+    expect(computeStats(library, 2026).money.spent).toEqual([{ currency: "UAH", total: 450 }]);
     expect(computeStats(library, 2025).money).toEqual({ spent: [], spentBooks: 0, earned: [], soldBooks: 0 });
   });
 });
