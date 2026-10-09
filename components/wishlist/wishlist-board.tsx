@@ -143,6 +143,7 @@ export function WishlistBoard({ books }: { books: Book[] }) {
           }
         }}
       >
+        <WishlistTotal books={visible} />
         <DropZone group="inbox" count={inbox.length} cost={wishlistCost(inbox)} className="bg-accent/70 dark:bg-accent/60">
           {inbox.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing new. Add books from their page, or with “Add to wishlist” above.</p>
@@ -308,5 +309,24 @@ function WishCard({
         </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+/** One total across every wishlist book; moving books between boxes never changes it. */
+function WishlistTotal({ books }: { books: Book[] }) {
+  if (books.length === 0) return null;
+  const cost = wishlistCost(books);
+  const priced = cost.reduce((n, c) => n + c.priced, 0);
+  return (
+    <p className="-mb-2 text-sm text-muted-foreground">
+      <span className="font-semibold text-foreground">{books.length} {books.length === 1 ? "book" : "books"}</span> on your wishlist
+      {cost.length > 0 && (
+        <>
+          {" · about "}
+          <span className="font-semibold text-foreground">{cost.map((c) => formatMoney(c.total, c.currency)).join(" + ")}</span>
+          {priced < books.length && ` (${priced} of ${books.length} have a price)`}
+        </>
+      )}
+    </p>
   );
 }
