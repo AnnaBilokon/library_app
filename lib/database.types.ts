@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      book_battle_picks: {
+        Row: {
+          book_id: string
+          bracket: string
+          slot: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          book_id: string
+          bracket: string
+          slot: string
+          updated_at?: string
+          user_id?: string
+          year: number
+        }
+        Update: {
+          book_id?: string
+          bracket?: string
+          slot?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           acquired_at: string | null

@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { isActive, NAV_ITEMS } from "./nav-items";
 
+// Settings is in the account menu, which phones show in the top bar too.
+const TAB_ITEMS = NAV_ITEMS.filter((i) => i.href !== "/settings");
+
 /** Bottom tab bar for phones (hidden from the md breakpoint up). */
 export function MobileNav() {
   return (
@@ -29,7 +32,7 @@ function ActiveTabs() {
 function Tabs({ pathname }: { pathname: string | null }) {
   return (
     <ul className="grid grid-cols-6">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {TAB_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname !== null && isActive(href, pathname);
         return (
           <li key={href}>
