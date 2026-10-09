@@ -394,7 +394,14 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
             name="owned"
             render={({ field }) => (
               <label className="flex h-10 items-center gap-2 self-end text-sm font-medium">
-                <Checkbox checked={field.value} onCheckedChange={(c) => field.onChange(Boolean(c))} />
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(c) => {
+                    field.onChange(Boolean(c));
+                    // Owned and wishlist exclude each other: a book you own isn't one you still want to buy.
+                    if (c) form.setValue("wanted", false, { shouldDirty: true });
+                  }}
+                />
                 I own this book
               </label>
             )}
@@ -414,8 +421,14 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
           name="wanted"
           render={({ field }) => (
             <label className="flex items-center gap-2 text-sm font-medium">
-              <Checkbox checked={Boolean(field.value)} onCheckedChange={(c) => field.onChange(Boolean(c))} />
-              On my wishlist (I want to buy it)
+              <Checkbox
+                checked={Boolean(field.value)}
+                onCheckedChange={(c) => {
+                  field.onChange(Boolean(c));
+                  if (c) form.setValue("owned", false, { shouldDirty: true });
+                }}
+              />
+              On my wishlist (I want to buy it; it will only show on the Wishlist)
             </label>
           )}
         />

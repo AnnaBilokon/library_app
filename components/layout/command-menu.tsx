@@ -19,6 +19,8 @@ export interface CommandBook {
   id: string;
   title: string;
   authors: string[];
+  /** On the wishlist (not on your shelves). */
+  wanted?: boolean;
 }
 
 /** Ctrl/Cmd+K: jump to any page or book. */
@@ -80,6 +82,7 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
                   <span className="truncate">
                     {b.title}
                     {b.authors.length > 0 && <span className="text-muted-foreground"> · {b.authors.join(", ")}</span>}
+                    {b.wanted && <span className="text-muted-foreground"> · wishlist</span>}
                   </span>
                 </CommandItem>
               ))}
