@@ -39,7 +39,15 @@ export type Database = {
           user_id?: string
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "book_battle_picks_book_id_user_id_fkey"
+            columns: ["book_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
       }
       books: {
         Row: {
