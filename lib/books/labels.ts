@@ -5,7 +5,7 @@ export const STATUS_LABEL: Record<BookStatus, string> = {
   reading: "Reading",
   paused: "Paused",
   finished: "Finished",
-  abandoned: "Abandoned",
+  abandoned: "Did not finish",
 };
 
 export const FORMAT_LABEL: Record<BookFormat, string> = {

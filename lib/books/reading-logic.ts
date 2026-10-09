@@ -16,7 +16,8 @@ export function openReading(readings: Reading[]): Reading | undefined {
  * What to record when the status changes, so dates fill themselves in:
  * - Reading:   start a new reading today (unless one is already open, e.g. resuming from Paused).
  * - Finished:  close the open reading today; if there isn't one, record a reading finished today.
- * - Abandoned: close the open reading today as abandoned.
+ * - Did not finish: close the open reading today as abandoned; if there isn't one, record one,
+ *   so the page you stopped at and your reason have somewhere to live.
  * - To read / Paused: nothing to record.
  * `today` comes from the browser so it's the user's local date, not the server's.
  */
@@ -30,7 +31,9 @@ export function planStatusChange(readings: Reading[], status: BookStatus, today:
         ? { update: { id: open.id, finishedAt: today, outcome: "finished" } }
         : { insert: { startedAt: null, finishedAt: today, outcome: "finished" } };
     case "abandoned":
-      return open ? { update: { id: open.id, finishedAt: today, outcome: "abandoned" } } : {};
+      return open
+        ? { update: { id: open.id, finishedAt: today, outcome: "abandoned" } }
+        : { insert: { startedAt: null, finishedAt: today, outcome: "abandoned" } };
     default:
       return {};
   }

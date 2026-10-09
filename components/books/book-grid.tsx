@@ -3,7 +3,10 @@ import { Heart } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/books/labels";
 import type { Book, BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { progressInfo } from "@/lib/books/progress";
+import { openReading } from "@/lib/books/reading-logic";
 import { BookCover } from "./book-cover";
+import { ProgressBar } from "./reading-tools";
 
 const SIZES = "(min-width: 1536px) 13vw, (min-width: 1280px) 15vw, (min-width: 1024px) 18vw, (min-width: 768px) 23vw, (min-width: 640px) 30vw, 45vw";
 
@@ -44,6 +47,7 @@ export function BookCard({
 }) {
   const ribbon = hideRibbon ? undefined : RIBBON[book.status];
   const meta = [book.genres[0], book.publishedYear].filter(Boolean).join(" · ");
+  const progress = book.status === "reading" || book.status === "paused" ? progressInfo(openReading(book.readings), book.pages) : null;
 
   return (
     <Link href={`/books/${book.id}`} className="group flex flex-col gap-3 rounded-sm outline-none">
@@ -67,12 +71,27 @@ export function BookCard({
             {STATUS_LABEL[book.status]}
           </span>
         )}
+        {book.timesRead >= 2 && (
+          <span
+            className="absolute bottom-2 left-2 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur"
+            title={`Read ${book.timesRead} times`}
+          >
+            ×{book.timesRead}
+            <span className="sr-only"> read {book.timesRead} times</span>
+          </span>
+        )}
         {book.favorite && (
           <span className="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-background/90 text-primary shadow-sm backdrop-blur dark:text-highlight">
             <Heart className="size-3.5 fill-current" aria-label="Favourite" />
           </span>
         )}
       </div>
+      {progress && (
+        <div className="-mt-1 flex items-center gap-2 px-0.5">
+          <ProgressBar percent={progress.percent ?? 0} className="flex-1" />
+          <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{progress.percent !== undefined ? `${progress.percent}%` : progress.label}</span>
+        </div>
+      )}
       <div className="flex min-w-0 flex-col gap-0.5 px-0.5">
         <h3 lang={book.language} className="line-clamp-2 font-heading text-[15px] leading-snug font-semibold text-heading decoration-highlight decoration-2 underline-offset-4 group-hover:underline">
           {book.title}

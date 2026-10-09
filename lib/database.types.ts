@@ -40,6 +40,7 @@ export type Database = {
           purchase_price: number | null
           queue_position: number | null
           rating: number | null
+          review: string | null
           sale_price: number | null
           series: string | null
           series_index: number | null
@@ -79,6 +80,7 @@ export type Database = {
           purchase_price?: number | null
           queue_position?: number | null
           rating?: number | null
+          review?: string | null
           sale_price?: number | null
           series?: string | null
           series_index?: number | null
@@ -118,6 +120,7 @@ export type Database = {
           purchase_price?: number | null
           queue_position?: number | null
           rating?: number | null
+          review?: string | null
           sale_price?: number | null
           series?: string | null
           series_index?: number | null
@@ -141,7 +144,11 @@ export type Database = {
           finished_at: string | null
           id: string
           outcome: Database["public"]["Enums"]["reading_outcome"] | null
+          progress_page: number | null
+          progress_percent: number | null
+          progress_updated_at: string | null
           started_at: string | null
+          stop_reason: string | null
           updated_at: string
           user_id: string
         }
@@ -151,7 +158,11 @@ export type Database = {
           finished_at?: string | null
           id?: string
           outcome?: Database["public"]["Enums"]["reading_outcome"] | null
+          progress_page?: number | null
+          progress_percent?: number | null
+          progress_updated_at?: string | null
           started_at?: string | null
+          stop_reason?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -161,7 +172,11 @@ export type Database = {
           finished_at?: string | null
           id?: string
           outcome?: Database["public"]["Enums"]["reading_outcome"] | null
+          progress_page?: number | null
+          progress_percent?: number | null
+          progress_updated_at?: string | null
           started_at?: string | null
+          stop_reason?: string | null
           updated_at?: string
           user_id?: string
         }

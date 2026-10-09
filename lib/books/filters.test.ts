@@ -95,3 +95,10 @@ describe("facets and countActiveFilters", () => {
     expect(countActiveFilters({ ...EMPTY_FILTERS, q: "x", genre: ["a"], owned: false })).toBe(2);
   });
 });
+
+describe("re-read filter", () => {
+  it("keeps only books read more than once", () => {
+    const list = [book({ title: "Once", timesRead: 1 }), book({ title: "Twice", timesRead: 2 }), book({ title: "Never" })];
+    expect(titles(filterBooks(list, { ...EMPTY_FILTERS, reread: true }))).toEqual(["Twice"]);
+  });
+});

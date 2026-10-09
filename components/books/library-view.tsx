@@ -330,6 +330,7 @@ function ActiveFilters({
   if (filters.owned !== null)
     chips.push({ key: "owned", label: filters.owned ? "Owned" : "Not owned", remove: () => onChange({ owned: null }) });
   if (filters.favorite) chips.push({ key: "fav", label: "Favourites", remove: () => onChange({ favorite: null }) });
+  if (filters.reread) chips.push({ key: "rr", label: "Read more than once", remove: () => onChange({ reread: null }) });
   if (filters.finishedYear !== null)
     chips.push({ key: "year", label: `Finished in ${filters.finishedYear}`, remove: () => onChange({ finishedYear: null }) });
   if (filters.ratingMin !== null || filters.ratingMax !== null)
