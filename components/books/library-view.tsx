@@ -127,7 +127,7 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
                   </span>
                 )}
               </SheetTrigger>
-              <SheetContent side="right" className="w-full gap-0 sm:max-w-sm">
+              <SheetContent side="right" className="w-full gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-sm">
                 <SheetHeader className="border-b">
                   <SheetTitle className="font-heading text-xl">Filters</SheetTitle>
                   <SheetDescription>

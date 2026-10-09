@@ -4,7 +4,10 @@ import { cookies } from "next/headers";
 import { LibraryView } from "@/components/books/library-view";
 import { COLUMNS_COOKIE, LAYOUT_COOKIE, parseColumns, type LibraryLayout } from "@/lib/books/layout";
 import { LibrarySkeleton } from "@/components/books/library-skeleton";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { getBooks } from "@/lib/data/books";
 
 export const metadata: Metadata = { title: "Library" };
@@ -17,7 +20,16 @@ export const metadata: Metadata = { title: "Library" };
 export default function LibraryPage() {
   return (
     <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-8 px-4 pt-6 pb-12 md:gap-10 md:px-8 md:pt-10">
-      <PageHeader eyebrow="Your shelves" title="Library" />
+      <PageHeader
+        eyebrow="Your shelves"
+        title="Library"
+        actions={
+          <Link href="/books/new" className={buttonVariants({ className: "h-11 rounded-full px-5 text-[15px]" })}>
+            <Plus aria-hidden />
+            Add a book
+          </Link>
+        }
+      />
       <Suspense fallback={<LibrarySkeleton />}>
         <LibraryData />
       </Suspense>

@@ -3,11 +3,13 @@ import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/page-header";
+import { TrashList } from "@/components/books/trash-list";
 import { PalettePicker } from "@/components/layout/palette-picker";
 import { ThemePicker } from "@/components/layout/theme-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
+import { getDeletedBooks } from "@/lib/data/books";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -27,6 +29,17 @@ export default function SettingsPage() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>Trash</CardTitle>
+          <CardDescription>Books you removed. Restore them, or delete them forever.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+            <Trash />
+          </Suspense>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Account</CardTitle>
           <Suspense fallback={<CardDescription>&nbsp;</CardDescription>}>
             <SignedInAs />
@@ -41,7 +54,7 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
-      <p className="text-sm text-muted-foreground">Yearly goal, trash and export arrive in later phases.</p>
+      <p className="text-sm text-muted-foreground">Yearly goal and export arrive in later phases.</p>
     </main>
   );
 }
@@ -49,4 +62,8 @@ export default function SettingsPage() {
 async function SignedInAs() {
   const user = await requireUser();
   return <CardDescription>Signed in as {user.email}</CardDescription>;
+}
+
+async function Trash() {
+  return <TrashList books={await getDeletedBooks()} />;
 }

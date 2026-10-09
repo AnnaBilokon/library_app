@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookIcon, Search } from "lucide-react";
+import { BookIcon, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -59,6 +59,12 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
           <CommandInput placeholder="Book title, author or page…" />
           <CommandList>
             <CommandEmpty>Nothing found.</CommandEmpty>
+            <CommandGroup heading="Actions">
+              <CommandItem value="add a new book" onSelect={() => go("/books/new")}>
+                <Plus aria-hidden />
+                Add a book
+              </CommandItem>
+            </CommandGroup>
             <CommandGroup heading="Pages">
               {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
                 <CommandItem key={href} value={`page ${label}`} onSelect={() => go(href)}>

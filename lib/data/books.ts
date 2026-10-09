@@ -37,3 +37,16 @@ export const getBook = cache(async (id: string): Promise<Book | null> => {
   if (error) throw new Error(`Couldn't load the book: ${error.message}`);
   return data ? rowToBook(data, process.env.NEXT_PUBLIC_SUPABASE_URL!) : null;
 });
+
+/** Books in the trash, most recently removed first. */
+export const getDeletedBooks = cache(async (): Promise<(Book & { deletedAt: string })[]> => {
+  await requireUser();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("books")
+    .select(SELECT)
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw new Error(`Couldn't load the trash: ${error.message}`);
+  return data.map((row) => ({ ...rowToBook(row, process.env.NEXT_PUBLIC_SUPABASE_URL!), deletedAt: row.deleted_at! }));
+});

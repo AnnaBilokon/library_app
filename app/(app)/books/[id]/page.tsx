@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Copy, Heart, Star } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
-import { StatusBadge } from "@/components/books/status-badge";
+import { BookDeleteButton, BookEditButton, BookQuickControls } from "@/components/books/book-controls";
+import { ReadingHistory } from "@/components/books/reading-history";
 import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
 import { libraryUrl } from "@/lib/books/library-url";
+import { buildSuggestions } from "@/lib/books/suggestions";
 import { getBook, getBooks } from "@/lib/data/books";
-import type { Book, Reading } from "@/lib/types";
+import type { Book } from "@/lib/types";
 
 export async function generateMetadata({ params }: PageProps<"/books/[id]">): Promise<Metadata> {
   const book = await getBook((await params).id);
@@ -50,50 +52,50 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       <div className="flex min-w-0 flex-col gap-10">
-        <header className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={book.status} />
-            {book.favorite && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                <Heart className="size-3.5 fill-current" aria-hidden /> Favourite
-              </span>
+        <header className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3">
+            <h1 lang={book.language} className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-heading md:text-5xl">
+              {book.title}
+            </h1>
+            {book.authors.length > 0 && (
+              <p lang={book.language} className="text-xl text-muted-foreground">
+                {book.authors.map((a, i) => (
+                  <span key={a}>
+                    {i > 0 && ", "}
+                    <Link href={libraryUrl({ author: a })} className="hover:text-foreground hover:underline">
+                      {a}
+                    </Link>
+                  </span>
+                ))}
+              </p>
             )}
-            {book.wanted && <span className="rounded-full bg-highlight px-2 text-[11px] font-medium text-highlight-foreground">On wishlist</span>}
+            {(book.genres.length > 0 || book.tags.length > 0) && (
+              <ul className="flex flex-wrap gap-1.5" aria-label="Genres and tags">
+                {book.genres.map((g) => (
+                  <li key={g}>
+                    <Link href={libraryUrl({ genre: [g] })} className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-xs font-medium hover:bg-secondary">
+                      {g}
+                    </Link>
+                  </li>
+                ))}
+                {book.tags.map((t) => (
+                  <li key={t}>
+                    <Link href={libraryUrl({ tag: [t] })} className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-medium hover:bg-highlight">
+                      #{t}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <h1 lang={book.language} className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-heading md:text-5xl">
-            {book.title}
-          </h1>
-          {book.authors.length > 0 && (
-            <p lang={book.language} className="text-xl text-muted-foreground">
-              {book.authors.map((a, i) => (
-                <span key={a}>
-                  {i > 0 && ", "}
-                  <Link href={libraryUrl({ author: a })} className="hover:text-foreground hover:underline">
-                    {a}
-                  </Link>
-                </span>
-              ))}
-            </p>
-          )}
-          {book.rating !== undefined && <Rating value={book.rating} />}
-          {(book.genres.length > 0 || book.tags.length > 0) && (
-            <ul className="flex flex-wrap gap-1.5" aria-label="Genres and tags">
-              {book.genres.map((g) => (
-                <li key={g}>
-                  <Link href={libraryUrl({ genre: [g] })} className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-xs font-medium hover:bg-secondary">
-                    {g}
-                  </Link>
-                </li>
-              ))}
-              {book.tags.map((t) => (
-                <li key={t}>
-                  <Link href={libraryUrl({ tag: [t] })} className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-medium hover:bg-highlight">
-                    #{t}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+
+          {/* key: start fresh when the server sends new values (e.g. after editing) */}
+          <BookQuickControls key={`${book.status}-${book.rating}-${book.favorite}`} book={book} />
+
+          <div className="flex flex-wrap gap-2">
+            <BookEditButton book={book} suggestions={buildSuggestions(all)} />
+            <BookDeleteButton book={book} />
+          </div>
         </header>
 
         {duplicates.length > 0 && (
@@ -110,18 +112,20 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
                   </Link>
                 </span>
               ))}
-              ).
+              ). If it&apos;s a mistake, open it and remove it.
             </p>
           </div>
         )}
 
+        <ReadingHistory bookId={book.id} readings={book.readings} />
         <Details book={book} />
-        <ReadingHistory readings={book.readings} />
 
         {book.notes && (
           <section className="flex flex-col gap-4">
             <h2 className="font-heading text-2xl font-semibold text-heading">Notes</h2>
-            <blockquote className="border-l-4 border-highlight pl-5 font-heading text-lg leading-relaxed whitespace-pre-wrap italic">{book.notes}</blockquote>
+            <blockquote className="border-l-4 border-highlight pl-5 font-heading text-lg leading-relaxed whitespace-pre-wrap italic">
+              {book.notes}
+            </blockquote>
           </section>
         )}
       </div>
@@ -134,7 +138,14 @@ function Details({ book }: { book: Book }) {
   const add = (label: string, value: React.ReactNode | undefined | false) => {
     if (value !== undefined && value !== false && value !== "") rows.push([label, value]);
   };
-  add("Publisher", book.publisher && <Link href={libraryUrl({ publisher: [book.publisher] })} className="hover:underline">{book.publisher}</Link>);
+  add(
+    "Publisher",
+    book.publisher && (
+      <Link href={libraryUrl({ publisher: [book.publisher] })} className="hover:underline">
+        {book.publisher}
+      </Link>
+    ),
+  );
   add("Published", book.publishedYear);
   add("Pages", book.pages);
   add("Series", book.series && `${book.series}${book.seriesIndex !== undefined ? ` #${book.seriesIndex}` : ""}`);
@@ -168,61 +179,14 @@ function Details({ book }: { book: Book }) {
   );
 }
 
-function ReadingHistory({ readings }: { readings: Reading[] }) {
-  if (readings.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-5">
-      <h2 className="font-heading text-2xl font-semibold text-heading">Reading history</h2>
-      <ol className="flex flex-col gap-4 border-l-2 border-border pl-6">
-        {readings.map((r, i) => (
-          <li key={r.id} className="relative flex flex-col gap-0.5">
-            <span aria-hidden className="absolute top-1.5 -left-[31px] size-3 rounded-full bg-primary ring-4 ring-background dark:bg-highlight" />
-            <span className="font-medium">{readings.length > 1 ? `Reading ${i + 1}` : "Read"}</span>
-            <span className="text-sm text-muted-foreground">{describeReading(r)}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function describeReading(r: Reading): string {
-  const outcome = r.outcome === "finished" ? "Finished" : r.outcome === "abandoned" ? "Abandoned" : "In progress";
-  if (!r.startedAt && !r.finishedAt) return `${outcome} · dates unknown`;
-  const parts = [r.startedAt && `started ${formatDate(r.startedAt)}`, r.finishedAt && `${outcome.toLowerCase()} ${formatDate(r.finishedAt)}`];
-  if (r.startedAt && r.finishedAt) {
-    const days = Math.round((Date.parse(r.finishedAt) - Date.parse(r.startedAt)) / 86_400_000) + 1;
-    parts.push(`${days} ${days === 1 ? "day" : "days"}`);
-  }
-  return parts.filter(Boolean).join(" · ");
-}
-
-function Rating({ value }: { value: number }) {
-  return (
-    <div className="flex items-center gap-0.5" role="img" aria-label={`Rated ${value} out of 5`}>
-      {Array.from({ length: 5 }, (_, i) => {
-        const fill = Math.max(0, Math.min(1, value - i));
-        return (
-          <span key={i} className="relative size-5">
-            <Star className="absolute size-5 text-muted-foreground/40" aria-hidden />
-            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
-              <Star className="size-5 fill-primary text-primary" aria-hidden />
-            </span>
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
 function BookSkeleton() {
   return (
-    <div className="grid gap-6 md:grid-cols-[16rem_1fr] md:gap-10" aria-busy="true" aria-label="Loading book">
-      <Skeleton className="mx-auto aspect-[2/3] w-44 sm:w-52 md:w-full" />
+    <div className="grid gap-8 md:grid-cols-[18rem_1fr] md:gap-14" aria-busy="true" aria-label="Loading book">
+      <Skeleton className="mx-auto aspect-[2/3] w-48 sm:w-56 md:w-full" />
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-5 w-24 rounded-full" />
-        <Skeleton className="h-10 w-3/4" />
+        <Skeleton className="h-12 w-3/4" />
         <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-9 w-full max-w-md rounded-full" />
         <Skeleton className="h-40 w-full" />
       </div>
     </div>
