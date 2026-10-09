@@ -257,7 +257,7 @@ export function BookQueueButton({ book }: { book: Book }) {
  */
 export function BookWishlistButton({ book }: { book: Book }) {
   const [pending, startTransition] = useTransition();
-  if (book.owned || book.wanted) return null;
+  if (book.owned || book.wanted || book.soldAt) return null;
   const add = () =>
     startTransition(async () => {
       const r = await addToWishlist(book.id);

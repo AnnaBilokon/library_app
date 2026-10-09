@@ -25,6 +25,7 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           favorite: boolean
+          for_sale: boolean
           format: Database["public"]["Enums"]["book_format"] | null
           genres: string[]
           id: string
@@ -66,6 +67,7 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           favorite?: boolean
+          for_sale?: boolean
           format?: Database["public"]["Enums"]["book_format"] | null
           genres?: string[]
           id?: string
@@ -107,6 +109,7 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           favorite?: boolean
+          for_sale?: boolean
           format?: Database["public"]["Enums"]["book_format"] | null
           genres?: string[]
           id?: string

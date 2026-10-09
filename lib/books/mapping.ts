@@ -59,6 +59,7 @@ export function rowToBook(row: BookRowWithReadings, supabaseUrl: string): Book {
     owned: row.owned,
     acquiredAt: opt(row.acquired_at),
     purchasePrice: opt(row.purchase_price),
+    forSale: row.for_sale,
     soldAt: opt(row.sold_at),
     salePrice: opt(row.sale_price),
     currency: row.currency,

@@ -12,6 +12,7 @@ function book(overrides: Partial<Book>): Book {
     genres: [],
     tags: [],
     owned: true,
+    forSale: false,
     currency: "UAH",
     wanted: false,
     readings: [],
