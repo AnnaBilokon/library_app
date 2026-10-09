@@ -53,6 +53,9 @@ export interface Book {
   whereToBuy?: string;
   wishlistReason?: string;
 
+  /** Place in the "Up next" queue (1 = pinned next read); absent when not queued. */
+  queuePosition?: number;
+
   /** Oldest first. */
   readings: Reading[];
   /** Most recent finish date across readings, for sorting and the "year finished" filter. */
