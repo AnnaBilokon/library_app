@@ -35,8 +35,9 @@ import { libraryParams, libraryUrlKeys } from "@/lib/books/search-params";
 import { BOOK_STATUSES, type Book, type BookFormat, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookFiltersPanel } from "./book-filters";
-import { BookCard, BookGrid } from "./book-grid";
+import { BookGrid } from "./book-grid";
 import { BookTable } from "./book-table";
+import { ReadingShelf } from "./reading-shelf";
 
 const CLEARED = Object.fromEntries(Object.keys(EMPTY_FILTERS).map((k) => [k, null])) as Record<keyof BookFilters, null>;
 
@@ -60,10 +61,6 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
   );
   const facets = useMemo(() => computeFacets(books), [books]);
   const duplicateIds = useMemo(() => findDuplicateIds(books), [books]);
-  const nowReading = useMemo(
-    () => [...books.filter((b) => b.status === "reading"), ...books.filter((b) => b.status === "paused")],
-    [books],
-  );
 
   const panelFilters = countActiveFilters({ ...filters, status: [] });
   const browsing = filters.q === "" && countActiveFilters(filters) === 0;
@@ -83,23 +80,7 @@ export function LibraryView({ books, initialLayout, initialColumns }: LibraryVie
     <div className="flex flex-col gap-10">
       <Stats books={books} />
 
-      {browsing && nowReading.length > 0 && (
-        <section aria-labelledby="now-reading" className="rounded-3xl bg-accent/70 px-5 py-6 md:px-8 md:py-8 dark:bg-accent/60">
-          <div className="mb-5 flex items-baseline justify-between gap-4">
-            <h2 id="now-reading" className="font-heading text-xl font-semibold text-heading md:text-2xl">
-              Now reading
-            </h2>
-            <span className="text-sm text-muted-foreground">{nowReading.length} on the go</span>
-          </div>
-          <ul className="-mx-5 flex snap-x scroll-px-5 gap-5 overflow-x-auto px-5 pb-2 md:-mx-8 md:scroll-px-8 md:px-8">
-            {nowReading.map((book) => (
-              <li key={book.id} className="w-32 shrink-0 snap-start sm:w-36">
-                <BookCard book={book} sizes="144px" priority />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {browsing && <ReadingShelf books={books} />}
 
       <section aria-label="All books" className="flex flex-col gap-6">
         {/* Search + quiet controls */}
