@@ -177,7 +177,8 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
     return { filled, kept };
   };
 
-  const onSubmit = (values: BookInput) =>
+  const onSubmit = (values: BookInput, event?: React.BaseSyntheticEvent) => {
+    const formEl = event?.target instanceof HTMLFormElement ? event.target : null;
     startSaving(async () => {
       const result = book ? await updateBook(book.id, values) : await createBook(values);
       if (!result.ok) {
@@ -203,6 +204,9 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
       toast.success(values.wanted ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`, {
         action: { label: "Open", onClick: () => router.push(`/books/${bookId}`) },
       });
+      // Empty the inputs first: number fields (prices, pages, year) have no default, and
+      // react-hook-form would otherwise keep what was typed there and send it again.
+      formEl?.reset();
       form.reset(newBookDefaults(forWishlist));
       setCoverFile(null);
       setCoverUrl(null);
@@ -210,6 +214,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => form.setFocus("title"), 50);
     });
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-8">
