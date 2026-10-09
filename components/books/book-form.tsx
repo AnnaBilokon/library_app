@@ -88,6 +88,11 @@ const EMPTY: BookFormValues = {
   finishedAt: "",
 };
 
+/** An empty form; from the Wishlist page it starts as a wishlist book (wanted, not owned). */
+function newBookDefaults(forWishlist?: boolean): BookFormValues {
+  return forWishlist ? { ...EMPTY, wanted: true, owned: false } : EMPTY;
+}
+
 interface BookFormProps {
   suggestions: BookFormSuggestions;
   /** Editing an existing book; without it the form creates a new one. */
@@ -110,7 +115,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
   // re-render the whole form; zodResolver runs the same schema the server uses.
   const form = useForm<BookFormValues, unknown, BookInput>({
     resolver: zodResolver(bookInputSchema),
-    defaultValues: book ? bookToFormValues(book) : forWishlist ? { ...EMPTY, wanted: true, owned: false } : EMPTY,
+    defaultValues: book ? bookToFormValues(book) : newBookDefaults(forWishlist),
     mode: "onTouched",
   });
   const { register, control, handleSubmit, formState } = form;
@@ -137,6 +142,8 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
 
   // A cover found by "Fill from a link"; copied into Storage when the book is saved.
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  // Bumped after adding a book, to start the link box and cover picker afresh.
+  const [resetKey, setResetKey] = useState(0);
 
   /**
    * Puts details read from a web page into the form. For a new book everything found is used;
@@ -187,17 +194,30 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
         const imported = await importCoverFromUrl(bookId, coverUrl);
         if (!imported.ok) toast.warning(imported.error);
       }
-      toast.success(book ? "Saved" : values.wanted && !values.owned ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`);
-      if (book) onDone?.();
-      else router.push(`/books/${bookId}`);
+      if (book) {
+        toast.success("Saved");
+        onDone?.();
+        return;
+      }
+      // Stay on "Add a book" with an empty form, ready for the next one.
+      toast.success(values.wanted ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`, {
+        action: { label: "Open", onClick: () => router.push(`/books/${bookId}`) },
+      });
+      form.reset(newBookDefaults(forWishlist));
+      setCoverFile(null);
+      setCoverUrl(null);
+      setResetKey((k) => k + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => form.setFocus("title"), 50);
     });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-8">
-      <PrefillFromLink onPrefill={applyPrefill} editing={editing} />
+      <PrefillFromLink key={`prefill-${resetKey}`} onPrefill={applyPrefill} editing={editing} />
 
       <div className="grid gap-8 md:grid-cols-[11rem_1fr]">
         <CoverPicker
+          key={`cover-${resetKey}`}
           book={book}
           title={title}
           authors={authors}
