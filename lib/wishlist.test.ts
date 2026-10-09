@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book } from "@/lib/types";
-import { groupWishlist, isWishlistOnly, wishGroup, wishlistCost } from "./wishlist";
+import { groupWishlist, isWishlistOnly, STATUS_CHOICES, statusChoice, wishGroup, wishlistCost } from "./wishlist";
 
 const book = (o: Partial<Book>) =>
   ({ id: o.title, title: "x", wanted: true, owned: false, currency: "UAH", createdAt: "2026-01-01T00:00:00Z", ...o }) as Book;
@@ -36,5 +36,13 @@ describe("wishlist", () => {
       { currency: "UAH", total: 550.5, priced: 2 },
       { currency: "SEK", total: 20, priced: 1 },
     ]);
+  });
+});
+
+describe("status choice", () => {
+  it("offers Wishlist first and shows it for wishlist books", () => {
+    expect(STATUS_CHOICES[0]).toBe("wishlist");
+    expect(statusChoice({ wanted: true, status: "to-read" })).toBe("wishlist");
+    expect(statusChoice({ wanted: false, status: "reading" })).toBe("reading");
   });
 });
