@@ -7,6 +7,7 @@ import { progressInfo } from "@/lib/books/progress";
 import { openReading } from "@/lib/books/reading-logic";
 import { BookCover } from "./book-cover";
 import { BookQuickActions } from "./book-quick-actions";
+import { AuthorLinks } from "./name-links";
 import { ProgressBar } from "./reading-tools";
 
 const SIZES = "(min-width: 1536px) 13vw, (min-width: 1280px) 15vw, (min-width: 1024px) 18vw, (min-width: 768px) 23vw, (min-width: 640px) 30vw, 45vw";
@@ -105,13 +106,15 @@ export function BookCard({
           <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{progress.percent !== undefined ? `${progress.percent}%` : progress.label}</span>
         </div>
       )}
-      <Link href={`/books/${book.id}`} className="flex min-w-0 flex-col gap-0.5 rounded-sm px-0.5 outline-none">
+      <div className="flex min-w-0 flex-col gap-0.5 px-0.5">
+        <Link href={`/books/${book.id}`} className="rounded-sm outline-none">
         <h3 lang={book.language} className="line-clamp-2 font-heading text-[15px] leading-snug font-semibold text-heading decoration-highlight decoration-2 underline-offset-4 group-hover:underline">
           {book.title}
         </h3>
+        </Link>
         {book.authors.length > 0 && (
-          <p lang={book.language} className="truncate text-sm text-muted-foreground">
-            {book.authors.join(", ")}
+          <p className="truncate text-sm text-muted-foreground">
+            <AuthorLinks authors={book.authors} lang={book.language} quiet />
           </p>
         )}
         {(meta || duplicate) && (
@@ -120,7 +123,7 @@ export function BookCard({
             {duplicate && <span className="ml-1 italic">{meta ? "· " : ""}possible duplicate</span>}
           </p>
         )}
-      </Link>
+      </div>
     </div>
   );
 }
