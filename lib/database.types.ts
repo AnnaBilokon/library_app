@@ -140,6 +140,27 @@ export type Database = {
         }
         Relationships: []
       }
+      reading_goals: {
+        Row: {
+          goal: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          goal: number
+          updated_at?: string
+          user_id?: string
+          year: number
+        }
+        Update: {
+          goal?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       readings: {
         Row: {
           book_id: string
