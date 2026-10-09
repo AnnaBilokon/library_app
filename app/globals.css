@@ -203,6 +203,78 @@
   --chart-5: #f4eef1;
 }
 
+/* ── Tea green & pollen ───────────────────────────────────────────────
+ *   tea-green #bdd9bf · charcoal-blue #2e4052 · golden-pollen #ffc857
+ *   white #ffffff · midnight-violet #412234
+ */
+:root[data-palette="pollen"] {
+  --background: #f8faf6;
+  --foreground: #2e4052;
+  --heading: #412234;
+  --card: #ffffff;
+  --card-foreground: #2e4052;
+  --popover: #ffffff;
+  --popover-foreground: #2e4052;
+  --primary: #2e4052;
+  --primary-foreground: #ffffff;
+  --secondary: #e3eee3;
+  --secondary-foreground: #2e4052;
+  --muted: #eaf0e8;
+  --muted-foreground: #56636f;
+  --accent: #e5f0e6;
+  --accent-foreground: #2e4052;
+  --highlight: #ffc857;
+  --highlight-foreground: #2e4052;
+  --destructive: #b42318;
+  --border: #dde6dc;
+  --input: #7f8b94;
+  --ring: #2e4052;
+  --book-shadow: 0 1px 2px rgb(46 64 82 / 0.12), 0 8px 20px -6px rgb(46 64 82 / 0.28);
+  --book-shadow-hover: 0 2px 4px rgb(46 64 82 / 0.14), 0 18px 32px -10px rgb(46 64 82 / 0.38);
+  --chart-1: #2e4052;
+  --chart-2: #ffc857;
+  --chart-3: #412234;
+  --chart-4: #bdd9bf;
+  --chart-5: #7f8b94;
+
+  --jacket-1-bg: #412234; --jacket-1-fg: #ffffff; --jacket-1-line: rgb(255 200 87 / 0.5);
+  --jacket-2-bg: #2e4052; --jacket-2-fg: #ffffff; --jacket-2-line: rgb(189 217 191 / 0.45);
+  --jacket-3-bg: #ffc857; --jacket-3-fg: #2e4052; --jacket-3-line: rgb(46 64 82 / 0.3);
+  --jacket-4-bg: #bdd9bf; --jacket-4-fg: #412234; --jacket-4-line: rgb(65 34 52 / 0.3);
+  --jacket-5-bg: #ffffff; --jacket-5-fg: #2e4052; --jacket-5-line: rgb(65 34 52 / 0.25);
+}
+
+.dark[data-palette="pollen"] {
+  --background: #0f151b;
+  --foreground: #f3f6f4;
+  --heading: #f3f6f4;
+  --card: #18222c;
+  --card-foreground: #f3f6f4;
+  --popover: #1d2833;
+  --popover-foreground: #f3f6f4;
+  --primary: #ffc857;
+  --primary-foreground: #141414;
+  --secondary: #412234;
+  --secondary-foreground: #f3f6f4;
+  --muted: #22303d;
+  --muted-foreground: #b7c4cf;
+  --accent: #1d2b26;
+  --accent-foreground: #f3f6f4;
+  --highlight: #ffc857;
+  --highlight-foreground: #141414;
+  --destructive: #f28b82;
+  --border: #263441;
+  --input: #6f8091;
+  --ring: #ffc857;
+  --book-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.85);
+  --book-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 22px 36px -10px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(255 200 87 / 0.3);
+  --chart-1: #ffc857;
+  --chart-2: #bdd9bf;
+  --chart-3: #8fa4b8;
+  --chart-4: #b0789a;
+  --chart-5: #f3f6f4;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

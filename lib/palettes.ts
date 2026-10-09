@@ -2,6 +2,7 @@
 export const PALETTES = [
   { id: "plum", name: "Plum & sky", swatches: ["#070707", "#28231c", "#513b3c", "#655356", "#c1eeff"] },
   { id: "rose", name: "Smoky rose & teal", swatches: ["#785964", "#82a7a6", "#000000", "#9ed0e6", "#b796ac"] },
+  { id: "pollen", name: "Tea green & pollen", swatches: ["#bdd9bf", "#2e4052", "#ffc857", "#ffffff", "#412234"] },
 ] as const;
 
 export type PaletteId = (typeof PALETTES)[number]["id"];
