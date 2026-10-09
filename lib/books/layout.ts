@@ -3,6 +3,10 @@ export type LibraryLayout = "grid" | "table";
 export const LAYOUT_COOKIE = "library_view";
 export const COLUMNS_COOKIE = "library_columns";
 
+/** List or grid for the Dashboard's "Books read" section. */
+export type BooksReadView = "list" | "grid";
+export const BOOKS_READ_VIEW_COOKIE = "books_read_view";
+
 /** Table columns hidden until you turn them on. */
 export const DEFAULT_COLUMNS: Record<string, boolean> = {
   pages: false,
