@@ -11,14 +11,6 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-serif);
   --font-serif: var(--font-serif);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -55,20 +47,22 @@
 }
 
 /*
- * Palette
- *   black          #070707
- *   carbon-black   #28231c
- *   chocolate-plum #513b3c
- *   taupe-grey     #655356
- *   light-blue     #c1eeff  (the accent)
+ * Palettes. Pick one in the theme menu or in Settings; the choice is stored in localStorage
+ * and applied as <html data-palette="…"> before the page paints (see app/layout.tsx).
+ * Each palette defines light tokens and dark tokens (.dark). To add one: copy a block,
+ * give it a new data-palette name and add it to lib/palettes.ts.
  *
- * Light mode: warm off-white surfaces, carbon text, plum as the primary colour
- * (light blue is too pale for text on white, so it is used as a highlight surface).
- * Dark mode: black/carbon surfaces, light text, light blue as the primary colour.
- * Taupe-grey is too low-contrast for text on black, so it is only used for borders.
+ * Roles: background/card = surfaces, heading = page titles and numbers, primary = buttons and
+ * "finished", highlight = light accent surface (active nav, "reading" ribbon, chips),
+ * accent = tinted band ("Now reading"), jacket-N = placeholder covers.
+ * All text/background pairs are checked for WCAG AA contrast.
+ */
+
+/* ── Plum & sky (default) ─────────────────────────────────────────────
+ *   black #070707 · carbon-black #28231c · chocolate-plum #513b3c
+ *   taupe-grey #655356 · light-blue #c1eeff
  */
 :root {
-  /* warm "paper" background, like the page of a book */
   --background: #f7f3ee;
   --foreground: #28231c;
   --heading: #513b3c;
@@ -98,22 +92,18 @@
   --chart-4: #28231c;
   --chart-5: #8fd3ec;
   --radius: 0.625rem;
-  --sidebar: #f4f0ed;
-  --sidebar-foreground: #28231c;
-  --sidebar-primary: #513b3c;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8e1dc;
-  --sidebar-accent-foreground: #28231c;
-  --sidebar-border: #e3dbd6;
-  --sidebar-ring: #513b3c;
+
+  --jacket-1-bg: #513b3c; --jacket-1-fg: #f3efea; --jacket-1-line: rgb(193 238 255 / 0.4);
+  --jacket-2-bg: #28231c; --jacket-2-fg: #f3efea; --jacket-2-line: rgb(193 238 255 / 0.3);
+  --jacket-3-bg: #655356; --jacket-3-fg: #f7f3ee; --jacket-3-line: rgb(247 243 238 / 0.35);
+  --jacket-4-bg: #c1eeff; --jacket-4-fg: #28231c; --jacket-4-line: rgb(81 59 60 / 0.35);
+  --jacket-5-bg: #ebe3dc; --jacket-5-fg: #513b3c; --jacket-5-line: rgb(81 59 60 / 0.3);
 }
 
 .dark {
   --background: #0c0b09;
   --foreground: #f3efea;
   --heading: #f3efea;
-  --book-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.8);
-  --book-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 22px 36px -10px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(193 238 255 / 0.25);
   --card: #17140f;
   --card-foreground: #f3efea;
   --popover: #1c1813;
@@ -132,19 +122,85 @@
   --border: #322a24;
   --input: #7a686b;
   --ring: #c1eeff;
+  --book-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.8);
+  --book-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 22px 36px -10px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(193 238 255 / 0.25);
   --chart-1: #c1eeff;
   --chart-2: #b89a9e;
   --chart-3: #6fb6d1;
   --chart-4: #8a6a6c;
   --chart-5: #e6d5c3;
-  --sidebar: #070707;
-  --sidebar-foreground: #f3efea;
-  --sidebar-primary: #c1eeff;
-  --sidebar-primary-foreground: #070707;
-  --sidebar-accent: #28231c;
-  --sidebar-accent-foreground: #f3efea;
-  --sidebar-border: #28231c;
-  --sidebar-ring: #c1eeff;
+}
+
+/* ── Smoky rose & teal ────────────────────────────────────────────────
+ *   smoky-rose #785964 · muted-teal #82a7a6 · black #000000
+ *   sky-blue-light #9ed0e6 · lilac-ash #b796ac
+ */
+:root[data-palette="rose"] {
+  --background: #f6f2f4;
+  --foreground: #1f1a1c;
+  --heading: #785964;
+  --card: #fbf9fa;
+  --card-foreground: #1f1a1c;
+  --popover: #ffffff;
+  --popover-foreground: #1f1a1c;
+  --primary: #785964;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e0e6;
+  --secondary-foreground: #1f1a1c;
+  --muted: #ece3e8;
+  --muted-foreground: #6a5560;
+  --accent: #e1f0f7;
+  --accent-foreground: #1f1a1c;
+  --highlight: #9ed0e6;
+  --highlight-foreground: #000000;
+  --destructive: #b42318;
+  --border: #e6dce2;
+  --input: #8a7781;
+  --ring: #785964;
+  --book-shadow: 0 1px 2px rgb(31 26 28 / 0.12), 0 8px 20px -6px rgb(31 26 28 / 0.28);
+  --book-shadow-hover: 0 2px 4px rgb(31 26 28 / 0.14), 0 18px 32px -10px rgb(31 26 28 / 0.38);
+  --chart-1: #785964;
+  --chart-2: #82a7a6;
+  --chart-3: #9ed0e6;
+  --chart-4: #b796ac;
+  --chart-5: #1f1a1c;
+
+  --jacket-1-bg: #785964; --jacket-1-fg: #f6f2f4; --jacket-1-line: rgb(158 208 230 / 0.45);
+  --jacket-2-bg: #1a1517; --jacket-2-fg: #f4eef1; --jacket-2-line: rgb(158 208 230 / 0.35);
+  --jacket-3-bg: #82a7a6; --jacket-3-fg: #000000; --jacket-3-line: rgb(0 0 0 / 0.25);
+  --jacket-4-bg: #9ed0e6; --jacket-4-fg: #000000; --jacket-4-line: rgb(120 89 100 / 0.4);
+  --jacket-5-bg: #b796ac; --jacket-5-fg: #000000; --jacket-5-line: rgb(0 0 0 / 0.22);
+}
+
+.dark[data-palette="rose"] {
+  --background: #050405;
+  --foreground: #f4eef1;
+  --heading: #f4eef1;
+  --card: #141113;
+  --card-foreground: #f4eef1;
+  --popover: #1a1517;
+  --popover-foreground: #f4eef1;
+  --primary: #9ed0e6;
+  --primary-foreground: #000000;
+  --secondary: #785964;
+  --secondary-foreground: #f4eef1;
+  --muted: #221c1f;
+  --muted-foreground: #c4b3bc;
+  --accent: #1b2526;
+  --accent-foreground: #f4eef1;
+  --highlight: #9ed0e6;
+  --highlight-foreground: #000000;
+  --destructive: #f28b82;
+  --border: #2a2226;
+  --input: #7d6a73;
+  --ring: #9ed0e6;
+  --book-shadow: 0 1px 2px rgb(0 0 0 / 0.6), 0 10px 24px -8px rgb(0 0 0 / 0.9);
+  --book-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.6), 0 22px 36px -10px rgb(0 0 0 / 0.95), 0 0 0 1px rgb(158 208 230 / 0.3);
+  --chart-1: #9ed0e6;
+  --chart-2: #82a7a6;
+  --chart-3: #b796ac;
+  --chart-4: #785964;
+  --chart-5: #f4eef1;
 }
 
 @layer base {

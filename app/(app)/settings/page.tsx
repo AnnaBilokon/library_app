@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/page-header";
+import { PalettePicker } from "@/components/layout/palette-picker";
 import { ThemePicker } from "@/components/layout/theme-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,15 +13,16 @@ export const metadata: Metadata = { title: "Settings" };
 
 export default function SettingsPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6">
-      <PageHeader title="Settings" />
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-12 md:px-8 md:pt-10">
+      <PageHeader eyebrow="Preferences" title="Settings" />
       <Card>
         <CardHeader>
           <CardTitle>Appearance</CardTitle>
-          <CardDescription>System follows your device&apos;s light or dark setting.</CardDescription>
+          <CardDescription>Mode and colours. System follows your device&apos;s light or dark setting.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-5">
           <ThemePicker />
+          <PalettePicker />
         </CardContent>
       </Card>
       <Card>

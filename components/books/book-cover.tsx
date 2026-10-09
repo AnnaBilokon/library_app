@@ -4,13 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/** Jacket colours for books without a cover image, all from the palette. */
+/** Jacket colours for books without a cover image; each palette defines them in globals.css. */
 const JACKETS = [
-  { bg: "bg-[#513b3c]", fg: "text-[#f3efea]", line: "border-[#c1eeff]/40" },
-  { bg: "bg-[#28231c]", fg: "text-[#f3efea]", line: "border-[#c1eeff]/30" },
-  { bg: "bg-[#655356]", fg: "text-[#f7f3ee]", line: "border-[#f7f3ee]/35" },
-  { bg: "bg-[#c1eeff]", fg: "text-[#28231c]", line: "border-[#513b3c]/35" },
-  { bg: "bg-[#ebe3dc]", fg: "text-[#513b3c]", line: "border-[#513b3c]/30" },
+  { bg: "bg-(--jacket-1-bg)", fg: "text-(--jacket-1-fg)", line: "border-(--jacket-1-line)" },
+  { bg: "bg-(--jacket-2-bg)", fg: "text-(--jacket-2-fg)", line: "border-(--jacket-2-line)" },
+  { bg: "bg-(--jacket-3-bg)", fg: "text-(--jacket-3-fg)", line: "border-(--jacket-3-line)" },
+  { bg: "bg-(--jacket-4-bg)", fg: "text-(--jacket-4-fg)", line: "border-(--jacket-4-line)" },
+  { bg: "bg-(--jacket-5-bg)", fg: "text-(--jacket-5-fg)", line: "border-(--jacket-5-line)" },
 ];
 
 function hash(text: string): number {
