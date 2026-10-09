@@ -1,12 +1,13 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
-import { BookCheck, Loader2, NotebookPen, RotateCcw } from "lucide-react";
+import { BookCheck, Loader2, NotebookPen, Pencil, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { setBookStatus, setReview, updateProgress } from "@/app/actions/books";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { progressInfo } from "@/lib/books/progress";
 import { openReading } from "@/lib/books/reading-logic";
@@ -351,5 +352,81 @@ export function ReviewSection({ book }: { book: Book }) {
         </button>
       )}
     </section>
+  );
+}
+
+// ───────────────────────── shelf progress ─────────────────────────
+
+/** Under each book on the Reading now shelf: the bar (empty until you log progress) and a quick update. */
+export function ShelfProgress({ book }: { book: Book }) {
+  const open = openReading(book.readings);
+  const info = progressInfo(open, book.pages);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [draft, setDraft] = useState<ProgressDraft>(() => draftFrom(open, Boolean(book.pages)));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const save = () => {
+    const parsed = parseDraft(draft);
+    if (!parsed.ok || !parsed.progress) {
+      setError(parsed.ok ? "Enter a page or a percentage." : parsed.error);
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const r = await updateProgress(book.id, parsed.progress, todayLocal());
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Progress saved");
+      setPopoverOpen(false);
+    });
+  };
+
+  return (
+    <div className="mt-2 flex flex-col gap-1.5 px-0.5">
+      <ProgressBar percent={info?.percent ?? 0} className="h-2 bg-background" />
+      <div className="flex items-center justify-between gap-1">
+        <span className="truncate text-xs text-muted-foreground tabular-nums">
+          {info ? (info.percent !== undefined ? `${info.percent}%` : info.label) : "No progress yet"}
+        </span>
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+          <PopoverTrigger
+            render={
+              <button
+                type="button"
+                aria-label={`Update progress for ${book.title}`}
+                className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-medium text-primary ring-1 ring-border hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:text-highlight"
+              />
+            }
+          >
+            <Pencil className="size-3" aria-hidden />
+            {info ? "Update" : "Add"}
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72">
+            <form
+              className="flex flex-col gap-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save();
+              }}
+            >
+              <p className="truncate font-heading text-sm font-semibold">{book.title}</p>
+              <ProgressField draft={draft} onChange={setDraft} totalPages={book.pages} label="I'm at" />
+              {error && (
+                <p role="alert" className="text-xs text-destructive">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" size="sm" className="self-start rounded-full px-4" disabled={pending}>
+                {pending && <Loader2 className="animate-spin" aria-hidden />}
+                Save
+              </Button>
+            </form>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
   );
 }

@@ -37,6 +37,7 @@ export function BookCard({
   priority,
   sizes = SIZES,
   hideRibbon,
+  hideProgress,
 }: {
   book: Book;
   duplicate?: boolean;
@@ -44,10 +45,13 @@ export function BookCard({
   sizes?: string;
   /** The Up next queue shows its own "Next read" ribbon instead. */
   hideRibbon?: boolean;
+  /** The Reading now shelf shows its own progress row with a quick update. */
+  hideProgress?: boolean;
 }) {
   const ribbon = hideRibbon ? undefined : RIBBON[book.status];
   const meta = [book.genres[0], book.publishedYear].filter(Boolean).join(" · ");
-  const progress = book.status === "reading" || book.status === "paused" ? progressInfo(openReading(book.readings), book.pages) : null;
+  const progress =
+    !hideProgress && (book.status === "reading" || book.status === "paused") ? progressInfo(openReading(book.readings), book.pages) : null;
 
   return (
     <Link href={`/books/${book.id}`} className="group flex flex-col gap-3 rounded-sm outline-none">
