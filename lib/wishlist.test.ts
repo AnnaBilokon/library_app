@@ -26,10 +26,9 @@ describe("wishlist", () => {
     expect(g.maybe.map((b) => b.title)).toEqual(["Maybe"]);
   });
 
-  it("knows which books belong only on the wishlist", () => {
-    expect(isWishlistOnly({ wanted: true, owned: false })).toBe(true);
-    expect(isWishlistOnly({ wanted: true, owned: true })).toBe(false);
-    expect(isWishlistOnly({ wanted: false, owned: false })).toBe(false);
+  it("keeps every wishlist book on the wishlist only", () => {
+    expect(isWishlistOnly({ wanted: true })).toBe(true);
+    expect(isWishlistOnly({ wanted: false })).toBe(false);
   });
 
   it("totals prices per currency", () => {

@@ -7,6 +7,7 @@ import { BookCover } from "@/components/books/book-cover";
 import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls, BookWishlistButton } from "@/components/books/book-controls";
 import { ReadingHistory } from "@/components/books/reading-history";
 import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
+import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
@@ -54,6 +55,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="flex min-w-0 flex-col gap-10">
         <header className="flex flex-col gap-5">
+          {book.wanted && <WishlistBanner bookId={book.id} />}
           <div className="flex flex-col gap-3">
             <h1 lang={book.language} className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-heading md:text-5xl">
               {book.title}
@@ -95,7 +97,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
           <RereadControls book={book} />
 
           <div className="flex flex-wrap gap-2">
-            <BookQueueButton book={book} />
+            {!book.wanted && <BookQueueButton book={book} />}
             <BookWishlistButton book={book} />
             <BookEditButton book={book} suggestions={buildSuggestions(all)} />
             <BookDeleteButton book={book} />

@@ -27,7 +27,8 @@ export async function moveWishlistBook(bookId: string, group: WishGroup): Promis
 }
 
 export async function addToWishlist(bookId: string): Promise<ActionResult> {
-  return updateBook(bookId, { wanted: true });
+  // Wishlist books aren't on your shelves (and not in the Up next queue, which is for your own books).
+  return updateBook(bookId, { wanted: true, owned: false, queue_position: null });
 }
 
 export async function removeFromWishlist(bookId: string): Promise<ActionResult> {

@@ -112,7 +112,8 @@ export function bookInputToRow(input: BookInput): BookRowUpdate {
     isbn: input.isbn ? normalizeIsbn(input.isbn) : null,
     series: textOrNull(input.series),
     series_index: input.seriesIndex ?? null,
-    owned: input.owned,
+    // A wishlist book is one you don't have yet; it becomes owned when you mark it bought.
+    owned: input.wanted ? false : input.owned,
     acquired_at: orNull(input.acquiredAt),
     purchase_price: input.purchasePrice ?? null,
     notes: textOrNull(input.notes),

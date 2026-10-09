@@ -18,8 +18,11 @@ export function wishGroup(book: Pick<Book, "priority">): WishGroup {
   return "inbox";
 }
 
-/** Books you want but don't have yet: they live on the Wishlist page, not in the Library. */
-export const isWishlistOnly = (b: Pick<Book, "wanted" | "owned">) => b.wanted && !b.owned;
+/**
+ * Books on the wishlist live only on the Wishlist page, never in the Library.
+ * (A wishlist book is never "owned": it becomes owned when you mark it bought.)
+ */
+export const isWishlistOnly = (b: Pick<Book, "wanted">) => b.wanted;
 
 /** Wishlist books split into the three groups, newest first. */
 export function groupWishlist(books: Book[]): Record<WishGroup, Book[]> {

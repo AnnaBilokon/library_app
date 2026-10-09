@@ -120,13 +120,20 @@ export function QueueShelf({ queue }: { queue: Book[] }) {
 
 function SortableBook({ book, index, onPin, onRemove }: { book: Book; index: number; onPin: () => void; onRemove: () => void }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: book.id });
+  // The whole cover starts a drag with the mouse or a press on touch; the grip is the keyboard handle.
+  const { onKeyDown, ...pointerListeners } = listeners ?? {};
   const next = index === 0;
 
   return (
     <li
       ref={setNodeRef}
+      {...pointerListeners}
+      onDragStart={(e) => e.preventDefault()}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn("relative w-32 shrink-0 sm:w-36", isDragging && "z-10 opacity-90 [&_a]:pointer-events-none")}
+      className={cn(
+        "relative w-32 shrink-0 cursor-grab select-none active:cursor-grabbing sm:w-36 [&_img]:pointer-events-none",
+        isDragging && "z-10 opacity-90 [&_a]:pointer-events-none",
+      )}
     >
       <div className={cn("transition-transform", isDragging && "scale-105 rotate-1")}>
         <BookCard book={book} sizes="144px" priority={index < 4} hideRibbon={next} />
@@ -141,7 +148,7 @@ function SortableBook({ book, index, onPin, onRemove }: { book: Book; index: num
         ref={setActivatorNodeRef}
         type="button"
         {...attributes}
-        {...listeners}
+        onKeyDown={onKeyDown as React.KeyboardEventHandler<HTMLButtonElement> | undefined}
         aria-label={`Reorder ${book.title} (position ${index + 1})`}
         className="absolute top-2 right-2 grid size-8 cursor-grab touch-none place-items-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none active:cursor-grabbing"
       >

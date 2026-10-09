@@ -129,3 +129,11 @@ describe("reading rating", () => {
     expect(readingInputSchema.safeParse({ outcome: "finished", rating: 6 }).success).toBe(false);
   });
 });
+
+describe("wishlist books are never owned", () => {
+  it("drops 'owned' when the book is on the wishlist", () => {
+    const base = { title: "Колега", authors: [], status: "to-read" as const, favorite: false, genres: [], tags: [] };
+    expect(bookInputToRow(bookInputSchema.parse({ ...base, owned: true, wanted: true }))).toMatchObject({ owned: false, wanted: true });
+    expect(bookInputToRow(bookInputSchema.parse({ ...base, owned: true, wanted: false }))).toMatchObject({ owned: true, wanted: false });
+  });
+});

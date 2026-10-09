@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   DndContext,
   DragOverlay,
+  pointerWithin,
+  rectIntersection,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -13,6 +15,7 @@ import {
   useSensor,
   useSensors,
   type Announcements,
+  type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { EllipsisVertical, GripVertical, ShoppingBag, Store } from "lucide-react";
@@ -35,6 +38,12 @@ import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { WISH_GROUPS, wishGroup, wishlistCost, type WishGroup } from "@/lib/wishlist";
 
+/** Drop where the pointer is; fall back to overlap for keyboard dragging (no pointer). */
+const pointerFirst: CollisionDetection = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length > 0 ? hits : rectIntersection(args);
+};
+
 /**
  * The Wishlist page: a "Just added" row on top and two boxes below. Drag a book by its grip
  * (mouse, touch with a short press, or keyboard) into a box, or use its "Move to" menu.
@@ -44,6 +53,7 @@ export function WishlistBoard({ books }: { books: Book[] }) {
   const [groups, setGroups] = useState<Record<string, WishGroup>>(() => Object.fromEntries(books.map((b) => [b.id, wishGroup(b)])));
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
+  const justDragged = useRef(false);
   const [, startTransition] = useTransition();
   const byId = new Map(books.map((b) => [b.id, b]));
   const visible = books.filter((b) => !hidden.has(b.id));
@@ -113,12 +123,26 @@ export function WishlistBoard({ books }: { books: Book[] }) {
       // A fixed id keeps dnd-kit's accessibility ids the same on the server and in the browser.
       id="wishlist-board"
       sensors={sensors}
+      collisionDetection={pointerFirst}
       onDragStart={({ active }) => setActiveId(String(active.id))}
-      onDragEnd={onDragEnd}
+      onDragEnd={(e) => {
+        justDragged.current = true;
+        setTimeout(() => (justDragged.current = false), 150);
+        onDragEnd(e);
+      }}
       onDragCancel={() => setActiveId(null)}
       accessibility={{ announcements }}
     >
-      <div className="flex flex-col gap-8">
+      <div
+        className="flex flex-col gap-8"
+        // Don't open the book when a drag ends over its link.
+        onClickCapture={(e) => {
+          if (justDragged.current) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+      >
         <DropZone group="inbox" count={inbox.length} cost={wishlistCost(inbox)} className="bg-accent/70 dark:bg-accent/60">
           {inbox.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing new. Add books from their page, or with “Add to wishlist” above.</p>
@@ -221,8 +245,16 @@ function WishCard({
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: book.id });
+  // The whole card starts a drag with the mouse or a press on touch; the grip is the keyboard handle.
+  const { onKeyDown, ...pointerListeners } = listeners ?? {};
   return (
-    <div ref={setNodeRef} className={cn("flex flex-col gap-2", isDragging && "opacity-30")}>
+    <div
+      ref={setNodeRef}
+      {...pointerListeners}
+      // Stop the browser's own image dragging, which would hide the app's drag.
+      onDragStart={(e) => e.preventDefault()}
+      className={cn("flex cursor-grab flex-col gap-2 select-none active:cursor-grabbing [&_img]:pointer-events-none", isDragging && "opacity-30")}
+    >
       <div className="relative">
         <Link href={`/books/${book.id}`} className="block rounded-sm focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none">
           <BookCover title={book.title} authors={book.authors} src={book.coverSrc} lang={book.language} sizes="144px" />
@@ -231,9 +263,9 @@ function WishCard({
           ref={setActivatorNodeRef}
           type="button"
           {...attributes}
-          {...listeners}
+          onKeyDown={onKeyDown as React.KeyboardEventHandler<HTMLButtonElement> | undefined}
           aria-label={`Drag ${book.title} to another list`}
-          className="absolute top-2 right-2 grid size-8 cursor-grab touch-none place-items-center rounded-full bg-background/90 shadow-sm backdrop-blur hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none active:cursor-grabbing"
+          className="absolute top-2 right-2 grid size-8 cursor-grab place-items-center rounded-full bg-background/90 shadow-sm backdrop-blur hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none active:cursor-grabbing"
         >
           <GripVertical className="size-4" aria-hidden />
         </button>
