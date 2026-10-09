@@ -56,6 +56,8 @@ export interface Stats {
   formats: CountRow[];
   pace: { averageDays: number; count: number; fastest: PaceBook; longest: PaceBook } | null;
   money: { spent: Money[]; spentBooks: number; earned: Money[]; soldBooks: number };
+  /** What happened to the books you read: still yours, on the sell shelf, sold, or never yours. */
+  afterReading: { kept: number; forSale: number; sold: number; notOwned: number };
 }
 
 export interface Money {
@@ -183,6 +185,12 @@ export function computeStats(allBooks: Book[], year: number | null, topN = 8): S
     languages: tally(readBooks.map((b) => b.language ?? "")).filter((r) => r.label),
     formats: tally(readBooks.map((b) => b.format ?? "")).filter((r) => r.label),
     pace,
+    afterReading: {
+      kept: readBooks.filter((b) => b.owned && !b.forSale && !isSold(b)).length,
+      forSale: readBooks.filter((b) => b.forSale && !isSold(b)).length,
+      sold: readBooks.filter(isSold).length,
+      notOwned: readBooks.filter((b) => !b.owned && !isSold(b)).length,
+    },
     money: {
       spent: sumMoney(bought.map((b) => ({ amount: b.purchasePrice!, currency: b.currency }))),
       spentBooks: bought.length,
