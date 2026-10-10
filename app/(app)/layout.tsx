@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 import { requireUser } from "@/lib/auth";
 import { getBooks } from "@/lib/data/books";
+import { Logo } from "@/components/layout/logo";
 
 /**
  * Shell for every signed-in page. The layout itself is static, so it is prerendered and shows
@@ -18,11 +19,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/70">
         <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center gap-4 px-4 md:px-8">
-          <Link
-            href="/"
-            className="font-heading text-xl font-semibold tracking-tight text-heading focus-visible:underline focus-visible:outline-none"
-          >
-            My library
+          <Link href="/" aria-label="Punkt, go to the Dashboard" className="rounded-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+            <Logo markClassName="size-8" wordClassName="text-[1.4rem]" />
           </Link>
           <MainNav />
           <div className="ml-auto flex items-center gap-1.5">
