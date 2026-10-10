@@ -30,13 +30,28 @@ export async function keepBook(bookId: string): Promise<ActionResult> {
   return updateBook(bookId, { for_sale: false });
 }
 
-/** Sold: the book leaves your library (and the Up next queue) and is kept in the Sold list. */
-export async function markSold(bookId: string, salePrice: number | null, today: string): Promise<ActionResult> {
-  if (!price.safeParse(salePrice).success || !z.iso.date().safeParse(today).success) return { ok: false, error: "Invalid price." };
-  return updateBook(bookId, { for_sale: false, owned: false, sold_at: today, sale_price: salePrice, queue_position: null });
+const original = z.object({ price: z.number().min(0).max(99_999_999), currency: z.string().regex(/^[A-Z]{3}$/) }).nullable();
+
+/**
+ * Sold: the book leaves your library (and the Up next queue) and is kept in the Sold list.
+ * salePrice is in the book's currency; when you sold in another one, sold is what you actually got.
+ */
+export async function markSold(bookId: string, salePrice: number | null, today: string, sold: { price: number; currency: string } | null = null): Promise<ActionResult> {
+  if (!price.safeParse(salePrice).success || !original.safeParse(sold).success || !z.iso.date().safeParse(today).success) {
+    return { ok: false, error: "Invalid price." };
+  }
+  return updateBook(bookId, {
+    for_sale: false,
+    owned: false,
+    sold_at: today,
+    sale_price: salePrice,
+    sale_original_price: sold?.price ?? null,
+    sale_original_currency: sold?.currency ?? null,
+    queue_position: null,
+  });
 }
 
 /** Undo a sale: back on your shelves and on the sell shelf. */
 export async function undoSale(bookId: string): Promise<ActionResult> {
-  return updateBook(bookId, { for_sale: true, owned: true, sold_at: null, sale_price: null });
+  return updateBook(bookId, { for_sale: true, owned: true, sold_at: null, sale_price: null, sale_original_price: null, sale_original_currency: null });
 }

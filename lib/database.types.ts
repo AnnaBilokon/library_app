@@ -78,6 +78,8 @@ export type Database = {
           queue_position: number | null
           rating: number | null
           review: string | null
+          sale_original_currency: string | null
+          sale_original_price: number | null
           sale_price: number | null
           series: string | null
           series_index: number | null
@@ -120,6 +122,8 @@ export type Database = {
           queue_position?: number | null
           rating?: number | null
           review?: string | null
+          sale_original_currency?: string | null
+          sale_original_price?: number | null
           sale_price?: number | null
           series?: string | null
           series_index?: number | null
@@ -162,6 +166,8 @@ export type Database = {
           queue_position?: number | null
           rating?: number | null
           review?: string | null
+          sale_original_currency?: string | null
+          sale_original_price?: number | null
           sale_price?: number | null
           series?: string | null
           series_index?: number | null

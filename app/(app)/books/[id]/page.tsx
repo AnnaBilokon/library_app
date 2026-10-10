@@ -19,7 +19,7 @@ import { sortBooks } from "@/lib/books/filters";
 import { lastStop, progressInfo } from "@/lib/books/progress";
 import { buildSuggestions } from "@/lib/books/suggestions";
 import { getBook, getBooks } from "@/lib/data/books";
-import { inLibrary } from "@/lib/selling";
+import { inLibrary, salePriceLabel } from "@/lib/selling";
 import type { Book } from "@/lib/types";
 
 export async function generateMetadata({ params }: PageProps<"/books/[id]">): Promise<Metadata> {
@@ -168,7 +168,8 @@ function Details({ book }: { book: Book }) {
   add("On my shelf", book.owned ? "Yes" : book.soldAt ? "Sold" : "No");
   add("Added", book.acquiredAt && formatDate(book.acquiredAt));
   add("Bought for", book.purchasePrice !== undefined && formatMoney(book.purchasePrice, book.currency));
-  add("Sold", book.soldAt && `${formatDate(book.soldAt)}${book.salePrice !== undefined ? ` for ${formatMoney(book.salePrice, book.currency)}` : ""}`);
+  const sold = salePriceLabel(book);
+  add("Sold", book.soldAt && `${formatDate(book.soldAt)}${sold ? ` for ${sold.main}${sold.converted ? ` (≈ ${sold.converted})` : ""}` : ""}`);
   if (book.wanted) {
     add("Wishlist priority", book.priority);
     add("Expected price", book.wishPrice !== undefined && formatMoney(book.wishPrice, book.currency));

@@ -34,6 +34,8 @@ function row(overrides: Partial<BookRowWithReadings> = {}): BookRowWithReadings 
     purchase_price: null,
     sold_at: null,
     sale_price: null,
+    sale_original_price: null,
+    sale_original_currency: null,
     currency: "UAH",
     wanted: false,
     priority: null,

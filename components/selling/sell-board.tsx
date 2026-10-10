@@ -8,13 +8,16 @@ import { BookCover } from "@/components/books/book-cover";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDate, formatMoney } from "@/lib/books/labels";
-import { soldTotal } from "@/lib/selling";
+import { receivedTotal, salePriceLabel, soldTotal } from "@/lib/selling";
 import type { Book } from "@/lib/types";
 import { SoldDialog, useSellAction } from "./selling-controls";
 
 /** The Sell page: books to sell as covers, and every sold book as a compact list with its price. */
 export function SellBoard({ toSell, sold }: { toSell: Book[]; sold: Book[] }) {
   const earned = soldTotal(sold);
+  const received = receivedTotal(sold);
+  // Worth saying what you actually got only when some books sold in another currency.
+  const showReceived = received.some((r) => !earned.some((e) => e.currency === r.currency));
   return (
     <div className="flex flex-col gap-8">
       <p className="-mb-2 text-sm text-muted-foreground">
@@ -24,6 +27,7 @@ export function SellBoard({ toSell, sold }: { toSell: Book[]; sold: Book[] }) {
           <>
             {" · earned "}
             <span className="font-semibold text-foreground">{earned.map((c) => formatMoney(c.total, c.currency)).join(" + ")}</span>
+            {showReceived && <> (you got {received.map((c) => formatMoney(c.total, c.currency)).join(" + ")})</>}
           </>
         )}
       </p>
@@ -110,6 +114,7 @@ function SellCard({ book }: { book: Book }) {
 
 function SoldRow({ book }: { book: Book }) {
   const { pending, run } = useSellAction();
+  const price = salePriceLabel(book);
   return (
     <div className="flex items-center gap-3 py-2">
       <Link href={`/books/${book.id}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-md hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none">
@@ -122,7 +127,14 @@ function SoldRow({ book }: { book: Book }) {
         </span>
       </Link>
       <span className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">
-        {book.salePrice !== undefined ? formatMoney(book.salePrice, book.currency) : <span className="font-normal text-muted-foreground">—</span>}
+        {price ? (
+          <span className="flex flex-col items-end leading-tight">
+            {price.main}
+            {price.converted && <span className="text-[11px] font-normal text-muted-foreground">≈ {price.converted}</span>}
+          </span>
+        ) : (
+          <span className="font-normal text-muted-foreground">—</span>
+        )}
       </span>
       <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground tabular-nums sm:block">{formatDate(book.soldAt!)}</span>
       <DropdownMenu>

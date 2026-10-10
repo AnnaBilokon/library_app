@@ -61,6 +61,9 @@ export interface Book {
   /** Set once sold; a sold book leaves the library but stays on the Sell page. */
   soldAt?: string;
   salePrice?: number;
+  /** What it actually sold for when that was in another currency (salePrice is the converted value). */
+  saleOriginalPrice?: number;
+  saleOriginalCurrency?: string;
   currency: string;
 
   wanted: boolean;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book } from "@/lib/types";
-import { canSell, inLibrary, isSold, soldTotal, splitSelling } from "./selling";
+import { canSell, inLibrary, isSold, receivedTotal, salePriceLabel, soldTotal, splitSelling } from "./selling";
 
 const book = (o: Partial<Book>) =>
   ({ id: o.title, title: "x", owned: true, wanted: false, forSale: false, currency: "UAH", format: "paper", updatedAt: "2026-01-01T00:00:00Z", ...o }) as Book;
@@ -50,4 +50,26 @@ describe("selling", () => {
       { currency: "SEK", total: 10 },
     ]);
   });
+
+  it("labels a sale in another currency with its converted value", () => {
+    // Money is formatted with a non-breaking space after the currency code.
+    const plain = (l: ReturnType<typeof salePriceLabel>) => JSON.parse(JSON.stringify(l).replaceAll(" ", " ").replaceAll(" ", " "));
+    expect(plain(salePriceLabel(book({ salePrice: 225.16, saleOriginalPrice: 50, saleOriginalCurrency: "SEK" })))).toEqual({ main: "SEK 50", converted: "UAH 225.16" });
+    expect(plain(salePriceLabel(book({ salePrice: 180 })))).toEqual({ main: "UAH 180" });
+    expect(salePriceLabel(book({}))).toBeNull();
+  });
+
+  it("totals what you actually got, per currency", () => {
+    expect(
+      receivedTotal([
+        book({ soldAt: "2026-10-01", salePrice: 225.16, saleOriginalPrice: 50, saleOriginalCurrency: "SEK" }),
+        book({ soldAt: "2026-10-02", salePrice: 135.1, saleOriginalPrice: 30, saleOriginalCurrency: "SEK" }),
+        book({ soldAt: "2026-09-01", salePrice: 100 }),
+      ]),
+    ).toEqual([
+      { currency: "SEK", total: 80 },
+      { currency: "UAH", total: 100 },
+    ]);
+  });
 });
+
