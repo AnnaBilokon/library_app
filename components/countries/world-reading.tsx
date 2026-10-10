@@ -16,6 +16,8 @@ const WorldMap = dynamic(() => import("./world-map").then((m) => m.WorldMap), {
   loading: () => <div className="aspect-[960/470] w-full animate-pulse rounded-xl bg-muted" />,
 });
 
+const TOP = 10;
+
 /**
  * Where the books you finished come from, by the authors' countries: flags with counts, a world
  * map shaded by number of books, and a ranked list you can open to see the books.
@@ -23,9 +25,12 @@ const WorldMap = dynamic(() => import("./world-map").then((m) => m.WorldMap), {
 export function WorldReadingSection({ books, map, year }: { books: Book[]; map: AuthorCountries; year: number }) {
   const [allYears, setAllYears] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const w = useMemo(() => worldReading(books, map, allYears ? null : year), [books, map, year, allYears]);
   const scope = allYears ? "ever" : `in ${year}`;
   const max = Math.max(1, ...w.countries.map((c) => c.books.length));
+  // The full list when asked for, or when the country picked (flag or map) isn't in the top ones.
+  const listAll = showAll || (open !== null && w.countries.findIndex((c) => c.code === open) >= TOP);
 
   return (
     <section aria-labelledby="world-title" className="flex flex-col gap-5 rounded-3xl bg-card p-5 ring-1 ring-border/60 md:p-7">
@@ -88,7 +93,27 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
         <WorldMap countries={w.countries} selected={open} onSelect={(code) => setOpen(open === code ? null : code)} />
 
         <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold">Top countries</h3>
+          {/* Two tabs: the top ten, or every country you read (also opens when you pick one outside the top). */}
+          <div className="flex w-fit rounded-full bg-muted p-1" role="tablist" aria-label="Countries list">
+            {[false, true].map((all) => (
+              <button
+                key={String(all)}
+                type="button"
+                role="tab"
+                aria-selected={listAll === all}
+                onClick={() => {
+                  setShowAll(all);
+                  if (!all) setOpen(null);
+                }}
+                className={cn(
+                  "inline-flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  listAll === all && "bg-background text-foreground shadow-sm",
+                )}
+              >
+                {all ? `All countries (${w.countries.length})` : "Top countries"}
+              </button>
+            ))}
+          </div>
           {w.countries.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Add where your authors are from on a book&apos;s page (next to the author&apos;s name) or in{" "}
@@ -99,7 +124,7 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
             </p>
           ) : (
             <ol className="flex flex-col gap-1">
-              {w.countries.slice(0, 10).map((c) => (
+              {(listAll ? w.countries : w.countries.slice(0, TOP)).map((c) => (
                 <li key={c.code}>
                   <button
                     type="button"

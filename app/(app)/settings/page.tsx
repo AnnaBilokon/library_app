@@ -5,6 +5,7 @@ import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { TrashList } from "@/components/books/trash-list";
 import { AuthorCountryList } from "@/components/countries/author-country-list";
+import { HideForSaleToggle } from "@/components/layout/hide-for-sale-toggle";
 import { PalettePicker } from "@/components/layout/palette-picker";
 import { ThemePicker } from "@/components/layout/theme-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { authorList } from "@/lib/countries";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks, getDeletedBooks } from "@/lib/data/books";
+import { getSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -28,6 +30,17 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col gap-5">
           <ThemePicker />
           <PalettePicker />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Library</CardTitle>
+          <CardDescription>What shows on your shelves.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+            <LibrarySettings />
+          </Suspense>
         </CardContent>
       </Card>
       <Card id="backup" className="scroll-mt-24">
@@ -109,4 +122,9 @@ async function Trash() {
 async function AuthorCountries() {
   const [books, map] = await Promise.all([getBooks(), getAuthorCountries()]);
   return <AuthorCountryList authors={authorList(books, map)} />;
+}
+
+async function LibrarySettings() {
+  const { hideForSale } = await getSettings();
+  return <HideForSaleToggle key={String(hideForSale)} initial={hideForSale} />;
 }
