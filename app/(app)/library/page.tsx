@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { AuthorCountriesProvider } from "@/components/countries/author-countries-context";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks } from "@/lib/data/books";
+import { getSettings } from "@/lib/data/settings";
 import { inLibrary } from "@/lib/selling";
 import { isWishlistOnly } from "@/lib/wishlist";
 
@@ -48,9 +49,10 @@ export default function LibraryPage() {
 }
 
 async function LibraryData() {
-  const [all, authorCountries, cookieStore] = await Promise.all([getBooks(), getAuthorCountries(), cookies()]);
+  const [all, authorCountries, settings, cookieStore] = await Promise.all([getBooks(), getAuthorCountries(), getSettings(), cookies()]);
   // Wishlist books live on the Wishlist and sold books on the Sell page.
-  const books = all.filter(inLibrary);
+  // ... and, if you chose so in Settings, books on the sell shelf too.
+  const books = all.filter((b) => inLibrary(b) && !(settings.hideForSale && b.forSale));
   const saved = cookieStore.get(LAYOUT_COOKIE)?.value;
   const layout: LibraryLayout = saved === "table" ? "table" : "grid";
   // LibraryView is a Client Component ("use client"): it gets the data as props and handles

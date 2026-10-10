@@ -10,6 +10,7 @@ import { BookCover } from "@/components/books/book-cover";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayLocal } from "@/lib/dates";
 import { inLibrary } from "@/lib/selling";
 import { applyGenre, poolBooks, recentGenres, spin, type GenreChoice, type Pool } from "@/lib/surprise";
@@ -39,6 +40,14 @@ export function SurpriseView({ books }: { books: Book[] }) {
   const base = useMemo(() => poolBooks(books, pool), [books, pool]);
   const candidates = useMemo(() => applyGenre(base, genre, recent), [base, genre, recent]);
   const genres = useMemo(() => [...new Set(base.flatMap((b) => b.genres))].sort((a, b) => a.localeCompare(b, "uk")), [base]);
+  // The dropdown: Any genre, Something different, then every genre in this pool (value strings).
+  const genreItems = [
+    { value: "any", label: "Any genre" },
+    { value: "different", label: "✦ Something different" },
+    ...genres.map((g) => ({ value: `g:${g}`, label: g })),
+  ];
+  const genreValue = genre.kind === "genre" ? `g:${genre.genre}` : genre.kind;
+  const fromValue = (v: string): GenreChoice => (v === "any" ? { kind: "any" } : v === "different" ? { kind: "different" } : { kind: "genre", genre: v.slice(2) });
   const counts = useMemo(() => Object.fromEntries((["unread", "all", "forgotten"] as const).map((p) => [p, poolBooks(books, p).length])) as Record<Pool, number>, [books]);
 
   const go = () => {
@@ -91,19 +100,23 @@ export function SurpriseView({ books }: { books: Book[] }) {
           ))}
         </div>
         {genres.length > 0 && (
-          <div className="-mx-4 overflow-x-auto px-4">
-            <ul className="flex w-max gap-1.5" aria-label="Genre">
-              <GenreChip label="Any genre" on={genre.kind === "any"} onClick={() => setGenre({ kind: "any" })} />
-              <GenreChip
-                label="✦ Something different"
-                title={recent.length ? `Not ${recent.join(", ")}, which you read lately` : undefined}
-                on={genre.kind === "different"}
-                onClick={() => setGenre({ kind: "different" })}
-              />
-              {genres.map((g) => (
-                <GenreChip key={g} label={g} on={genre.kind === "genre" && genre.genre === g} onClick={() => setGenre({ kind: "genre", genre: g })} />
-              ))}
-            </ul>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium" id="genre-label">
+              Genre
+            </span>
+            <Select value={genreValue} onValueChange={(v) => v && setGenre(fromValue(v))} items={genreItems}>
+              <SelectTrigger className="h-10 w-64 rounded-full" aria-labelledby="genre-label">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {genreItems.map((g) => (
+                  <SelectItem key={g.value} value={g.value}>
+                    {g.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {genre.kind === "different" && recent.length > 0 && <span className="text-xs text-muted-foreground">Not {recent.join(", ")}, which you read lately</span>}
           </div>
         )}
       </section>
@@ -140,25 +153,6 @@ export function SurpriseView({ books }: { books: Book[] }) {
 
       <ForgottenBox books={books} />
     </div>
-  );
-}
-
-function GenreChip({ label, on, onClick, title }: { label: string; on: boolean; onClick: () => void; title?: string }) {
-  return (
-    <li>
-      <button
-        type="button"
-        aria-pressed={on}
-        onClick={onClick}
-        title={title}
-        className={cn(
-          "inline-flex h-8 items-center rounded-full px-3 text-sm font-medium ring-1 ring-border transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-          on && "bg-primary text-primary-foreground ring-primary hover:bg-primary",
-        )}
-      >
-        {label}
-      </button>
-    </li>
   );
 }
 
