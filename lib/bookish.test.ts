@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book } from "@/lib/types";
-import { bookishFacts, compareHeight, genreSlices, jacketFor, shelfBooks } from "./bookish";
+import { bookishFacts, compareHeight, genreSlices, genreTiles, jacketFor, shelfBooks } from "./bookish";
 
 const book = (title: string, finished: string[], o: Partial<Book> = {}) =>
   ({ id: title, title, authors: [], genres: [], wanted: false, readings: finished.map((d, i) => ({ id: `${title}${i}`, outcome: "finished", finishedAt: d })), ...o }) as unknown as Book;
@@ -47,5 +47,42 @@ describe("bookish", () => {
       { genre: "Other", count: 2 },
     ]);
     expect(genreSlices(books.slice(0, 6), 2026)).toHaveLength(3);
+  });
+
+  it("colours each book by its main genre, like the donut, in reading order", () => {
+    const books = [
+      book("F1", ["2026-01-01"], { genres: ["Fantasy", "Romance"] }),
+      book("F2", ["2026-02-01"], { genres: ["Fantasy"] }),
+      book("H", ["2026-03-01"], { genres: ["History"] }),
+      book("R", ["2026-04-01"], { genres: ["Romance"] }),
+      book("None", ["2026-05-01"]),
+      book("Old", ["2025-05-01"], { genres: ["Classic"] }),
+    ];
+    const { tiles, legend } = genreTiles(books, 2026);
+    expect(tiles.map((t) => [t.title, t.genre, t.slot])).toEqual([
+      ["F1", "Fantasy", 1],
+      ["F2", "Fantasy", 1],
+      ["H", "History", 3],
+      ["R", "Romance", 2],
+      ["None", "No genre", 4],
+    ]);
+    // Slots follow the donut's order (Romance also counts F1), so the colours always agree.
+    const slices = genreSlices(books, 2026).map((s) => s.genre);
+    for (const t of tiles) expect(slices[t.slot - 1]).toBe(t.genre);
+    expect(legend.map((l) => [l.genre, l.count])).toEqual([
+      ["Fantasy", 2],
+      ["Romance", 1],
+      ["History", 1],
+      ["No genre", 1],
+    ]);
+  });
+
+  it("puts genres outside the top five under Other", () => {
+    const genres = ["A", "B", "C", "D", "E", "F", "G"];
+    const books = genres.map((g, i) => book(g, [`2026-0${i + 1}-01`], { genres: [g] }));
+    books.push(book("A2", ["2026-08-01"], { genres: ["A"] }));
+    const { tiles, legend } = genreTiles(books, 2026);
+    expect(tiles.filter((t) => t.slot === 0).map((t) => t.title)).toEqual(["F", "G"]);
+    expect(legend.at(-1)).toEqual({ genre: "Other", slot: 0, count: 2 });
   });
 });

@@ -23,7 +23,7 @@ import { BookishFacts } from "./bookish-facts";
 import { ChallengeRing } from "./challenge-ring";
 import { GenreDonut } from "./genre-donut";
 import { YearShelf } from "./year-shelf";
-import { bookishFacts, genreSlices, shelfBooks } from "@/lib/bookish";
+import { bookishFacts, genreSlices, genreTiles, shelfBooks } from "@/lib/bookish";
 import { WorldReadingSection } from "@/components/countries/world-reading";
 import type { AuthorCountries } from "@/lib/countries";
 
@@ -56,6 +56,7 @@ export function ChallengeView({
   const shelf = useMemo(() => shelfBooks(books, year), [books, year]);
   const facts = useMemo(() => bookishFacts(shelf), [shelf]);
   const slices = useMemo(() => genreSlices(books, year), [books, year]);
+  const tiles = useMemo(() => genreTiles(books, year), [books, year]);
   const undated = useMemo(() => books.reduce((n, b) => n + b.readings.filter((r) => r.outcome === "finished" && !r.finishedAt).length, 0), [books]);
 
   return (
@@ -86,7 +87,7 @@ export function ChallengeView({
         </Link>
       )}
 
-      <YearShelf books={shelf} goal={goal} year={c.year} />
+      <YearShelf books={shelf} goal={goal} year={c.year} genres={tiles} />
 
       <BooksRead books={books} year={c.year} initialView={initialBooksView} />
 

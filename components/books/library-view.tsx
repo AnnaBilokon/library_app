@@ -54,11 +54,15 @@ interface LibraryViewProps {
   wishlistCount?: number;
 }
 
-export function LibraryView({ books, initialLayout, initialColumns, wishlistCount = 0 }: LibraryViewProps) {
+export function LibraryView({ books: everything, initialLayout, initialColumns, wishlistCount = 0 }: LibraryViewProps) {
   // Like a reactive `route.query` in Nuxt: reading and writing these updates the URL,
   // so a filtered view survives a refresh and can be shared as a link.
   const [params, setParams] = useQueryStates(libraryParams, { urlKeys: libraryUrlKeys });
   const { sort, dir, ...filters } = params;
+  // The books on your shelves, or (from the Shelf filter) the ones you read but don't own.
+  const elsewhere = filters.owned === false;
+  const books = useMemo(() => everything.filter((b) => (elsewhere ? !b.owned : b.owned)), [everything, elsewhere]);
+  const notOwned = useMemo(() => everything.filter((b) => !b.owned).length, [everything]);
 
   // Typing stays responsive: React renders the (possibly long) result list a moment later.
   const deferredFilters = useDeferredValue(filters);
@@ -80,7 +84,7 @@ export function LibraryView({ books, initialLayout, initialColumns, wishlistCoun
 
   const [layout, setLayout] = useLayout(initialLayout);
 
-  if (books.length === 0) {
+  if (everything.length === 0) {
     return <EmptyState title="Your library is empty" text="Books you add will appear here. Adding books arrives in the next phase." />;
   }
 
@@ -175,7 +179,7 @@ export function LibraryView({ books, initialLayout, initialColumns, wishlistCoun
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {results.length === books.length ? `${books.length} books` : `${results.length} of ${books.length} books`}
+            {results.length === books.length ? `${books.length} ${books.length === 1 ? "book" : "books"}` : `${results.length} of ${books.length} books`}
             {" · "}sorted by {SORT_LABEL[sort].toLowerCase()}
             {wishlistCount > 0 && (
               <>
@@ -183,6 +187,14 @@ export function LibraryView({ books, initialLayout, initialColumns, wishlistCoun
                 <Link href="/wishlist" className="underline-offset-4 hover:text-foreground hover:underline">
                   {wishlistCount} on your wishlist
                 </Link>
+              </>
+            )}
+            {!elsewhere && notOwned > 0 && (
+              <>
+                {" · "}
+                <button type="button" onClick={() => update({ owned: false })} className="underline-offset-4 hover:text-foreground hover:underline">
+                  {notOwned} read, not owned
+                </button>
               </>
             )}
           </p>
@@ -352,8 +364,7 @@ function ActiveFilters({
   many("publisher", (v) => v);
   if (filters.author) chips.push({ key: "author", label: filters.author, remove: () => onChange({ author: null }) });
   if (filters.series) chips.push({ key: "series", label: `Series: ${filters.series}`, remove: () => onChange({ series: null }) });
-  if (filters.owned !== null)
-    chips.push({ key: "owned", label: filters.owned ? "Owned" : "Not owned", remove: () => onChange({ owned: null }) });
+  if (filters.owned === false) chips.push({ key: "owned", label: "Read, not owned", remove: () => onChange({ owned: null }) });
   if (filters.favorite) chips.push({ key: "fav", label: "Favourites", remove: () => onChange({ favorite: null }) });
   if (filters.reread) chips.push({ key: "rr", label: "Read more than once", remove: () => onChange({ reread: null }) });
   for (const c of filters.country)

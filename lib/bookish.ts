@@ -108,5 +108,39 @@ export function genreSlices(books: Book[], year: number, top = 5): GenreSlice[] 
   const sorted = [...counts].map(([genre, count]) => ({ genre, count })).sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre, "uk"));
   if (sorted.length <= top + 1) return sorted;
   const rest = sorted.slice(top).reduce((s, g) => s + g.count, 0);
-  return [...sorted.slice(0, top), { genre: "Other", count: rest }];
+  return [...sorted.slice(0, top), { genre: OTHER_GENRE, count: rest }];
+}
+
+/** "Other" and its colour slot, shared by the donut and the tiles. */
+export const OTHER_GENRE = "Other";
+
+export interface GenreTile {
+  id: string;
+  title: string;
+  authors: string[];
+  finishedAt: string;
+  /** The book's main genre (its first), or "Other" when that isn't one of the year's top genres. */
+  genre: string;
+  /** Colour slot: 1–5 in the order of the year's genres, 0 for "Other". */
+  slot: number;
+}
+
+/**
+ * The year's finished books in reading order, each coloured by its main genre, using the same
+ * colour for a genre as the donut does (so the two always agree).
+ */
+export function genreTiles(books: Book[], year: number): { tiles: GenreTile[]; legend: { genre: string; slot: number; count: number }[] } {
+  const slices = genreSlices(books, year);
+  const slotOf = new Map(slices.filter((s) => s.genre !== OTHER_GENRE).map((s, i) => [s.genre, i + 1]));
+  const byId = new Map(books.map((b) => [b.id, b]));
+  const tiles = shelfBooks(books, year).map((s) => {
+    const main = byId.get(s.id)?.genres[0] ?? "No genre";
+    const slot = slotOf.get(main) ?? 0;
+    return { id: s.id, title: s.title, authors: s.authors, finishedAt: s.finishedAt, genre: slot ? main : OTHER_GENRE, slot };
+  });
+  const counts = new Map<string, { genre: string; slot: number; count: number }>();
+  for (const t of tiles) counts.set(t.genre, { genre: t.genre, slot: t.slot, count: (counts.get(t.genre)?.count ?? 0) + 1 });
+  // Legend in colour order, "Other" last.
+  const legend = [...counts.values()].sort((a, b) => (a.slot || 99) - (b.slot || 99));
+  return { tiles, legend };
 }

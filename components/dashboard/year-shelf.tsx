@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import type { ShelfBook } from "@/lib/bookish";
+import { BookOpen, LayoutGrid } from "lucide-react";
+import type { GenreTile, ShelfBook } from "@/lib/bookish";
 import { cn } from "@/lib/utils";
+import { GenreTiles } from "./genre-tiles";
 import { useInView } from "./motion";
 
 const ROW = 176; // height of one shelf row: the tallest spine plus headroom
@@ -12,26 +15,74 @@ const MAX_EMPTY = 60;
 const spineHeight = (pages?: number) => (pages ? Math.round(110 + Math.min(1, pages / 800) * 50) : 132);
 const spineWidth = (pages?: number) => (pages ? Math.round(22 + Math.min(1, pages / 800) * 14) : 28);
 
+type ShelfTab = "shelf" | "genres";
+
 /**
- * The books you finished this year as spines on a bookshelf, sliding in one after another, with
- * dashed outlines for the books still to read to reach your goal. Hover for the title; click to open.
+ * Your year's books, in two tabs: spines on a bookshelf, or numbered boxes coloured by genre. Both
+ * show the books still to read to reach your goal as dashed outlines.
  */
-export function YearShelf({ books, goal, year }: { books: ShelfBook[]; goal: number | null; year: number }) {
-  const [ref, inView] = useInView<HTMLDivElement>();
+export function YearShelf({
+  books,
+  goal,
+  year,
+  genres,
+}: {
+  books: ShelfBook[];
+  goal: number | null;
+  year: number;
+  genres: { tiles: GenreTile[]; legend: { genre: string; slot: number; count: number }[] };
+}) {
+  const [tab, setTab] = useState<ShelfTab>("shelf");
   const empty = goal ? Math.max(0, goal - books.length) : 0;
-  const shownEmpty = Math.min(empty, MAX_EMPTY);
 
   return (
     <section aria-labelledby="shelf-title" className="flex flex-col gap-4 rounded-3xl bg-card p-5 ring-1 ring-border/60 md:p-7">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="shelf-title" className="font-heading text-2xl font-semibold text-heading">
-          Your {year} shelf
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {books.length} {books.length === 1 ? "book" : "books"}
-          {goal ? ` · ${empty > 0 ? `${empty} more to fill it` : "full!"}` : ""}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 id="shelf-title" className="font-heading text-2xl font-semibold text-heading">
+            Your {year} {tab === "shelf" ? "shelf" : "genres"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {books.length} {books.length === 1 ? "book" : "books"}
+            {goal ? ` · ${empty > 0 ? `${empty} more to fill it` : "full!"}` : ""}
+          </p>
+        </div>
+        <div className="flex rounded-full bg-muted p-1" role="tablist" aria-label="Show your year as">
+          {(
+            [
+              ["shelf", BookOpen, "Shelf"],
+              ["genres", LayoutGrid, "Genres"],
+            ] as const
+          ).map(([value, Icon, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={tab === value}
+              onClick={() => setTab(value)}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                tab === value && "bg-background text-foreground shadow-sm",
+              )}
+            >
+              <Icon className="size-3.5" aria-hidden />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+      {tab === "shelf" ? <Shelf books={books} empty={empty} /> : <GenreTiles tiles={genres.tiles} legend={genres.legend} goal={goal} />}
+    </section>
+  );
+}
+
+/** Spines on a bookshelf, sliding in one after another. Hover for the title; click to open. */
+function Shelf({ books, empty }: { books: ShelfBook[]; empty: number }) {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const shownEmpty = Math.min(empty, MAX_EMPTY);
+
+  return (
+    <>
       <div
         ref={ref}
         className="flex flex-wrap items-end gap-x-1.5 gap-y-3 px-2"
@@ -77,6 +128,6 @@ export function YearShelf({ books, goal, year }: { books: ShelfBook[]; goal: num
         ))}
         {empty > shownEmpty && <span className="self-center pb-2 text-sm text-muted-foreground">+{empty - shownEmpty} more</span>}
       </div>
-    </section>
+    </>
   );
 }

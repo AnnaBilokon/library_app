@@ -1,5 +1,5 @@
 import { computeBattle, type Picks } from "@/lib/battle";
-import { bookishFacts, shelfBooks, type BookishFacts, type ShelfBook } from "@/lib/bookish";
+import { bookishFacts, genreTiles, shelfBooks, type BookishFacts, type GenreTile, type ShelfBook } from "@/lib/bookish";
 import { MONTHS } from "@/lib/challenge";
 import { worldReading, type AuthorCountries, type CountryCount } from "@/lib/countries";
 import { computeExtras, computeStats, type Money } from "@/lib/stats";
@@ -26,6 +26,8 @@ export interface YearInBooks {
   bestMonth: { label: string; books: number } | null;
   facts: BookishFacts;
   shelf: ShelfBook[];
+  /** The shelf again, as boxes coloured by genre. */
+  genres: { tiles: GenreTile[]; legend: { genre: string; slot: number; count: number }[] };
   spent: Money[];
   earned: Money[];
   sold: number;
@@ -72,6 +74,7 @@ export function yearInBooks(
     bestMonth,
     facts: bookishFacts(shelf),
     shelf,
+    genres: genreTiles(books, year),
     spent: stats.money.spent,
     earned: stats.money.earned,
     sold: stats.money.soldBooks,
