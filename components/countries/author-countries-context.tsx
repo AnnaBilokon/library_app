@@ -11,6 +11,12 @@ export function AuthorCountriesProvider({ value, children }: { value: AuthorCoun
   return <AuthorCountriesContext value={value}>{children}</AuthorCountriesContext>;
 }
 
+/** The author → countries map from the nearest provider (empty outside one). */
+export function useAuthorCountries(): AuthorCountries {
+  return use(AuthorCountriesContext) ?? EMPTY;
+}
+const EMPTY: AuthorCountries = {};
+
 /** The flags for a list of authors (each country once); nothing outside a provider or without countries. */
 export function AuthorFlags({ authors, className }: { authors: string[]; className?: string }) {
   const map = use(AuthorCountriesContext);

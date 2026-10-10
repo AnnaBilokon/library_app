@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { BookFiltersPanel } from "./book-filters";
 import { groupByFinishedYear } from "@/lib/books/years";
 import { BookGrid } from "./book-grid";
+import { useAuthorCountries } from "@/components/countries/author-countries-context";
+import { countryName } from "@/lib/countries";
 import { BookTable } from "./book-table";
 import { ReadingShelf } from "./reading-shelf";
 
@@ -60,9 +62,10 @@ export function LibraryView({ books, initialLayout, initialColumns, wishlistCoun
 
   // Typing stays responsive: React renders the (possibly long) result list a moment later.
   const deferredFilters = useDeferredValue(filters);
+  const authorCountries = useAuthorCountries();
   const results = useMemo(
-    () => sortBooks(filterBooks(books, deferredFilters), sort, dir),
-    [books, deferredFilters, sort, dir],
+    () => sortBooks(filterBooks(books, deferredFilters, authorCountries), sort, dir),
+    [books, deferredFilters, sort, dir, authorCountries],
   );
   const facets = useMemo(() => computeFacets(books), [books]);
   const duplicateIds = useMemo(() => findDuplicateIds(books), [books]);
@@ -353,6 +356,8 @@ function ActiveFilters({
     chips.push({ key: "owned", label: filters.owned ? "Owned" : "Not owned", remove: () => onChange({ owned: null }) });
   if (filters.favorite) chips.push({ key: "fav", label: "Favourites", remove: () => onChange({ favorite: null }) });
   if (filters.reread) chips.push({ key: "rr", label: "Read more than once", remove: () => onChange({ reread: null }) });
+  for (const c of filters.country)
+    chips.push({ key: `c-${c}`, label: `From ${countryName(c)}`, remove: () => onChange({ country: filters.country.filter((x) => x !== c) }) });
   for (const m of filters.missing) chips.push({ key: `miss-${m}`, label: MISSING_LABEL[m], remove: () => onChange({ missing: filters.missing.filter((x) => x !== m) }) });
   if (filters.finishedYear !== null)
     chips.push({ key: "year", label: `Finished in ${filters.finishedYear}`, remove: () => onChange({ finishedYear: null }) });
