@@ -54,3 +54,43 @@ export const STATUS_CHOICES: readonly StatusChoice[] = ["wishlist", ...BOOK_STAT
 export function statusChoice(book: Pick<Book, "wanted" | "status">): StatusChoice {
   return book.wanted ? "wishlist" : book.status;
 }
+
+/** How far ahead (and back) a wishlist book's release date shows up as a reminder. */
+export const RELEASE_WINDOW_DAYS = 30;
+
+export interface ReleaseReminder {
+  book: Book;
+  date: string;
+  /** Days until it comes out (0 = today, negative = out that many days ago). */
+  days: number;
+}
+
+const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso}T00:00:00Z`) / 86_400_000);
+
+/** Days from today until a release date (negative once it's out). */
+export const daysUntil = (date: string, today: string) => dayNumber(date) - dayNumber(today);
+
+/**
+ * Wishlist books to start looking for: coming out within the next month (soonest first), and the
+ * ones that came out during the last month (newest first).
+ */
+export function releaseReminders(books: Book[], today: string, window = RELEASE_WINDOW_DAYS): { soon: ReleaseReminder[]; out: ReleaseReminder[] } {
+  const all = books
+    .filter((b) => b.wanted && b.releaseDate)
+    .map((book) => ({ book, date: book.releaseDate!, days: daysUntil(book.releaseDate!, today) }))
+    .filter((r) => Math.abs(r.days) <= window);
+  return {
+    soon: all.filter((r) => r.days > 0).sort((a, b) => a.days - b.days),
+    out: all.filter((r) => r.days <= 0).sort((a, b) => b.days - a.days),
+  };
+}
+
+/** "Out today", "Out tomorrow", "Out in 12 days", "Out since 3 Oct" — for a wishlist card. */
+export function releaseLabel(date: string, today: string, format: (iso: string) => string): string {
+  const d = daysUntil(date, today);
+  if (d === 0) return "Out today";
+  if (d === 1) return "Out tomorrow";
+  if (d > 1 && d <= RELEASE_WINDOW_DAYS) return `Out in ${d} days`;
+  if (d > 0) return `Out ${format(date)}`;
+  return `Out since ${format(date)}`;
+}

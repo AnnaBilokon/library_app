@@ -5,7 +5,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import type { GenreSlice } from "@/lib/bookish";
 import { useInView } from "./motion";
 
-// Fixed order (slot 1 = most read): checked colours from globals.css, neutral for "Other".
+// Fixed order (slot 1 = most read): checked colours from globals.css, neutral for "Other" (only past 14 genres).
 const color = (i: number, genre: string) => (genre === "Other" ? "var(--genre-other)" : `var(--genre-${i + 1})`);
 
 /**

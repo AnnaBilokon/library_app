@@ -36,7 +36,7 @@ describe("bookish", () => {
     expect(facts.stackCm).toBe(9.6);
   });
 
-  it("slices genres into the top five plus Other", () => {
+  it("lists every genre, most read first", () => {
     const books = ["A", "A", "A", "B", "B", "C", "D", "E", "F", "G"].map((g, i) => book(`b${i}`, ["2026-04-01"], { genres: [g] }));
     expect(genreSlices(books, 2026)).toEqual([
       { genre: "A", count: 3 },
@@ -44,7 +44,8 @@ describe("bookish", () => {
       { genre: "C", count: 1 },
       { genre: "D", count: 1 },
       { genre: "E", count: 1 },
-      { genre: "Other", count: 2 },
+      { genre: "F", count: 1 },
+      { genre: "G", count: 1 },
     ]);
     expect(genreSlices(books.slice(0, 6), 2026)).toHaveLength(3);
   });
@@ -77,12 +78,15 @@ describe("bookish", () => {
     ]);
   });
 
-  it("puts genres outside the top five under Other", () => {
-    const genres = ["A", "B", "C", "D", "E", "F", "G"];
-    const books = genres.map((g, i) => book(g, [`2026-0${i + 1}-01`], { genres: [g] }));
-    books.push(book("A2", ["2026-08-01"], { genres: ["A"] }));
+  it("gives every genre its own colour, and only past fourteen uses Other", () => {
+    const genres = Array.from({ length: 16 }, (_, i) => `G${String(i + 1).padStart(2, "0")}`);
+    const books = genres.map((g, i) => book(g, [`2026-01-${String(i + 1).padStart(2, "0")}`], { genres: [g] }));
+    books.push(book("G01 again", ["2026-02-01"], { genres: ["G01"] }));
     const { tiles, legend } = genreTiles(books, 2026);
-    expect(tiles.filter((t) => t.slot === 0).map((t) => t.title)).toEqual(["F", "G"]);
+    expect(new Set(tiles.filter((t) => t.slot > 0).map((t) => t.slot)).size).toBe(14);
+    expect(tiles.filter((t) => t.slot === 0).map((t) => t.title)).toEqual(["G15", "G16"]);
     expect(legend.at(-1)).toEqual({ genre: "Other", slot: 0, count: 2 });
+    // Seven genres: no Other at all.
+    expect(genreTiles(books.slice(0, 7), 2026).tiles.every((t) => t.slot > 0)).toBe(true);
   });
 });

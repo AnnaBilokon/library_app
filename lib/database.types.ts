@@ -99,6 +99,7 @@ export type Database = {
           purchase_price: number | null
           queue_position: number | null
           rating: number | null
+          release_date: string | null
           review: string | null
           sale_original_currency: string | null
           sale_original_price: number | null
@@ -144,6 +145,7 @@ export type Database = {
           purchase_price?: number | null
           queue_position?: number | null
           rating?: number | null
+          release_date?: string | null
           review?: string | null
           sale_original_currency?: string | null
           sale_original_price?: number | null
@@ -189,6 +191,7 @@ export type Database = {
           purchase_price?: number | null
           queue_position?: number | null
           rating?: number | null
+          release_date?: string | null
           review?: string | null
           sale_original_currency?: string | null
           sale_original_price?: number | null

@@ -71,6 +71,8 @@ export interface Book {
   wanted: boolean;
   priority?: WishPriority;
   wishPrice?: number;
+  /** Wishlist: the day it comes out (yyyy-mm-dd). */
+  releaseDate?: string;
   whereToBuy?: string;
   wishlistReason?: string;
 

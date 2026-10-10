@@ -59,6 +59,7 @@ export function bookToFormValues(book: Book): BookFormValues {
     description: book.description ?? "",
     wanted: book.wanted,
     wishPrice: book.wishPrice,
+    releaseDate: book.releaseDate ?? "",
     whereToBuy: book.whereToBuy ?? "",
     wishlistReason: book.wishlistReason ?? "",
   };
@@ -82,6 +83,7 @@ const EMPTY: BookFormValues = {
   notes: "",
   description: "",
   wanted: false,
+  releaseDate: "",
   whereToBuy: "",
   wishlistReason: "",
   startedAt: "",
@@ -447,7 +449,10 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
       {wanted && (
         <Section title="Wishlist details">
           <p className="-mt-2 text-sm text-muted-foreground">This book will only show on your Wishlist until you mark it bought.</p>
-          <div className="grid gap-5 sm:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Comes out on" error={errors.releaseDate}>
+              {(id, d) => <Input id={id} type="date" {...register("releaseDate")} aria-describedby={d} className="h-10" />}
+            </Field>
             <Field label="Expected price (UAH)" error={errors.wishPrice}>
               {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("wishPrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
             </Field>

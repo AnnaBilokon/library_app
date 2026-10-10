@@ -185,6 +185,7 @@ function Details({ book }: { book: Book }) {
   const sold = salePriceLabel(book);
   add("Sold", book.soldAt && `${formatDate(book.soldAt)}${sold ? ` for ${sold.main}${sold.converted ? ` (≈ ${sold.converted})` : ""}` : ""}`);
   if (book.wanted) {
+    add("Comes out", book.releaseDate && formatDate(book.releaseDate));
     add("Wishlist priority", book.priority);
     add("Expected price", book.wishPrice !== undefined && formatMoney(book.wishPrice, book.currency));
     add("Where to buy", book.whereToBuy);

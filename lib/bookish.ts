@@ -99,8 +99,11 @@ export interface GenreSlice {
   count: number;
 }
 
-/** This year's genres: the top five, and everything else as "Other". */
-export function genreSlices(books: Book[], year: number, top = 5): GenreSlice[] {
+/** How many genres get their own colour; past that they share "Other" (globals.css --genre-1..14). */
+export const GENRE_COLOURS = 14;
+
+/** This year's genres, most read first: every one of them (only past fourteen does the rest become "Other"). */
+export function genreSlices(books: Book[], year: number, top = GENRE_COLOURS): GenreSlice[] {
   const counts = new Map<string, number>();
   for (const b of books)
     if (!b.wanted && b.readings.some((r) => r.outcome === "finished" && r.finishedAt?.startsWith(String(year))))
@@ -119,9 +122,9 @@ export interface GenreTile {
   title: string;
   authors: string[];
   finishedAt: string;
-  /** The book's main genre (its first), or "Other" when that isn't one of the year's top genres. */
+  /** The book's main genre (its first); "Other" only past fourteen genres. */
   genre: string;
-  /** Colour slot: 1–5 in the order of the year's genres, 0 for "Other". */
+  /** Colour slot: 1–14 in the order of the year's genres, 0 for "Other". */
   slot: number;
 }
 

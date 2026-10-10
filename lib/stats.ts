@@ -53,6 +53,10 @@ export interface Stats {
   genresRead: GenreReadRow[];
   genresShelf: GenreShelfRow[];
   authors: CountRow[];
+  /** Publishers of the books you finished (in scope), most first. */
+  publishersRead: CountRow[];
+  /** Publishers of the books on your shelves now, most first. */
+  publishersShelf: CountRow[];
   languages: CountRow[];
   formats: CountRow[];
   pace: { averageDays: number; count: number; fastest: PaceBook; longest: PaceBook } | null;
@@ -139,14 +143,14 @@ export function computeStats(allBooks: Book[], year: number | null, topN = 8): S
     });
   }
 
-  const genreRows = tally(readBooks.flatMap((b) => b.genres), topN);
+  const genreRows = tally(readBooks.flatMap((b) => b.genres));
   const genresRead = genreRows.map((g) => ({
     ...g,
     rating: average(readBooks.filter((b) => b.genres.includes(g.label) && b.rating).map((b) => b.rating!)),
   }));
 
   const shelf = books.filter((b) => b.owned && !isSold(b));
-  const genresShelf = tally(shelf.flatMap((b) => b.genres), topN).map((g) => ({
+  const genresShelf = tally(shelf.flatMap((b) => b.genres)).map((g) => ({
     ...g,
     unread: shelf.filter((b) => b.genres.includes(g.label) && b.timesRead === 0).length,
   }));
@@ -183,6 +187,8 @@ export function computeStats(allBooks: Book[], year: number | null, topN = 8): S
     genresRead,
     genresShelf,
     authors: tally(entries.flatMap((e) => e.book.authors), topN),
+    publishersRead: tally(readBooks.flatMap((b) => (b.publisher ? [b.publisher] : [])), 10),
+    publishersShelf: tally(shelf.flatMap((b) => (b.publisher ? [b.publisher] : [])), 10),
     languages: tally(readBooks.map((b) => b.language ?? "")).filter((r) => r.label),
     formats: tally(readBooks.map((b) => b.format ?? "")).filter((r) => r.label),
     pace,

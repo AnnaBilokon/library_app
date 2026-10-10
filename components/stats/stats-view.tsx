@@ -102,6 +102,26 @@ export function StatsView({ stats: s, extras: x, years }: { stats: Stats; extras
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
+            <Card title="Publishers on your shelves" subtitle={s.publishersShelf[0] ? `Most of your books are from ${s.publishersShelf[0].label}` : "Books you own now, by publishing house"}>
+              <BarList
+                rows={s.publishersShelf.map((p) => ({ key: p.label, label: p.label, value: p.count, href: libraryUrl({ publisher: [p.label] }) }))}
+                empty="No publishers on your books yet."
+              />
+            </Card>
+            <Card title="Publishers you read most" subtitle={`Books you finished (${scope})`}>
+              <BarList
+                rows={s.publishersRead.map((p) => ({
+                  key: p.label,
+                  label: p.label,
+                  value: p.count,
+                  href: libraryUrl({ publisher: [p.label], status: ["finished"], finishedYear: s.year }),
+                }))}
+                empty="No publishers on your finished books yet."
+              />
+            </Card>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
             <Card title="Authors you read most" subtitle={`Books finished, re-reads included (${scope})`}>
               <BarList rows={s.authors.map((a) => ({ key: a.label, label: a.label, value: a.count, href: libraryUrl({ author: a.label }) }))} empty="No authors yet." />
               <AuthorExtras extras={x} year={s.year} />
