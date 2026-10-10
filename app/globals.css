@@ -39,6 +39,8 @@
   --shadow-book-hover: var(--book-shadow-hover);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-soon: var(--soon);
+  --color-soon-foreground: var(--soon-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -433,6 +435,16 @@
   --logo-tile: var(--primary);
   --logo-book: var(--primary-foreground);
   --logo-spine: var(--secondary);
+}
+
+/* "Coming soon" accent for wishlist release dates: a warm coral no palette uses elsewhere (text contrast > 7:1). */
+:root {
+  --soon: #ff8f66;
+  --soon-foreground: #3b1205;
+}
+.dark {
+  --soon: #ff9d78;
+  --soon-foreground: #2b0d03;
 }
 
 /*

@@ -341,7 +341,7 @@ function ReleaseChip({ date }: { date: string }) {
     <p
       className={cn(
         "flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
-        days <= 0 ? "bg-primary text-primary-foreground" : near ? "bg-highlight text-highlight-foreground" : "bg-muted text-muted-foreground",
+        days <= 0 ? "bg-primary text-primary-foreground" : near ? "bg-soon text-soon-foreground" : "bg-soon/20 text-foreground ring-1 ring-soon",
       )}
     >
       <CalendarClock className="size-3" aria-hidden />

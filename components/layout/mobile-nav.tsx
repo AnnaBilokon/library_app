@@ -31,7 +31,7 @@ function ActiveTabs() {
 
 function Tabs({ pathname }: { pathname: string | null }) {
   return (
-    <ul className="grid grid-cols-6">
+    <ul className="grid grid-cols-7">
       {TAB_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname !== null && isActive(href, pathname);
         return (
@@ -40,11 +40,11 @@ function Tabs({ pathname }: { pathname: string | null }) {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                "flex h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                 active && "text-foreground",
               )}
             >
-              <span className={cn("grid h-7 w-12 place-items-center rounded-full", active && "bg-highlight text-highlight-foreground")}>
+              <span className={cn("grid h-7 w-10 place-items-center rounded-full", active && "bg-highlight text-highlight-foreground")}>
                 <Icon className="size-5" aria-hidden />
               </span>
               {label}

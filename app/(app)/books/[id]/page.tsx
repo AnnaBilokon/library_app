@@ -174,7 +174,15 @@ function Details({ book }: { book: Book }) {
   );
   add("Published", book.publishedYear);
   add("Pages", book.pages);
-  add("Series", book.series && `${book.series}${book.seriesIndex !== undefined ? ` #${book.seriesIndex}` : ""}`);
+  add(
+    "Series",
+    book.series && (
+      <Link href="/series" className="underline-offset-4 hover:underline">
+        {book.series}
+        {book.seriesIndex !== undefined ? ` #${book.seriesIndex}` : ""}
+      </Link>
+    ),
+  );
   add("Language", book.language && languageLabel(book.language));
   add("Original language", book.originalLanguage && languageLabel(book.originalLanguage));
   add("Format", book.format && FORMAT_LABEL[book.format]);

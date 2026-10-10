@@ -32,5 +32,13 @@ async function NewBookForm({ searchParams }: { searchParams: Promise<Record<stri
   // Existing books feed autocomplete (authors, genres, publishers) and the duplicate warning.
   const [books, params] = await Promise.all([getBooks(), searchParams]);
   // Opened from the Wishlist page (?wishlist=1): preset "on my wishlist, not owned".
-  return <BookForm suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} />;
+  // From the series/author trackers: ?author=…&series=…&index=… fill those in too.
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() || undefined;
+  const index = Number(one(params.index));
+  const preset = {
+    authors: one(params.author) ? [one(params.author)!.slice(0, 200)] : undefined,
+    series: one(params.series)?.slice(0, 200),
+    seriesIndex: Number.isInteger(index) && index > 0 && index <= 1000 ? index : undefined,
+  };
+  return <BookForm suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} />;
 }
