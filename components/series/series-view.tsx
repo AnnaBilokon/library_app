@@ -8,7 +8,7 @@ import { setSeriesTotal } from "@/app/actions/series";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { libraryUrl } from "@/lib/books/library-url";
+import { libraryUrl, newBookUrl } from "@/lib/books/library-url";
 import type { SeriesSummary, VolumeState } from "@/lib/series";
 import { cn } from "@/lib/utils";
 
@@ -148,9 +148,15 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
                   {v.index}
                 </Link>
               ) : (
-                <span title={label} aria-label={label} className={box}>
+                // A volume you don't have: one click to put it on your wishlist (series and number filled in).
+                <Link
+                  href={newBookUrl({ wishlist: true, series: s.name, index: v.index, author: s.authors[0] })}
+                  title={`${v.index}: add to your wishlist`}
+                  aria-label={`${v.index}. Not in your library: add to your wishlist`}
+                  className={cn(box, "hover:border-foreground/50 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none")}
+                >
                   {v.index}
-                </span>
+                </Link>
               )}
             </li>
           );
@@ -170,6 +176,7 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
         {s.missing.length > 0 && (
           <p className="text-muted-foreground">
             Not in your library yet: <span className="font-medium text-foreground tabular-nums">{s.missing.map((m) => `#${m}`).join(", ")}</span>
+            <span className="text-xs"> (click a number to add it to your wishlist)</span>
           </p>
         )}
         {s.unnumbered.length > 0 && (

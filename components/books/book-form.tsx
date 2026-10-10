@@ -91,9 +91,17 @@ const EMPTY: BookFormValues = {
   stopReason: "",
 };
 
+/** What a link can fill in for a new book (e.g. "add another book by this author"). */
+export interface NewBookPreset {
+  authors?: string[];
+  series?: string;
+  seriesIndex?: number;
+}
+
 /** An empty form; from the Wishlist page it starts as a wishlist book (wanted, not owned). */
-function newBookDefaults(forWishlist?: boolean): BookFormValues {
-  return forWishlist ? { ...EMPTY, wanted: true, owned: false } : EMPTY;
+function newBookDefaults(forWishlist?: boolean, preset?: NewBookPreset): BookFormValues {
+  const base = forWishlist ? { ...EMPTY, wanted: true, owned: false } : EMPTY;
+  return { ...base, authors: preset?.authors ?? base.authors, series: preset?.series ?? base.series, seriesIndex: preset?.seriesIndex };
 }
 
 interface BookFormProps {
@@ -106,9 +114,11 @@ interface BookFormProps {
   inSheet?: boolean;
   /** Opened from the Wishlist page: a book you want, not one you own. */
   forWishlist?: boolean;
+  /** Fields filled in by the link that opened the form (author, series, number). */
+  preset?: NewBookPreset;
 }
 
-export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist }: BookFormProps) {
+export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset }: BookFormProps) {
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -118,7 +128,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
   // re-render the whole form; zodResolver runs the same schema the server uses.
   const form = useForm<BookFormValues, unknown, BookInput>({
     resolver: zodResolver(bookInputSchema),
-    defaultValues: book ? bookToFormValues(book) : newBookDefaults(forWishlist),
+    defaultValues: book ? bookToFormValues(book) : newBookDefaults(forWishlist, preset),
     mode: "onTouched",
   });
   const { register, control, handleSubmit, formState } = form;
