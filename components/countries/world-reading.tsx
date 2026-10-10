@@ -93,17 +93,26 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
         <WorldMap countries={w.countries} selected={open} onSelect={(code) => setOpen(open === code ? null : code)} />
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className="text-sm font-semibold">{listAll ? "All countries" : "Top countries"}</h3>
-            {w.countries.length > TOP && (
+          {/* Two tabs: the top ten, or every country you read (also opens when you pick one outside the top). */}
+          <div className="flex w-fit rounded-full bg-muted p-1" role="tablist" aria-label="Countries list">
+            {[false, true].map((all) => (
               <button
+                key={String(all)}
                 type="button"
-                onClick={() => setShowAll(!listAll)}
-                className="text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                role="tab"
+                aria-selected={listAll === all}
+                onClick={() => {
+                  setShowAll(all);
+                  if (!all) setOpen(null);
+                }}
+                className={cn(
+                  "inline-flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  listAll === all && "bg-background text-foreground shadow-sm",
+                )}
               >
-                {listAll ? `Top ${TOP}` : `All countries (${w.countries.length})`}
+                {all ? `All countries (${w.countries.length})` : "Top countries"}
               </button>
-            )}
+            ))}
           </div>
           {w.countries.length === 0 ? (
             <p className="text-sm text-muted-foreground">
