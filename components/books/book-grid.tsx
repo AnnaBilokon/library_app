@@ -8,6 +8,7 @@ import { openReading } from "@/lib/books/reading-logic";
 import { BookCover } from "./book-cover";
 import { BookQuickActions } from "./book-quick-actions";
 import { AuthorLinks } from "./name-links";
+import { AuthorFlags } from "@/components/countries/author-countries-context";
 import { ProgressBar } from "./reading-tools";
 
 const SIZES = "(min-width: 1536px) 13vw, (min-width: 1280px) 15vw, (min-width: 1024px) 18vw, (min-width: 768px) 23vw, (min-width: 640px) 30vw, 45vw";
@@ -123,6 +124,7 @@ export function BookCard({
         </Link>
         {book.authors.length > 0 && (
           <p className="truncate text-sm text-muted-foreground">
+            <AuthorFlags authors={book.authors} className="mr-1.5" />
             <AuthorLinks authors={book.authors} lang={book.language} quiet />
           </p>
         )}

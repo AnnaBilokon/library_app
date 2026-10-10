@@ -7,6 +7,8 @@ import { BookCover } from "@/components/books/book-cover";
 import { BookDeleteButton, BookEditButton, BookQueueButton, BookQuickControls, BookWishlistButton } from "@/components/books/book-controls";
 import { BookCard } from "@/components/books/book-grid";
 import { AuthorLinks, PublisherLink } from "@/components/books/name-links";
+import { AuthorCountriesProvider } from "@/components/countries/author-countries-context";
+import { CountryPicker } from "@/components/countries/country-picker";
 import { ReadingHistory } from "@/components/books/reading-history";
 import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { SellBanner, SellButton } from "@/components/selling/selling-controls";
@@ -18,6 +20,7 @@ import { libraryUrl } from "@/lib/books/library-url";
 import { sortBooks } from "@/lib/books/filters";
 import { lastStop, progressInfo } from "@/lib/books/progress";
 import { buildSuggestions } from "@/lib/books/suggestions";
+import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBook, getBooks } from "@/lib/data/books";
 import { inLibrary, salePriceLabel } from "@/lib/selling";
 import type { Book } from "@/lib/types";
@@ -47,13 +50,14 @@ export default function BookPage({ params }: PageProps<"/books/[id]">) {
 
 async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [book, all] = await Promise.all([getBook(id), getBooks()]);
+  const [book, all, authorCountries] = await Promise.all([getBook(id), getBooks(), getAuthorCountries()]);
   if (!book) notFound();
 
   const key = duplicateKey(book);
   const duplicates = all.filter((b) => b.id !== book.id && duplicateKey(b) === key);
 
   return (
+    <AuthorCountriesProvider value={authorCountries}>
     <article className="grid gap-8 md:grid-cols-[18rem_1fr] md:gap-14">
       <div className="mx-auto w-48 sm:w-56 md:sticky md:top-24 md:mx-0 md:w-full md:self-start">
         <BookCover title={book.title} authors={book.authors} src={book.coverSrc} lang={book.language} sizes="(min-width: 768px) 288px, 224px" priority />
@@ -68,8 +72,15 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
               {book.title}
             </h1>
             {book.authors.length > 0 && (
-              <p className="text-xl text-muted-foreground">
-                <AuthorLinks authors={book.authors} lang={book.language} />
+              <p className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xl text-muted-foreground">
+                {book.authors.map((a, i) => (
+                  <span key={a} className="inline-flex items-center gap-1.5">
+                    <AuthorLinks authors={[a]} lang={book.language} />
+                    {/* key: start fresh when the saved countries change */}
+                    <CountryPicker key={(authorCountries[a] ?? []).join()} author={a} countries={authorCountries[a] ?? []} />
+                    {i < book.authors.length - 1 && <span aria-hidden>,</span>}
+                  </span>
+                ))}
               </p>
             )}
             {(book.genres.length > 0 || book.tags.length > 0) && (
@@ -146,6 +157,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
         <MoreBooks book={book} all={all} />
       </div>
     </article>
+    </AuthorCountriesProvider>
   );
 }
 

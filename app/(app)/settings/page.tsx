@@ -4,12 +4,15 @@ import { LogOut } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { TrashList } from "@/components/books/trash-list";
+import { AuthorCountryList } from "@/components/countries/author-country-list";
 import { PalettePicker } from "@/components/layout/palette-picker";
 import { ThemePicker } from "@/components/layout/theme-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
-import { getDeletedBooks } from "@/lib/data/books";
+import { authorList } from "@/lib/countries";
+import { getAuthorCountries } from "@/lib/data/author-countries";
+import { getBooks, getDeletedBooks } from "@/lib/data/books";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -25,6 +28,17 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col gap-5">
           <ThemePicker />
           <PalettePicker />
+        </CardContent>
+      </Card>
+      <Card id="author-countries" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Author countries</CardTitle>
+          <CardDescription>Where your authors are from. Books show their flags, and the Dashboard maps the countries you read.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+            <AuthorCountries />
+          </Suspense>
         </CardContent>
       </Card>
       <Card>
@@ -66,4 +80,9 @@ async function SignedInAs() {
 
 async function Trash() {
   return <TrashList books={await getDeletedBooks()} />;
+}
+
+async function AuthorCountries() {
+  const [books, map] = await Promise.all([getBooks(), getAuthorCountries()]);
+  return <AuthorCountryList authors={authorList(books, map)} />;
 }

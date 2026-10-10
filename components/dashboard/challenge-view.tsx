@@ -19,6 +19,8 @@ import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MonthlyChart, ProgressChart } from "./challenge-charts";
+import { WorldReadingSection } from "@/components/countries/world-reading";
+import type { AuthorCountries } from "@/lib/countries";
 
 const plural = (n: number, one: string, many: string) => `${n} ${Math.abs(n) === 1 ? one : many}`;
 const fmt = (n: number) => new Intl.NumberFormat("en-GB").format(n);
@@ -27,8 +29,11 @@ export function ChallengeView({
   books,
   goals,
   initialBooksView = "list",
+  authorCountries = {},
 }: {
   books: Book[];
+  /** Where your authors are from, for the world map. */
+  authorCountries?: AuthorCountries;
   goals: Record<number, number>;
   /** List or grid for "Books read", from a cookie. */
   initialBooksView?: BooksReadView;
@@ -114,6 +119,8 @@ export function ChallengeView({
           </table>
         </div>
       </details>
+
+      <WorldReadingSection books={books} map={authorCountries} year={c.year} />
 
       {undated > 0 && (
         <p className="text-sm text-muted-foreground">
