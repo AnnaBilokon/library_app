@@ -1,3 +1,4 @@
+import { isMissing, MISSING_FIELDS, type MissingField } from "@/lib/books/filters";
 import { MONTHS } from "@/lib/challenge";
 import { isSold } from "@/lib/selling";
 import type { Book, Reading } from "@/lib/types";
@@ -197,5 +198,97 @@ export function computeStats(allBooks: Book[], year: number | null, topN = 8): S
       earned: sumMoney(sold.filter((b) => b.salePrice !== undefined).map((b) => ({ amount: b.salePrice!, currency: b.currency }))),
       soldBooks: sold.length,
     },
+  };
+}
+
+// ───────────────────────── more: shelf, ratings, authors, missing details ─────────────────────────
+
+export interface WaitingBook {
+  id: string;
+  title: string;
+  authors: string[];
+  /** When it joined your library (YYYY-MM-DD). */
+  since: string;
+}
+
+export interface Extras {
+  shelf: { owned: number; unread: number; waiting: WaitingBook[]; authorsUnread: CountRow[] };
+  topRated: Book[];
+  lowestRated: Book[];
+  favourites: Book[];
+  /** Average rating of the books finished each year (dated readings only). */
+  ratingByYear: { year: number; rating: number; books: number }[];
+  /** Authors with 2+ rated books read, best average first. */
+  topAuthors: { label: string; rating: number; books: number }[];
+  /** Authors read for the first time in the year, and authors you'd read before (one year only). */
+  authorsNewVsFamiliar: { fresh: number; familiar: number } | null;
+  /** Books in your library missing a detail the stats rely on. */
+  missing: { field: MissingField; count: number }[];
+}
+
+const addedOn = (b: Book) => b.acquiredAt ?? b.createdAt.slice(0, 10);
+
+/** The extra cards on the Stats page, for all years (year = null) or one year. */
+export function computeExtras(allBooks: Book[], year: number | null, topN = 6): Extras {
+  const library = allBooks.filter((b) => !b.wanted && !isSold(b));
+  const owned = library.filter((b) => b.owned);
+  const unread = owned.filter((b) => b.timesRead === 0 && b.status !== "reading" && b.status !== "paused" && b.status !== "abandoned");
+  const waiting = [...unread]
+    .sort((a, b) => addedOn(a).localeCompare(addedOn(b)) || a.title.localeCompare(b.title, "uk"))
+    .slice(0, 5)
+    .map((b) => ({ id: b.id, title: b.title, authors: b.authors, since: addedOn(b) }));
+
+  const books = allBooks.filter((b) => !b.wanted);
+  const readIn = (b: Book) => b.readings.some((r) => r.outcome === "finished" && (year === null || r.finishedAt?.startsWith(String(year))));
+  const read = books.filter(readIn);
+  const rated = read.filter((b) => b.rating !== undefined);
+  const byLatest = (a: Book, b: Book) => (b.lastFinishedAt ?? "").localeCompare(a.lastFinishedAt ?? "");
+  const topRated = rated.filter((b) => b.rating! >= 4.5).sort((a, b) => b.rating! - a.rating! || byLatest(a, b)).slice(0, topN);
+  const lowestRated = rated.filter((b) => b.rating! <= 2).sort((a, b) => a.rating! - b.rating! || byLatest(a, b)).slice(0, topN);
+  const favourites = read.filter((b) => b.favorite).sort(byLatest);
+
+  const years = new Map<number, number[]>();
+  for (const b of books)
+    for (const r of b.readings) {
+      const rating = r.rating ?? b.rating;
+      if (r.outcome === "finished" && r.finishedAt && rating !== undefined) {
+        const y = Number(r.finishedAt.slice(0, 4));
+        years.set(y, [...(years.get(y) ?? []), rating]);
+      }
+    }
+  const ratingByYear = [...years]
+    .sort((a, b) => a[0] - b[0])
+    .map(([y, rs]) => ({ year: y, rating: Math.round((rs.reduce((s, v) => s + v, 0) / rs.length) * 10) / 10, books: rs.length }));
+
+  const authorRatings = new Map<string, number[]>();
+  for (const b of rated) for (const a of b.authors) authorRatings.set(a, [...(authorRatings.get(a) ?? []), b.rating!]);
+  const topAuthors = [...authorRatings]
+    .filter(([, rs]) => rs.length >= 2)
+    .map(([label, rs]) => ({ label, rating: Math.round((rs.reduce((s, v) => s + v, 0) / rs.length) * 10) / 10, books: rs.length }))
+    .sort((a, b) => b.rating - a.rating || b.books - a.books || a.label.localeCompare(b.label, "uk"))
+    .slice(0, 5);
+
+  let authorsNewVsFamiliar: Extras["authorsNewVsFamiliar"] = null;
+  if (year !== null) {
+    // An author is familiar if you finished any of their books before this year (or undated).
+    const before = new Set(
+      books.flatMap((b) => (b.readings.some((r) => r.outcome === "finished" && (!r.finishedAt || r.finishedAt < `${year}`)) ? b.authors : [])),
+    );
+    const thisYear = new Set(read.flatMap((b) => b.authors));
+    const familiar = [...thisYear].filter((a) => before.has(a)).length;
+    authorsNewVsFamiliar = { fresh: thisYear.size - familiar, familiar };
+  }
+
+  const missing = MISSING_FIELDS.map((field) => ({ field, count: library.filter((b) => isMissing(b, field)).length }));
+
+  return {
+    shelf: { owned: owned.length, unread: unread.length, waiting, authorsUnread: tally(unread.flatMap((b) => b.authors), 5) },
+    topRated,
+    lowestRated,
+    favourites,
+    ratingByYear,
+    topAuthors,
+    authorsNewVsFamiliar,
+    missing,
   };
 }

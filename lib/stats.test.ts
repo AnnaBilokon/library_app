@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book, Reading } from "@/lib/types";
-import { computeStats, statsYears } from "./stats";
+import { computeExtras, computeStats, statsYears } from "./stats";
 
 let n = 0;
 const read = (finishedAt?: string, o: Partial<Reading> = {}): Reading => ({ id: `r${++n}`, outcome: "finished", finishedAt, ...o });
@@ -113,5 +113,49 @@ describe("stats", () => {
     expect(computeStats(library, null).money).toEqual({ spent: [{ currency: "UAH", total: 450 }], spentBooks: 2, earned: [{ currency: "UAH", total: 120 }], soldBooks: 1 });
     expect(computeStats(library, 2026).money.spent).toEqual([{ currency: "UAH", total: 450 }]);
     expect(computeStats(library, 2025).money).toEqual({ spent: [], spentBooks: 0, earned: [], soldBooks: 0 });
+  });
+});
+
+describe("stats extras", () => {
+  const shelf = [
+    book({ title: "Old unread", status: "to-read", acquiredAt: "2019-03-01", authors: ["Кінг"] }),
+    book({ title: "New unread", status: "to-read", createdAt: "2026-09-01T10:00:00Z", authors: ["Кінг"] }),
+    book({ title: "Reading", status: "reading" }),
+    book({ title: "Loved", authors: ["Жадан"], rating: 5, favorite: true, readings: [read("2026-03-01")] }),
+    book({ title: "Liked", authors: ["Жадан"], rating: 4, readings: [read("2025-03-01")] }),
+    book({ title: "Meh", authors: ["Інший"], rating: 2, pages: 100, genres: ["Fiction"], readings: [read("2026-05-01")] }),
+    book({ title: "Undated", authors: ["Інший"], rating: 3, readings: [read(undefined)] }),
+  ];
+
+  it("shows what waits on your shelf, oldest first", () => {
+    const x = computeExtras(shelf, null);
+    expect(x.shelf.unread).toBe(2);
+    expect(x.shelf.waiting.map((w) => w.title)).toEqual(["Old unread", "New unread"]);
+    expect(x.shelf.authorsUnread[0]).toEqual({ label: "Кінг", count: 2 });
+  });
+
+  it("highlights the best and worst rated, favourites and the yearly average", () => {
+    const x = computeExtras(shelf, 2026);
+    expect(x.topRated.map((b) => b.title)).toEqual(["Loved"]);
+    expect(x.lowestRated.map((b) => b.title)).toEqual(["Meh"]);
+    expect(x.favourites.map((b) => b.title)).toEqual(["Loved"]);
+    expect(computeExtras(shelf, null).ratingByYear).toEqual([
+      { year: 2025, rating: 4, books: 1 },
+      { year: 2026, rating: 3.5, books: 2 },
+    ]);
+  });
+
+  it("ranks authors by rating (2+ books) and splits new and familiar authors", () => {
+    expect(computeExtras(shelf, null).topAuthors[0]).toEqual({ label: "Жадан", rating: 4.5, books: 2 });
+    // 2026: Жадан was read in 2025 (familiar); Інший has an undated finish (familiar too).
+    expect(computeExtras(shelf, 2026).authorsNewVsFamiliar).toEqual({ fresh: 0, familiar: 2 });
+    expect(computeExtras([book({ title: "First", authors: ["Нова"], readings: [read("2026-01-01")] })], 2026).authorsNewVsFamiliar).toEqual({ fresh: 1, familiar: 0 });
+  });
+
+  it("counts books missing details", () => {
+    const m = Object.fromEntries(computeExtras(shelf, null).missing.map((x) => [x.field, x.count]));
+    expect(m["finish-date"]).toBe(1);
+    expect(m.pages).toBe(6);
+    expect(m.genre).toBe(6);
   });
 });

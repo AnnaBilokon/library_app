@@ -6,7 +6,7 @@ import {
   parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server";
-import { SORT_KEYS } from "@/lib/books/filters";
+import { MISSING_FIELDS, SORT_KEYS } from "@/lib/books/filters";
 import { BOOK_FORMATS, BOOK_STATUSES } from "@/lib/types";
 
 /**
@@ -31,6 +31,7 @@ export const libraryParams = {
   finishedYear: parseAsInteger,
   pagesMin: parseAsInteger,
   pagesMax: parseAsInteger,
+  missing: parseAsArrayOf(parseAsStringLiteral(MISSING_FIELDS)).withDefault([]),
   // Newest added first unless you pick another order.
   sort: parseAsStringLiteral(SORT_KEYS).withDefault("added"),
   dir: parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc"),
@@ -52,4 +53,5 @@ export const libraryUrlKeys = {
   finishedYear: "y",
   pagesMin: "pmin",
   pagesMax: "pmax",
+  missing: "miss",
 } as const;

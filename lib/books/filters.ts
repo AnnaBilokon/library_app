@@ -25,6 +25,24 @@ export const DEFAULT_DIR: Record<SortKey, SortDir> = {
   published: "desc",
 };
 
+/** Details a book can be missing; the Stats page links to the Library filtered by these. */
+export const MISSING_FIELDS = ["finish-date", "pages", "genre", "cover"] as const;
+export type MissingField = (typeof MISSING_FIELDS)[number];
+
+export const MISSING_LABEL: Record<MissingField, string> = {
+  "finish-date": "No finish date",
+  pages: "No page count",
+  genre: "No genre",
+  cover: "No cover",
+};
+
+export function isMissing(b: Book, field: MissingField): boolean {
+  if (field === "finish-date") return b.readings.some((r) => r.outcome === "finished" && !r.finishedAt);
+  if (field === "pages") return !b.pages;
+  if (field === "genre") return b.genres.length === 0;
+  return !b.coverSrc;
+}
+
 export interface BookFilters {
   q: string;
   status: BookStatus[];
@@ -44,6 +62,8 @@ export interface BookFilters {
   finishedYear: number | null;
   pagesMin: number | null;
   pagesMax: number | null;
+  /** Books missing any of these details. */
+  missing: MissingField[];
 }
 
 export const EMPTY_FILTERS: BookFilters = {
@@ -64,6 +84,7 @@ export const EMPTY_FILTERS: BookFilters = {
   finishedYear: null,
   pagesMin: null,
   pagesMax: null,
+  missing: [],
 };
 
 /**
@@ -98,6 +119,7 @@ export function filterBooks(books: Book[], f: BookFilters): Book[] {
     if (f.reread && b.timesRead < 2) return false;
     if (!within(b.rating, f.ratingMin, f.ratingMax)) return false;
     if (!within(b.pages, f.pagesMin, f.pagesMax)) return false;
+    if (f.missing.length && !f.missing.some((m) => isMissing(b, m))) return false;
     if (f.finishedYear !== null && !b.readings.some((r) => r.finishedAt?.startsWith(String(f.finishedYear))))
       return false;
     return true;

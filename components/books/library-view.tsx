@@ -21,6 +21,7 @@ import {
   countActiveFilters,
   DEFAULT_DIR,
   EMPTY_FILTERS,
+  MISSING_LABEL,
   facets as computeFacets,
   filterBooks,
   SORT_KEYS,
@@ -352,6 +353,7 @@ function ActiveFilters({
     chips.push({ key: "owned", label: filters.owned ? "Owned" : "Not owned", remove: () => onChange({ owned: null }) });
   if (filters.favorite) chips.push({ key: "fav", label: "Favourites", remove: () => onChange({ favorite: null }) });
   if (filters.reread) chips.push({ key: "rr", label: "Read more than once", remove: () => onChange({ reread: null }) });
+  for (const m of filters.missing) chips.push({ key: `miss-${m}`, label: MISSING_LABEL[m], remove: () => onChange({ missing: filters.missing.filter((x) => x !== m) }) });
   if (filters.finishedYear !== null)
     chips.push({ key: "year", label: `Finished in ${filters.finishedYear}`, remove: () => onChange({ finishedYear: null }) });
   if (filters.ratingMin !== null || filters.ratingMax !== null)

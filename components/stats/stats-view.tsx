@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
-import { FORMAT_LABEL, formatMoney, languageLabel } from "@/lib/books/labels";
+import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
+import { MISSING_LABEL } from "@/lib/books/filters";
 import { libraryUrl } from "@/lib/books/library-url";
-import { SPENDING_SINCE, type Money, type Stats } from "@/lib/stats";
-import type { BookFormat } from "@/lib/types";
+import { SPENDING_SINCE, type Extras, type Money, type Stats } from "@/lib/stats";
+import type { Book, BookFormat } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { TimelineChart } from "./stats-charts";
 
@@ -13,7 +14,7 @@ const SPENDING_START = new Date(`${SPENDING_SINCE}T00:00:00`).toLocaleDateString
 const money = (m: Money[]) => (m.length ? m.map((x) => formatMoney(x.total, x.currency)).join(" + ") : "—");
 
 /** All-time (or one year's) reading: key numbers, books over time, ratings, genres, authors, pace, money. */
-export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }) {
+export function StatsView({ stats: s, extras: x, years }: { stats: Stats; extras: Extras; years: number[] }) {
   const scope = s.year === null ? "all years" : String(s.year);
   return (
     <div className="flex flex-col gap-8">
@@ -70,6 +71,8 @@ export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }
             </Card>
           </div>
 
+          <RatingHighlights extras={x} scope={scope} allYears={s.year === null} />
+
           <GenreInsight stats={s} />
           <div className="grid gap-6 lg:grid-cols-2">
             <Card title="Genres you read most" subtitle={`Books you finished (${scope}), with your average rating`}>
@@ -101,6 +104,7 @@ export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }
           <div className="grid gap-6 lg:grid-cols-2">
             <Card title="Authors you read most" subtitle={`Books finished, re-reads included (${scope})`}>
               <BarList rows={s.authors.map((a) => ({ key: a.label, label: a.label, value: a.count, href: libraryUrl({ author: a.label }) }))} empty="No authors yet." />
+              <AuthorExtras extras={x} year={s.year} />
             </Card>
             <div className="flex flex-col gap-6">
               <PaceCard pace={s.pace} />
@@ -141,6 +145,8 @@ export function StatsView({ stats: s, years }: { stats: Stats; years: number[] }
                   <BarList rows={s.formats.map((f) => ({ key: f.label, label: FORMAT_LABEL[f.label as BookFormat] ?? f.label, value: f.count }))} />
                 </Card>
               )}
+            <ShelfCard extras={x} />
+            <MissingCard extras={x} />
           </div>
         </>
       )}
@@ -324,5 +330,169 @@ function Card({ title, subtitle, children }: { title: string; subtitle: string; 
       </div>
       {children}
     </section>
+  );
+}
+
+/** The books you rated highest and lowest, favourites, and (all years) how your average moved. */
+function RatingHighlights({ extras: x, scope, allYears }: { extras: Extras; scope: string; allYears: boolean }) {
+  if (x.topRated.length === 0 && x.lowestRated.length === 0 && x.favourites.length === 0) return null;
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Card title="Your best" subtitle={`Rated 4.5★ or 5★ (${scope})`}>
+        <BookRows books={x.topRated} empty="No top-rated books yet." />
+        {x.favourites.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">Favourites</h3>
+            <ul className="flex flex-wrap gap-1.5">
+              {x.favourites.map((b) => (
+                <li key={b.id}>
+                  <Link href={`/books/${b.id}`} lang={b.language} className="inline-flex h-7 max-w-56 items-center truncate rounded-full bg-muted px-3 text-xs font-medium hover:bg-secondary">
+                    ♥ {b.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Card>
+      <Card title="Not for you" subtitle={`Rated 2★ or lower (${scope})`}>
+        <BookRows books={x.lowestRated} empty="Nothing you really disliked. Nice." />
+        {allYears && x.ratingByYear.length > 1 && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">Your average rating by year</h3>
+            <BarList rows={x.ratingByYear.map((r) => ({ key: String(r.year), label: String(r.year), value: r.rating, note: plural(r.books, "book", "books") }))} />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function BookRows({ books, empty }: { books: Book[]; empty: string }) {
+  if (books.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {books.map((b) => (
+        <li key={b.id} className="flex min-w-0 items-baseline gap-2 text-sm">
+          <span className="w-9 shrink-0 font-semibold tabular-nums">★ {b.rating}</span>
+          <Link href={`/books/${b.id}`} lang={b.language} className="min-w-0 truncate font-medium hover:underline">
+            {b.title}
+          </Link>
+          {b.authors.length > 0 && <span className="min-w-0 truncate text-muted-foreground">· {b.authors.join(", ")}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Under "Authors you read most": your highest-rated authors, and (one year) new vs familiar ones. */
+function AuthorExtras({ extras: x, year }: { extras: Extras; year: number | null }) {
+  return (
+    <>
+      {x.authorsNewVsFamiliar && (x.authorsNewVsFamiliar.fresh > 0 || x.authorsNewVsFamiliar.familiar > 0) && (
+        <p className="text-sm">
+          <span className="font-semibold">{plural(x.authorsNewVsFamiliar.fresh, "new author", "new authors")}</span> in {year}, and{" "}
+          <span className="font-semibold">{fmt(x.authorsNewVsFamiliar.familiar)}</span> you&apos;d read before.
+        </p>
+      )}
+      {x.topAuthors.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold">Highest rated (2+ books)</h3>
+          <ul className="flex flex-col gap-1">
+            {x.topAuthors.map((a) => (
+              <li key={a.label} className="flex items-baseline justify-between gap-3 text-sm">
+                <Link href={libraryUrl({ author: a.label })} className="truncate hover:underline">
+                  {a.label}
+                </Link>
+                <span className="shrink-0 tabular-nums">
+                  <span className="font-semibold">★ {a.rating}</span> <span className="text-xs text-muted-foreground">{plural(a.books, "book", "books")}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** What's waiting on your shelves right now (not tied to the year). */
+function ShelfCard({ extras: x }: { extras: Extras }) {
+  const { owned, unread, waiting, authorsUnread } = x.shelf;
+  const share = owned ? Math.round((unread / owned) * 100) : 0;
+  return (
+    <Card title="Your shelf" subtitle="Books you own right now">
+      <p className="text-2xl font-semibold">
+        {fmt(unread)} <span className="text-sm font-normal text-muted-foreground">of {fmt(owned)} unread ({share}%)</span>
+      </p>
+      <div className="h-2 rounded-full bg-muted" aria-hidden>
+        <div className="h-full rounded-full bg-chart-actual" style={{ width: `${share}%` }} />
+      </div>
+      {waiting.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold">Waiting the longest</h3>
+          <ul className="flex flex-col gap-1">
+            {waiting.map((w) => (
+              <li key={w.id} className="flex min-w-0 items-baseline gap-2 text-sm">
+                <Link href={`/books/${w.id}`} className="min-w-0 truncate font-medium hover:underline">
+                  {w.title}
+                </Link>
+                <span className="shrink-0 text-xs text-muted-foreground">since {formatDate(w.since)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {authorsUnread.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold">Authors waiting for you</h3>
+          <BarList
+            rows={authorsUnread.map((a) => ({ key: a.label, label: a.label, value: a.count, note: "unread", href: libraryUrl({ author: a.label, owned: true, status: ["to-read"] }) }))}
+          />
+        </div>
+      )}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <Link href={libraryUrl({ owned: true, status: ["to-read"] })} className="font-medium underline underline-offset-4">
+          Open unread in the Library
+        </Link>
+        <Link href="/surprise" className="font-medium underline underline-offset-4">
+          ✨ Surprise me
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+const MISSING_HINT: Record<string, string> = {
+  "finish-date": "Needed for years, months and the reading challenge",
+  pages: "Needed for pages read and book length",
+  genre: "Needed for the genre charts",
+  cover: "Makes the shelves and Surprise me prettier",
+};
+
+/** Books missing a detail the stats use, each linking to those books in the Library. */
+function MissingCard({ extras: x }: { extras: Extras }) {
+  const rows = x.missing.filter((m) => m.count > 0);
+  return (
+    <Card title="Missing details" subtitle="Fill these in to make your stats more accurate">
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Everything is filled in. Your stats are as accurate as they get.</p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border/60">
+          {rows.map((m) => (
+            <li key={m.field} className="flex items-center gap-3 py-2">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm font-medium">{MISSING_LABEL[m.field]}</span>
+                <span className="text-xs text-muted-foreground">{MISSING_HINT[m.field]}</span>
+              </span>
+              <span className="font-semibold tabular-nums">{fmt(m.count)}</span>
+              <Link href={libraryUrl({ missing: [m.field] })} className="text-sm font-medium underline underline-offset-4">
+                Show
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
