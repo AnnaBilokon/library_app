@@ -60,15 +60,20 @@ function rememberCurrency(currency: string) {
  * converted at today's National Bank of Ukraine rate (or an amount you type, if the rate can't be
  * fetched). Both are kept: what you got, and the converted value for totals. The date is today.
  */
-export function SoldDialog({ book, open, onOpenChange }: { book: Book; open: boolean; onOpenChange: (o: boolean) => void }) {
+export function SoldDialog({ book, open, onOpenChange, editing }: { book: Book; open: boolean; onOpenChange: (o: boolean) => void; editing?: boolean }) {
   const options = [...new Set([...SALE_CURRENCIES, book.currency])];
-  const [currency, setCurrency] = useState(() => rememberedCurrency(options));
-  const [price, setPrice] = useState("");
+  // Editing a sale starts from what was saved: the amount you got, in the currency you got it in.
+  const savedCurrency = book.saleOriginalCurrency ?? book.currency;
+  const savedPrice = book.saleOriginalPrice ?? book.salePrice;
+  const [currency, setCurrency] = useState(() => (editing ? savedCurrency : rememberedCurrency(options)));
+  const [price, setPrice] = useState(editing && savedPrice !== undefined ? String(savedPrice) : "");
+  const [date, setDate] = useState(() => (editing && book.soldAt ? book.soldAt : todayLocal()));
   const [manual, setManual] = useState("");
   const [rate, setRate] = useState<{ currency: string; value: ExchangeRate | null; error?: string } | null>(null);
   const { pending, run } = useSellAction();
   const priceId = useId();
   const manualId = useId();
+  const dateId = useId();
 
   const foreign = currency !== book.currency;
   // Fetch the rate whenever the currency changes (the result is tagged with its currency, so a
@@ -88,24 +93,27 @@ export function SoldDialog({ book, open, onOpenChange }: { book: Book; open: boo
   const parse = (s: string) => (s.trim() === "" ? null : Number(s.replace(",", ".")));
   const value = parse(price);
   const manualValue = parse(manual);
+  const badDate = !date || date > todayLocal();
   const invalid = (value !== null && (!Number.isFinite(value) || value < 0)) || (manualValue !== null && (!Number.isFinite(manualValue) || manualValue < 0));
-  const converted = !foreign || value === null ? value : manualValue ?? (current?.value ? convert(value, current.value.rate) : null);
+  // Same amount and currency as saved: keep the saved conversion instead of redoing it at today's rate.
+  const unchanged = editing && currency === savedCurrency && value === (savedPrice ?? null);
+  const converted = !foreign || value === null ? value : unchanged && manualValue === null ? (book.salePrice ?? null) : manualValue ?? (current?.value ? convert(value, current.value.rate) : null);
   // Sold in another currency without a rate: you need to type the converted amount yourself.
   const needsManual = foreign && value !== null && converted === null;
 
   const save = () => {
-    if (invalid || needsManual) return;
+    if (invalid || needsManual || badDate) return;
     rememberCurrency(currency);
     const sold = foreign && value !== null ? { price: value, currency } : null;
-    run(() => markSold(book.id, converted, todayLocal(), sold), `Sold “${book.title}”`, () => onOpenChange(false));
+    run(() => markSold(book.id, converted, date, sold), editing ? "Sale updated" : `Sold “${book.title}”`, () => onOpenChange(false));
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Sold “{book.title}”</DialogTitle>
-          <DialogDescription>It leaves your library and moves to the Sold list.</DialogDescription>
+          <DialogTitle>{editing ? `Edit the sale of “${book.title}”` : `Sold “${book.title}”`}</DialogTitle>
+          <DialogDescription>{editing ? "Change when it sold and what you got for it." : "It leaves your library and moves to the Sold list."}</DialogDescription>
         </DialogHeader>
         <form
           className="flex flex-col gap-3"
@@ -114,6 +122,12 @@ export function SoldDialog({ book, open, onOpenChange }: { book: Book; open: boo
             save();
           }}
         >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor={dateId} className="text-sm font-medium">
+              Sold on
+            </label>
+            <Input id={dateId} type="date" value={date} max={todayLocal()} onChange={(e) => setDate(e.target.value)} aria-invalid={badDate || undefined} className="h-10 w-44" />
+          </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor={priceId} className="text-sm font-medium">
               Sold for
@@ -191,9 +205,9 @@ export function SoldDialog({ book, open, onOpenChange }: { book: Book; open: boo
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={save} disabled={pending || invalid || needsManual}>
+          <Button onClick={save} disabled={pending || invalid || needsManual || badDate}>
             {pending && <Loader2 className="animate-spin" aria-hidden />}
-            Mark as sold
+            {editing ? "Save" : "Mark as sold"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -217,6 +231,7 @@ export function SellButton({ book }: { book: Book }) {
 /** Top of the book page for a book on the sell shelf, or one that's already sold. */
 export function SellBanner({ book }: { book: Book }) {
   const [soldOpen, setSoldOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { pending, run } = useSellAction();
 
   if (book.soldAt) {
@@ -229,6 +244,9 @@ export function SellBanner({ book }: { book: Book }) {
           {sold && ` for ${sold.main}${sold.converted ? ` (≈ ${sold.converted})` : ""}`}. Not in your library anymore.
         </p>
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+          <Button size="sm" variant="outline" className="rounded-full" disabled={pending} onClick={() => setEditOpen(true)}>
+            Edit sale
+          </Button>
           <Button size="sm" variant="ghost" className="rounded-full hover:bg-black/10" disabled={pending} onClick={() => run(() => undoSale(book.id), "Back on your shelves")}>
             Undo sale
           </Button>
@@ -236,6 +254,7 @@ export function SellBanner({ book }: { book: Book }) {
             Open Sell
           </Link>
         </div>
+        {editOpen && <SoldDialog book={book} open onOpenChange={setEditOpen} editing />}
       </div>
     );
   }

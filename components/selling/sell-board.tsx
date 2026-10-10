@@ -114,6 +114,7 @@ function SellCard({ book }: { book: Book }) {
 
 function SoldRow({ book }: { book: Book }) {
   const { pending, run } = useSellAction();
+  const [editOpen, setEditOpen] = useState(false);
   const price = salePriceLabel(book);
   return (
     <div className="flex items-center gap-3 py-2">
@@ -142,9 +143,11 @@ function SoldRow({ book }: { book: Book }) {
           <EllipsisVertical aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => setEditOpen(true)}>Edit sale</DropdownMenuItem>
           <DropdownMenuItem onClick={() => run(() => undoSale(book.id), `“${book.title}” is back on your shelves`)}>Undo sale</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {editOpen && <SoldDialog book={book} open onOpenChange={setEditOpen} editing />}
     </div>
   );
 }
