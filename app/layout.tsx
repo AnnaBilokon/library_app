@@ -10,11 +10,12 @@ import "./globals.css";
 const sans = Geist({ variable: "--font-sans", subsets: ["latin", "cyrillic"] });
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin", "cyrillic"] });
 // A typeface designed for reading books; used for headings and book titles.
-const serif = Literata({ variable: "--font-serif", subsets: ["latin", "cyrillic"] });
+// Italic too: the logo's P is set in Literata italic.
+const serif = Literata({ variable: "--font-serif", subsets: ["latin", "cyrillic"], style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
-  title: { default: "My library", template: "%s · My library" },
-  description: "My personal book library",
+  title: { default: "Punkt", template: "%s · Punkt" },
+  description: "Punkt: my personal book library",
   robots: { index: false, follow: false },
 };
 

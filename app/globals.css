@@ -412,3 +412,25 @@
     .surprise-sparkle { display: none; }
   }
 }
+
+/*
+ * The P·unkt logo, in whichever palette and mode is active. Light: a dark italic P, a plum dot and
+ * soft plum "unkt"; the icon is the palette's primary tile with a highlight-coloured book. Dark: the
+ * P and dot in the highlight colour, "unkt" in a muted plum; the tile turns light with a dark book.
+ */
+:root {
+  --logo-p: var(--foreground);
+  --logo-dot: var(--heading);
+  --logo-rest: var(--muted-foreground);
+  --logo-tile: var(--primary);
+  --logo-book: var(--highlight);
+  --logo-spine: color-mix(in oklab, var(--highlight) 45%, var(--primary));
+}
+.dark {
+  --logo-p: var(--highlight);
+  --logo-dot: var(--highlight);
+  --logo-rest: color-mix(in oklab, var(--secondary) 45%, var(--muted-foreground));
+  --logo-tile: var(--primary);
+  --logo-book: var(--primary-foreground);
+  --logo-spine: var(--secondary);
+}

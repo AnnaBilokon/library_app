@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .tile { fill: #513b3c; } .book { stroke: #c1eeff; } .spine { stroke: #8a9aa3; } .dot { fill: #c1eeff; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #c1eeff; } .book { stroke: #070707; } .spine { stroke: #513b3c; } .dot { fill: #070707; }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="8"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path class="book" stroke-width="1.9" d="M16 10.4c-2.9-1.5-6.6-1.8-9.6-.9v12.8c3-.8 6.7-.5 9.6 1.1"/>
+    <path class="book" stroke-width="1.9" d="M16 10.4c2.9-1.5 6.6-1.8 9.6-.9v12.8c-3-.8-6.7-.5-9.6 1.1"/>
+    <path class="spine" stroke-width="1.5" d="M16 11.2v12"/>
+  </g>
+  <circle class="dot" cx="16" cy="9.6" r="2.4"/>
+</svg>
