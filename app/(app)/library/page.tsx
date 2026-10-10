@@ -8,6 +8,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { AuthorCountriesProvider } from "@/components/countries/author-countries-context";
+import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks } from "@/lib/data/books";
 import { inLibrary } from "@/lib/selling";
 import { isWishlistOnly } from "@/lib/wishlist";
@@ -40,7 +42,7 @@ export default function LibraryPage() {
 }
 
 async function LibraryData() {
-  const [all, cookieStore] = await Promise.all([getBooks(), cookies()]);
+  const [all, authorCountries, cookieStore] = await Promise.all([getBooks(), getAuthorCountries(), cookies()]);
   // Wishlist books live on the Wishlist and sold books on the Sell page.
   const books = all.filter(inLibrary);
   const saved = cookieStore.get(LAYOUT_COOKIE)?.value;
@@ -48,5 +50,9 @@ async function LibraryData() {
   // LibraryView is a Client Component ("use client"): it gets the data as props and handles
   // the interactive parts (search, filters, sorting) in the browser.
   const columns = parseColumns(cookieStore.get(COLUMNS_COOKIE)?.value);
-  return <LibraryView books={books} initialLayout={layout} initialColumns={columns} wishlistCount={all.filter(isWishlistOnly).length} />;
+  return (
+    <AuthorCountriesProvider value={authorCountries}>
+    <LibraryView books={books} initialLayout={layout} initialColumns={columns} wishlistCount={all.filter(isWishlistOnly).length} />
+    </AuthorCountriesProvider>
+  );
 }

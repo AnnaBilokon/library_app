@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      author_countries: {
+        Row: {
+          author: string
+          countries: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author: string
+          countries: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          author?: string
+          countries?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       book_battle_picks: {
         Row: {
           book_id: string
