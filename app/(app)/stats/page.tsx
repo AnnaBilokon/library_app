@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatsView } from "@/components/stats/stats-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBooks } from "@/lib/data/books";
-import { computeStats, statsYears } from "@/lib/stats";
+import { computeExtras, computeStats, statsYears } from "@/lib/stats";
 
 export const metadata: Metadata = { title: "Stats" };
 
@@ -25,7 +25,7 @@ async function StatsData({ searchParams }: { searchParams: PageProps<"/stats">["
   // ?year=2025 picks one year; anything else (or a year with no books) shows all years.
   const asked = Number(Array.isArray(params.year) ? params.year[0] : params.year);
   const year = years.includes(asked) ? asked : null;
-  return <StatsView stats={computeStats(books, year)} years={years} />;
+  return <StatsView stats={computeStats(books, year)} extras={computeExtras(books, year)} years={years} />;
 }
 
 function StatsSkeleton() {
