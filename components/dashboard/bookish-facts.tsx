@@ -21,7 +21,7 @@ export function BookishFacts({ facts: f, year }: { facts: Facts; year: number })
           {year} in bookish numbers
         </h3>
         <p className="text-sm text-muted-foreground">
-          {f.assumed > 0 ? `${f.assumed} of your ${f.books} books have no page count, so I counted ${ASSUMED_PAGES} pages for each of those.` : "From the page counts of the books you finished."}
+          {f.assumed > 0 ? `${f.assumed} of your ${f.books} books ${f.assumed === 1 ? "has" : "have"} no page count, so I counted ${ASSUMED_PAGES} pages for ${f.assumed === 1 ? "it" : "each of those"}.` : "From the page counts of the books you finished."}
         </p>
       </div>
       {f.books === 0 ? (
