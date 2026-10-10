@@ -452,7 +452,8 @@
  * passes the dataviz palette validator against the card surface in both themes (adjacent CVD and
  * normal-vision separation; light contrast relief = the legend always shows names and counts).
  * Slots 1-8 are the reference palette; 9-14 are extra steps of the same hues, ordered by brute force.
- * --genre-other is the fallback beyond fourteen genres.
+ * --genre-other is the fallback beyond fourteen genres. --genre-ink-N is the text colour that reads
+ * best on --genre-N (the series tracker writes volume numbers on them).
  */
 :root {
   --genre-1: #2a78d6;
@@ -469,6 +470,20 @@
   --genre-12: #b8a200;
   --genre-13: #a63a6a;
   --genre-14: #65a30d;
+  --genre-ink-1: #ffffff;
+  --genre-ink-2: #1c1917;
+  --genre-ink-3: #1c1917;
+  --genre-ink-4: #1c1917;
+  --genre-ink-5: #1c1917;
+  --genre-ink-6: #ffffff;
+  --genre-ink-7: #ffffff;
+  --genre-ink-8: #1c1917;
+  --genre-ink-9: #1c1917;
+  --genre-ink-10: #ffffff;
+  --genre-ink-11: #ffffff;
+  --genre-ink-12: #1c1917;
+  --genre-ink-13: #ffffff;
+  --genre-ink-14: #1c1917;
   --genre-other: #a8a29e;
 }
 .dark {
@@ -486,6 +501,20 @@
   --genre-12: #a99400;
   --genre-13: #c35a8c;
   --genre-14: #5f9a18;
+  --genre-ink-1: #1c1917;
+  --genre-ink-2: #1c1917;
+  --genre-ink-3: #1c1917;
+  --genre-ink-4: #1c1917;
+  --genre-ink-5: #1c1917;
+  --genre-ink-6: #ffffff;
+  --genre-ink-7: #1c1917;
+  --genre-ink-8: #1c1917;
+  --genre-ink-9: #1c1917;
+  --genre-ink-10: #1c1917;
+  --genre-ink-11: #1c1917;
+  --genre-ink-12: #1c1917;
+  --genre-ink-13: #1c1917;
+  --genre-ink-14: #1c1917;
   --genre-other: #6b6560;
 }
 
