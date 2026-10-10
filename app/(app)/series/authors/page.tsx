@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { authorCollections } from "@/lib/author-collections";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks } from "@/lib/data/books";
+import { getSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = { title: "Authors" };
 
@@ -24,10 +25,10 @@ export default function AuthorsPage() {
 }
 
 async function AuthorsData() {
-  const [books, countries] = await Promise.all([getBooks(), getAuthorCountries()]);
+  const [books, countries, settings] = await Promise.all([getBooks(), getAuthorCountries(), getSettings()]);
   return (
     <AuthorCountriesProvider value={countries}>
-      <AuthorCollectionsView collections={authorCollections(books)} />
+      <AuthorCollectionsView collections={authorCollections(books)} hidden={settings.hiddenAuthors} />
     </AuthorCountriesProvider>
   );
 }

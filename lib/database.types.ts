@@ -312,6 +312,8 @@ export type Database = {
       user_settings: {
         Row: {
           countries_goal: number | null
+          hidden_authors: string[]
+          hidden_series: string[]
           hide_for_sale: boolean
           updated_at: string
           user_id: string
@@ -319,6 +321,8 @@ export type Database = {
         }
         Insert: {
           countries_goal?: number | null
+          hidden_authors?: string[]
+          hidden_series?: string[]
           hide_for_sale?: boolean
           updated_at?: string
           user_id?: string
@@ -326,6 +330,8 @@ export type Database = {
         }
         Update: {
           countries_goal?: number | null
+          hidden_authors?: string[]
+          hidden_series?: string[]
           hide_for_sale?: boolean
           updated_at?: string
           user_id?: string

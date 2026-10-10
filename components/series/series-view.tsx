@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { libraryUrl, newBookUrl } from "@/lib/books/library-url";
 import type { SeriesSummary, VolumeState } from "@/lib/series";
 import { cn } from "@/lib/utils";
+import { NotTracked, StopTrackingButton } from "./tracking";
 
 type Tab = "all" | SeriesSummary["status"];
 
@@ -68,12 +69,15 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * Your series: for each, a row of numbered boxes (read, reading, on your shelf, on your wishlist,
  * or missing), how far you are, the next book to read and the numbers you don't have yet.
  */
-export function SeriesView({ series }: { series: SeriesSummary[] }) {
+export function SeriesView({ series: all, hidden = [] }: { series: SeriesSummary[]; hidden?: string[] }) {
   const [tab, setTab] = useState<Tab>("all");
+  // Series you stopped tracking stay out of the cards (listed at the bottom to bring back).
+  const series = all.filter((s) => !hidden.includes(s.name));
+  const untracked = all.filter((s) => hidden.includes(s.name)).map((s) => s.name);
   const count = (t: Tab) => (t === "all" ? series.length : series.filter((s) => s.status === t).length);
   const shown = tab === "all" ? series : series.filter((s) => s.status === tab);
 
-  if (series.length === 0) {
+  if (all.length === 0) {
     return (
       <p className="max-w-prose text-[15px] text-muted-foreground">
         No series yet. Add a series name and number to a book (Edit → Series) and it shows up here, with the volumes you&apos;ve read and the ones you&apos;re
@@ -120,6 +124,7 @@ export function SeriesView({ series }: { series: SeriesSummary[] }) {
           <SeriesCard key={s.name} s={s} />
         ))}
       </div>
+      <NotTracked kind="series" names={untracked} />
     </div>
   );
 }
@@ -155,7 +160,10 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
           </h2>
           {s.authors.length > 0 && <p className="truncate text-sm text-muted-foreground">{s.authors.join(", ")}</p>}
         </div>
-        <TotalEditor series={s.name} total={s.total} known={known} />
+        <div className="flex items-center gap-1">
+          <TotalEditor series={s.name} total={s.total} known={known} />
+          <StopTrackingButton kind="series" name={s.name} />
+        </div>
       </div>
 
       {known > 0 && (
