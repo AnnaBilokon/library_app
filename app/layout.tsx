@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Literata } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { TabIcon } from "@/components/layout/tab-icon";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <TooltipProvider>
               {children}
               <Toaster richColors closeButton />
+              <TabIcon />
             </TooltipProvider>
           </NuqsAdapter>
         </ThemeProvider>
