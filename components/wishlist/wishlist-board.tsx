@@ -18,7 +18,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { EllipsisVertical, GripVertical, ShoppingBag, Store } from "lucide-react";
+import { CalendarClock, EllipsisVertical, GripVertical, ShoppingBag, Store } from "lucide-react";
 import { toast } from "sonner";
 import { markBought, moveWishlistBook, removeFromWishlist } from "@/app/actions/wishlist";
 import { BookCover } from "@/components/books/book-cover";
@@ -32,11 +32,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatMoney } from "@/lib/books/labels";
+import { formatDate, formatMoney } from "@/lib/books/labels";
 import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { WISH_GROUPS, wishGroup, wishlistCost, type WishGroup } from "@/lib/wishlist";
+import { daysUntil, RELEASE_WINDOW_DAYS, releaseLabel, WISH_GROUPS, wishGroup, wishlistCost, type WishGroup } from "@/lib/wishlist";
 
 /** Drop where the pointer is; fall back to overlap for keyboard dragging (no pointer). */
 const pointerFirst: CollisionDetection = (args) => {
@@ -276,6 +276,7 @@ function WishCard({
           {book.title}
         </Link>
         {book.authors.length > 0 && <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>}
+        {book.releaseDate && <ReleaseChip date={book.releaseDate} />}
         {book.wishPrice !== undefined && <p className="text-xs font-semibold">{formatMoney(book.wishPrice, book.currency)}</p>}
         {book.whereToBuy && (
           <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
@@ -327,6 +328,24 @@ function WishlistTotal({ books }: { books: Book[] }) {
           {priced < books.length && ` (${priced} of ${books.length} have a price)`}
         </>
       )}
+    </p>
+  );
+}
+
+/** When a wishlist book comes out; highlighted once it's out or within a month. */
+function ReleaseChip({ date }: { date: string }) {
+  const today = todayLocal();
+  const days = daysUntil(date, today);
+  const near = days <= RELEASE_WINDOW_DAYS;
+  return (
+    <p
+      className={cn(
+        "flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+        days <= 0 ? "bg-primary text-primary-foreground" : near ? "bg-highlight text-highlight-foreground" : "bg-muted text-muted-foreground",
+      )}
+    >
+      <CalendarClock className="size-3" aria-hidden />
+      {releaseLabel(date, today, formatDate)}
     </p>
   );
 }

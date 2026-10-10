@@ -90,6 +90,28 @@ describe("stats", () => {
     expect(s.authors[0]).toEqual({ label: "Ліз Мур", count: 3 });
   });
 
+  it("counts publishers you read and publishers on your shelves", () => {
+    const books = [
+      book({ publisher: "Vivat", readings: [read("2026-01-01")] }),
+      book({ publisher: "Vivat", status: "to-read" }),
+      book({ publisher: "Vivat", status: "to-read" }),
+      book({ publisher: "Видавництво КСД", readings: [read("2026-02-01")] }),
+      book({ publisher: "Видавництво КСД", readings: [read("2025-02-01")] }),
+      book({ publisher: "Лабораторія", owned: false, soldAt: "2026-03-01", readings: [read("2026-01-10")] }),
+      book({ status: "to-read" }),
+    ];
+    expect(computeStats(books, null).publishersShelf).toEqual([
+      { label: "Vivat", count: 3 },
+      { label: "Видавництво КСД", count: 2 },
+    ]);
+    // Ties in Ukrainian alphabetical order (Cyrillic before Latin).
+    expect(computeStats(books, 2026).publishersRead).toEqual([
+      { label: "Видавництво КСД", count: 1 },
+      { label: "Лабораторія", count: 1 },
+      { label: "Vivat", count: 1 },
+    ]);
+  });
+
   it("tells what happened to books after reading", () => {
     expect(computeStats(library, null).afterReading).toEqual({ kept: 3, forSale: 0, sold: 1, notOwned: 0 });
     const shelf = [

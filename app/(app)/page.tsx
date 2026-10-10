@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { ChallengeView } from "@/components/dashboard/challenge-view";
+import { ReleaseReminders } from "@/components/dashboard/release-reminders";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BOOKS_READ_VIEW_COOKIE } from "@/lib/books/layout";
@@ -26,7 +27,12 @@ export default function DashboardPage() {
 async function DashboardData() {
   const [books, goals, authorCountries, settings, cookieStore] = await Promise.all([getBooks(), getGoals(), getAuthorCountries(), getSettings(), cookies()]);
   const view = cookieStore.get(BOOKS_READ_VIEW_COOKIE)?.value === "grid" ? "grid" : "list";
-  return <ChallengeView books={books} goals={goals} authorCountries={authorCountries} countriesGoal={settings.countriesGoal} initialBooksView={view} />;
+  return (
+    <>
+      <ReleaseReminders books={books} />
+      <ChallengeView books={books} goals={goals} authorCountries={authorCountries} countriesGoal={settings.countriesGoal} initialBooksView={view} />
+    </>
+  );
 }
 
 function DashboardSkeleton() {

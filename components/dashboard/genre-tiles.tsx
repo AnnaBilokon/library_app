@@ -9,7 +9,7 @@ import { useInView } from "./motion";
 
 const MAX_EMPTY = 300;
 
-/** The donut's colours: slot 1–5 in the year's genre order, 0 for "Other". */
+/** The donut's colours: slot 1–14 in the year's genre order, 0 for "Other". */
 export const genreColor = (slot: number) => (slot ? `var(--genre-${slot})` : "var(--genre-other)");
 
 /**

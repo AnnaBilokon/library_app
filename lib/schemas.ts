@@ -40,6 +40,7 @@ export const bookInputSchema = z
     description: z.string().trim().max(20_000).optional(),
     wanted: z.boolean().optional(),
     wishPrice: optionalNumber(z.number().min(0)),
+    releaseDate: isoDate.optional().or(z.literal("")),
     whereToBuy: optionalText,
     wishlistReason: optionalText,
     /** Only used when creating a book: dates for its first reading. */
@@ -126,6 +127,7 @@ export function bookInputToRow(input: BookInput): BookRowUpdate {
       : {
           wanted: input.wanted,
           wish_price: input.wishPrice ?? null,
+          release_date: orNull(input.releaseDate),
           where_to_buy: textOrNull(input.whereToBuy),
           wishlist_reason: textOrNull(input.wishlistReason),
         }),
