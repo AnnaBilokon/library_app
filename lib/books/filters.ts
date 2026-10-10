@@ -64,6 +64,8 @@ export interface BookFilters {
   pagesMax: number | null;
   /** Books missing any of these details. */
   missing: MissingField[];
+  /** Authors' countries (ISO codes); needs the author → countries map. */
+  country: string[];
 }
 
 export const EMPTY_FILTERS: BookFilters = {
@@ -85,6 +87,7 @@ export const EMPTY_FILTERS: BookFilters = {
   pagesMin: null,
   pagesMax: null,
   missing: [],
+  country: [],
 };
 
 /**
@@ -99,7 +102,7 @@ const anyOf = <T>(selected: T[], values: T[]) => selected.length === 0 || select
 const within = (value: number | undefined, min: number | null, max: number | null) =>
   (min === null && max === null) || (value !== undefined && (min === null || value >= min) && (max === null || value <= max));
 
-export function filterBooks(books: Book[], f: BookFilters): Book[] {
+export function filterBooks(books: Book[], f: BookFilters, authorCountries: Record<string, string[]> = {}): Book[] {
   const terms = normalize(f.q).split(/\s+/).filter(Boolean);
   return books.filter((b) => {
     if (terms.length) {
@@ -120,6 +123,7 @@ export function filterBooks(books: Book[], f: BookFilters): Book[] {
     if (!within(b.rating, f.ratingMin, f.ratingMax)) return false;
     if (!within(b.pages, f.pagesMin, f.pagesMax)) return false;
     if (f.missing.length && !f.missing.some((m) => isMissing(b, m))) return false;
+    if (f.country.length && !b.authors.some((a) => (authorCountries[a] ?? []).some((c) => f.country.includes(c)))) return false;
     if (f.finishedYear !== null && !b.readings.some((r) => r.finishedAt?.startsWith(String(f.finishedYear))))
       return false;
     return true;

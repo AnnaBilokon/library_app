@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Book } from "@/lib/types";
 import { authorList, bookCountries, countryName, isCountryCode, worldReading, type AuthorCountries } from "./countries";
 import { MAP_ID_TO_CODE } from "./geo/map-ids";
+import { EMPTY_FILTERS, filterBooks } from "./books/filters";
 
 const book = (title: string, authors: string[], finishedAt?: string, extra: Partial<Book> = {}) =>
   ({
@@ -53,5 +54,30 @@ describe("countries", () => {
   it("lists authors without a country first, then by number of books", () => {
     const books = [book("1", ["Сергій Жадан"]), book("2", ["Сергій Жадан"]), book("3", ["Хтось"]), book("4", ["Ніл Гейман"])];
     expect(authorList(books, map).map((a) => a.author)).toEqual(["Хтось", "Сергій Жадан", "Ніл Гейман"]);
+  });
+});
+
+describe("country extras", () => {
+  const map: AuthorCountries = { "Сергій Жадан": ["UA"], "Ніл Гейман": ["GB"], "Харукі Муракамі": ["JP"] };
+  const books = [
+    book("Жадан 2025", ["Сергій Жадан"], "2025-05-01", { rating: 4 }),
+    book("Жадан 2026", ["Сергій Жадан"], "2026-02-01", { rating: 5 }),
+    book("Гейман 2026", ["Ніл Гейман"], "2026-03-01", { rating: 3 }),
+    book("Муракамі unread", ["Харукі Муракамі"], undefined, { owned: true, timesRead: 0 }),
+    book("Гейман unread", ["Ніл Гейман"], undefined, { owned: true, timesRead: 0 }),
+  ];
+
+  it("marks countries read for the first time that year, with ratings and unread counts", () => {
+    const w = worldReading(books, map, 2026);
+    const byCode = Object.fromEntries(w.countries.map((c) => [c.code, c]));
+    expect(byCode.UA).toMatchObject({ isNew: false, rating: 5 });
+    expect(byCode.GB).toMatchObject({ isNew: true, rating: 3, unread: 1 });
+    expect(worldReading(books, map, null).countries.every((c) => !c.isNew)).toBe(true);
+  });
+
+  it("filters the Library by country", () => {
+    const f = { ...EMPTY_FILTERS, country: ["GB"] };
+    expect(filterBooks(books, f, map).map((b) => b.title)).toEqual(["Гейман 2026", "Гейман unread"]);
+    expect(filterBooks(books, f)).toEqual([]);
   });
 });

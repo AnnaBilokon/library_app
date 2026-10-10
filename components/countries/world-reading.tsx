@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronDown, Globe } from "lucide-react";
+import { libraryUrl } from "@/lib/books/library-url";
 import { worldReading, type AuthorCountries } from "@/lib/countries";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
               ? `Authors from ${w.countries.length} ${w.countries.length === 1 ? "country" : "countries"} ${scope}`
               : `No countries ${scope} yet`}
             {w.total > 0 && ` · ${w.total} ${w.total === 1 ? "book" : "books"} finished`}
+            {!allYears && w.countries.some((c) => c.isNew) && ` · ${w.countries.filter((c) => c.isNew).length} new`}
           </p>
         </div>
         <div className="flex rounded-full bg-muted p-1" role="group" aria-label="Period">
@@ -75,6 +77,7 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
                 <Flag code={c.code} decorative className="h-3.5 w-[21px]" />
                 {c.name}
                 <span className="tabular-nums opacity-70">{c.books.length}</span>
+                {c.isNew && <span className="rounded-full bg-chart-actual px-1.5 text-[10px] leading-4 font-semibold tracking-wide text-white uppercase">new</span>}
               </button>
             </li>
           ))}
@@ -107,6 +110,7 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
                     <span className="flex items-center gap-2 text-sm">
                       <Flag code={c.code} decorative />
                       <span className="flex-1 truncate font-medium">{c.name}</span>
+                      {c.rating !== null && <span className="text-xs text-muted-foreground tabular-nums">★ {c.rating}</span>}
                       <span className="font-semibold tabular-nums">{c.books.length}</span>
                       <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", open === c.code && "rotate-180")} aria-hidden />
                     </span>
@@ -124,6 +128,12 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
                           {b.authors.length > 0 && <span className="text-muted-foreground"> · {b.authors.join(", ")}</span>}
                         </li>
                       ))}
+                      <li className="mt-1 flex flex-wrap gap-x-3 text-xs">
+                        {c.unread > 0 && <span className="text-muted-foreground">{c.unread} unread on your shelves</span>}
+                        <Link href={libraryUrl({ country: [c.code] })} className="font-medium underline underline-offset-4">
+                          Open in the Library
+                        </Link>
+                      </li>
                     </ul>
                   )}
                 </li>

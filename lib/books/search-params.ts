@@ -32,6 +32,7 @@ export const libraryParams = {
   pagesMin: parseAsInteger,
   pagesMax: parseAsInteger,
   missing: parseAsArrayOf(parseAsStringLiteral(MISSING_FIELDS)).withDefault([]),
+  country: parseAsArrayOf(parseAsString).withDefault([]),
   // Newest added first unless you pick another order.
   sort: parseAsStringLiteral(SORT_KEYS).withDefault("added"),
   dir: parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc"),
@@ -54,4 +55,5 @@ export const libraryUrlKeys = {
   pagesMin: "pmin",
   pagesMax: "pmax",
   missing: "miss",
+  country: "c",
 } as const;
