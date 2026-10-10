@@ -5,7 +5,7 @@ import { LibraryView } from "@/components/books/library-view";
 import { COLUMNS_COOKIE, LAYOUT_COOKIE, parseColumns, type LibraryLayout } from "@/lib/books/layout";
 import { LibrarySkeleton } from "@/components/books/library-skeleton";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { AuthorCountriesProvider } from "@/components/countries/author-countries-context";
@@ -28,10 +28,16 @@ export default function LibraryPage() {
         eyebrow="Your shelves"
         title="Library"
         actions={
-          <Link href="/books/new" className={buttonVariants({ className: "h-11 rounded-full px-5 text-[15px]" })}>
-            <Plus aria-hidden />
-            Add a book
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/surprise" className={buttonVariants({ variant: "outline", className: "h-11 rounded-full px-5 text-[15px]" })}>
+              <Sparkles aria-hidden />
+              Surprise me
+            </Link>
+            <Link href="/books/new" className={buttonVariants({ className: "h-11 rounded-full px-5 text-[15px]" })}>
+              <Plus aria-hidden />
+              Add a book
+            </Link>
+          </div>
         }
       />
       <Suspense fallback={<LibrarySkeleton />}>

@@ -12,6 +12,7 @@ import { CountryPicker } from "@/components/countries/country-picker";
 import { ReadingHistory } from "@/components/books/reading-history";
 import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { SellBanner, SellButton } from "@/components/selling/selling-controls";
+import { ForgottenButton } from "@/components/surprise/forgotten-button";
 import { WishlistBanner } from "@/components/wishlist/wishlist-banner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { duplicateKey } from "@/lib/books/duplicates";
@@ -111,6 +112,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
             {!book.wanted && !book.soldAt && <BookQueueButton book={book} />}
             <BookWishlistButton book={book} />
             <SellButton book={book} />
+            <ForgottenButton key={String(book.forgotten)} book={book} />
             <BookEditButton book={book} suggestions={buildSuggestions(all)} />
             <BookDeleteButton book={book} />
           </div>
