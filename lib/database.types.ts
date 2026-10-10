@@ -287,18 +287,21 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          countries_goal: number | null
           hide_for_sale: boolean
           updated_at: string
           user_id: string
           yearly_goal: number
         }
         Insert: {
+          countries_goal?: number | null
           hide_for_sale?: boolean
           updated_at?: string
           user_id?: string
           yearly_goal?: number
         }
         Update: {
+          countries_goal?: number | null
           hide_for_sale?: boolean
           updated_at?: string
           user_id?: string

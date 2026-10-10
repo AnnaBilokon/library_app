@@ -8,6 +8,7 @@ import { libraryUrl } from "@/lib/books/library-url";
 import { worldReading, type AuthorCountries } from "@/lib/countries";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { CountriesGoal } from "./countries-goal";
 import { Flag } from "./flag";
 
 // The map outlines (~100 KB) load only when this section is on screen.
@@ -22,7 +23,8 @@ const TOP = 10;
  * Where the books you finished come from, by the authors' countries: flags with counts, a world
  * map shaded by number of books, and a ranked list you can open to see the books.
  */
-export function WorldReadingSection({ books, map, year }: { books: Book[]; map: AuthorCountries; year: number }) {
+export function WorldReadingSection({ books, map, year, countriesGoal = null }: { books: Book[]; map: AuthorCountries; year: number; countriesGoal?: number | null }) {
+  const everCountries = useMemo(() => worldReading(books, map, null).countries.length, [books, map]);
   const [allYears, setAllYears] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -65,6 +67,8 @@ export function WorldReadingSection({ books, map, year }: { books: Book[]; map: 
           ))}
         </div>
       </div>
+
+      <CountriesGoal key={String(countriesGoal)} goal={countriesGoal} reached={everCountries} />
 
       {w.countries.length > 0 && (
         <ul className="flex flex-wrap gap-2" aria-label="Countries">

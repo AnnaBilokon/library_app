@@ -8,6 +8,7 @@ import { BOOKS_READ_VIEW_COOKIE } from "@/lib/books/layout";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks } from "@/lib/data/books";
 import { getGoals } from "@/lib/data/goals";
+import { getSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -23,9 +24,9 @@ export default function DashboardPage() {
 }
 
 async function DashboardData() {
-  const [books, goals, authorCountries, cookieStore] = await Promise.all([getBooks(), getGoals(), getAuthorCountries(), cookies()]);
+  const [books, goals, authorCountries, settings, cookieStore] = await Promise.all([getBooks(), getGoals(), getAuthorCountries(), getSettings(), cookies()]);
   const view = cookieStore.get(BOOKS_READ_VIEW_COOKIE)?.value === "grid" ? "grid" : "list";
-  return <ChallengeView books={books} goals={goals} authorCountries={authorCountries} initialBooksView={view} />;
+  return <ChallengeView books={books} goals={goals} authorCountries={authorCountries} countriesGoal={settings.countriesGoal} initialBooksView={view} />;
 }
 
 function DashboardSkeleton() {

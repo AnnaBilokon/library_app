@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatsView } from "@/components/stats/stats-view";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBooks } from "@/lib/data/books";
 import { computeExtras, computeStats, statsYears } from "@/lib/stats";
@@ -11,7 +13,15 @@ export const metadata: Metadata = { title: "Stats" };
 export default function StatsPage({ searchParams }: PageProps<"/stats">) {
   return (
     <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-8 px-4 pt-6 pb-12 md:px-8 md:pt-10">
-      <PageHeader eyebrow="All your reading" title="Stats" />
+      <PageHeader
+        eyebrow="All your reading"
+        title="Stats"
+        actions={
+          <Link href="/year-in-books" className={buttonVariants({ variant: "outline", className: "h-11 rounded-full px-5 text-[15px]" })}>
+            ✨ Year in Books
+          </Link>
+        }
+      />
       <Suspense fallback={<StatsSkeleton />}>
         <StatsData searchParams={searchParams} />
       </Suspense>

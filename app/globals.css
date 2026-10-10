@@ -469,3 +469,15 @@
     .spine-in { animation: none; }
   }
 }
+
+/* Year in Books: each part of the story rises into place as you scroll to it. */
+@layer components {
+  @keyframes story-in {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .story-in { animation: story-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .story-in { animation: none; }
+  }
+}

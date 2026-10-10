@@ -35,7 +35,10 @@ export function ChallengeView({
   goals,
   initialBooksView = "list",
   authorCountries = {},
+  countriesGoal = null,
 }: {
+  /** Read around the world goal (all years). */
+  countriesGoal?: number | null;
   books: Book[];
   /** Where your authors are from, for the world map. */
   authorCountries?: AuthorCountries;
@@ -76,6 +79,12 @@ export function ChallengeView({
       </div>
 
       <Headline challenge={c} />
+
+      {c.read > 0 && (
+        <Link href={`/year-in-books?year=${c.year}`} className="-mt-3 inline-flex w-fit items-center gap-2 self-end rounded-full bg-muted px-4 py-2 text-sm font-medium hover:bg-secondary">
+          ✨ Your {c.year} in books →
+        </Link>
+      )}
 
       <YearShelf books={shelf} goal={goal} year={c.year} />
 
@@ -135,7 +144,7 @@ export function ChallengeView({
         <BookishFacts facts={facts} year={c.year} />
       </div>
 
-      <WorldReadingSection books={books} map={authorCountries} year={c.year} />
+      <WorldReadingSection books={books} map={authorCountries} year={c.year} countriesGoal={countriesGoal} />
 
       {undated > 0 && (
         <p className="text-sm text-muted-foreground">
