@@ -11,6 +11,7 @@ import { libraryUrl, newBookUrl } from "@/lib/books/library-url";
 import { normalize } from "@/lib/books/filters";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { NotTracked, StopTrackingButton } from "./tracking";
 
 type Show = "all" | "wishlist";
 
@@ -18,13 +19,16 @@ type Show = "all" | "wishlist";
  * Authors you collect: the books you have in full colour, the ones on your wishlist greyed out,
  * with counts and a quick way to add another of their books to the wishlist.
  */
-export function AuthorCollectionsView({ collections }: { collections: AuthorCollection[] }) {
+export function AuthorCollectionsView({ collections: all, hidden = [] }: { collections: AuthorCollection[]; hidden?: string[] }) {
+  // Authors you stopped tracking stay out of the cards (listed at the bottom to bring back).
+  const collections = all.filter((c) => !hidden.includes(c.author));
+  const untracked = all.filter((c) => hidden.includes(c.author)).map((c) => c.author);
   const [q, setQ] = useState("");
   const [show, setShow] = useState<Show>("all");
   const query = normalize(useDeferredValue(q));
   const shown = collections.filter((c) => (show === "all" || c.wanted.length > 0) && (!query || normalize(c.author).includes(query)));
 
-  if (collections.length === 0) {
+  if (all.length === 0) {
     return <p className="max-w-prose text-[15px] text-muted-foreground">Authors show up here once you have (or want) two or more of their books.</p>;
   }
 
@@ -77,6 +81,7 @@ export function AuthorCollectionsView({ collections }: { collections: AuthorColl
           ))}
         </div>
       )}
+      <NotTracked kind="author" names={untracked} />
     </div>
   );
 }
@@ -102,6 +107,7 @@ function AuthorCard({ c }: { c: AuthorCollection }) {
             </span>
           </p>
         </div>
+        <StopTrackingButton kind="author" name={c.author} />
       </div>
       <span className="h-1.5 rounded-full bg-muted" aria-hidden>
         <span className="block h-full rounded-full bg-chart-actual" style={{ width: `${(c.have.length / total) * 100}%` }} />

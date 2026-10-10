@@ -26,3 +26,26 @@ export async function setCountriesGoal(goal: number | null): Promise<ActionResul
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
+
+/** Stop tracking a series or an author on the Series page, or track it again. Books aren't changed. */
+export async function setTracked(kind: "series" | "author", name: string, tracked: boolean): Promise<ActionResult> {
+  const user = await requireUser();
+  const clean = typeof name === "string" ? name.trim() : "";
+  if ((kind !== "series" && kind !== "author") || !clean || clean.length > 200 || typeof tracked !== "boolean") return { ok: false, error: "Invalid input." };
+  const supabase = await createClient();
+  const { data, error: readError } = await supabase.from("user_settings").select("hidden_series, hidden_authors").maybeSingle();
+  if (readError) return { ok: false, error: `Couldn't save: ${readError.message}` };
+  const current = (kind === "series" ? data?.hidden_series : data?.hidden_authors) ?? [];
+  const next = tracked ? current.filter((n) => n !== clean) : [...new Set([...current, clean])];
+  const { error } = await supabase.from("user_settings").upsert(
+    {
+      user_id: user.id,
+      hidden_series: kind === "series" ? next : (data?.hidden_series ?? []),
+      hidden_authors: kind === "author" ? next : (data?.hidden_authors ?? []),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) return { ok: false, error: `Couldn't save: ${error.message}` };
+  revalidatePath("/series", "layout");
+  return { ok: true, data: undefined };
+}

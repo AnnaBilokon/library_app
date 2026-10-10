@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { libraryUrl, newBookUrl } from "@/lib/books/library-url";
 import type { SeriesSummary, VolumeState } from "@/lib/series";
 import { cn } from "@/lib/utils";
+import { NotTracked, StopTrackingButton } from "./tracking";
 
 type Tab = "all" | SeriesSummary["status"];
 
@@ -22,14 +23,45 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "finished", label: "Finished" },
 ];
 
-/** Each volume's box: colour and outline, always with its number and (in the legend) a word. */
-const STATE: Record<VolumeState, { label: string; box: string }> = {
-  read: { label: "Read", box: "bg-chart-actual text-white" },
-  reading: { label: "Reading", box: "bg-highlight text-highlight-foreground ring-2 ring-foreground/60" },
-  owned: { label: "On your shelf", box: "bg-secondary text-secondary-foreground ring-1 ring-border" },
-  wishlist: { label: "On your wishlist", box: "bg-soon/25 text-foreground ring-2 ring-soon" },
-  missing: { label: "Don't have it", box: "border-2 border-dashed border-border text-muted-foreground" },
+const STATE_LABEL: Record<VolumeState, string> = {
+  read: "Read",
+  reading: "Reading",
+  owned: "On your shelf",
+  wishlist: "On your wishlist",
+  missing: "Don't have it",
 };
+
+/**
+ * Each series gets its own colour (stable, from its name) out of the checked genre colours,
+ * leaving out orange and red so the coral of wishlist books always stands apart.
+ */
+const SERIES_SLOTS = [1, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14];
+function seriesSlot(name: string): number {
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return SERIES_SLOTS[h % SERIES_SLOTS.length];
+}
+
+/**
+ * A volume's box in the series colour: solid once read, a lighter shade with an outline while
+ * reading, a pale tint on your shelf. Wishlist (coral outline) and missing (dashed) look the same
+ * in every series. The number and the legend's words carry the meaning too, not colour alone.
+ */
+function volumeBox(state: VolumeState, slot: number): { className: string; style?: React.CSSProperties } {
+  const c = `var(--genre-${slot})`;
+  switch (state) {
+    case "read":
+      return { className: "", style: { background: c, color: `var(--genre-ink-${slot})` } };
+    case "reading":
+      return { className: "text-foreground", style: { background: `color-mix(in oklab, ${c} 38%, var(--card))`, boxShadow: `inset 0 0 0 2px ${c}` } };
+    case "owned":
+      return { className: "text-foreground", style: { background: `color-mix(in oklab, ${c} 20%, var(--card))`, boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${c} 55%, var(--card))` } };
+    case "wishlist":
+      return { className: "bg-soon/25 text-foreground ring-2 ring-soon" };
+    case "missing":
+      return { className: "border-2 border-dashed border-border text-muted-foreground" };
+  }
+}
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -37,12 +69,15 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * Your series: for each, a row of numbered boxes (read, reading, on your shelf, on your wishlist,
  * or missing), how far you are, the next book to read and the numbers you don't have yet.
  */
-export function SeriesView({ series }: { series: SeriesSummary[] }) {
+export function SeriesView({ series: all, hidden = [] }: { series: SeriesSummary[]; hidden?: string[] }) {
   const [tab, setTab] = useState<Tab>("all");
+  // Series you stopped tracking stay out of the cards (listed at the bottom to bring back).
+  const series = all.filter((s) => !hidden.includes(s.name));
+  const untracked = all.filter((s) => hidden.includes(s.name)).map((s) => s.name);
   const count = (t: Tab) => (t === "all" ? series.length : series.filter((s) => s.status === t).length);
   const shown = tab === "all" ? series : series.filter((s) => s.status === tab);
 
-  if (series.length === 0) {
+  if (all.length === 0) {
     return (
       <p className="max-w-prose text-[15px] text-muted-foreground">
         No series yet. Add a series name and number to a book (Edit → Series) and it shows up here, with the volumes you&apos;ve read and the ones you&apos;re
@@ -72,12 +107,15 @@ export function SeriesView({ series }: { series: SeriesSummary[] }) {
           ))}
         </div>
         <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground" aria-label="What the boxes mean">
-          {(Object.keys(STATE) as VolumeState[]).map((s) => (
-            <li key={s} className="flex items-center gap-1.5">
-              <span className={cn("inline-block size-3.5 rounded-[4px]", STATE[s].box)} aria-hidden />
-              {STATE[s].label}
-            </li>
-          ))}
+          {(Object.keys(STATE_LABEL) as VolumeState[]).map((s) => {
+            const b = volumeBox(s, 1);
+            return (
+              <li key={s} className="flex items-center gap-1.5">
+                <span className={cn("inline-block size-3.5 rounded-[4px]", b.className)} style={b.style} aria-hidden />
+                {STATE_LABEL[s]}
+              </li>
+            );
+          })}
         </ul>
       </div>
 
@@ -86,11 +124,14 @@ export function SeriesView({ series }: { series: SeriesSummary[] }) {
           <SeriesCard key={s.name} s={s} />
         ))}
       </div>
+      <NotTracked kind="series" names={untracked} />
     </div>
   );
 }
 
 function SeriesCard({ s }: { s: SeriesSummary }) {
+  const slot = seriesSlot(s.name);
+  const colour = `var(--genre-${slot})`;
   const known = s.volumes.length;
   const pct = known ? Math.round((s.read / known) * 100) : 0;
   const status =
@@ -103,18 +144,26 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
           : `${plural(known - s.read, "book", "books")} to go${s.total === null ? " (that you know of)" : ""}`;
 
   return (
-    <section aria-labelledby={`series-${s.name}`} className="flex flex-col gap-4 rounded-2xl bg-card p-5 ring-1 ring-border/60 md:p-6">
+    <section
+      aria-labelledby={`series-${s.name}`}
+      className="relative flex flex-col gap-4 overflow-hidden rounded-2xl bg-card p-5 ring-1 ring-border/60 md:p-6"
+      style={{ backgroundImage: `linear-gradient(to bottom, color-mix(in oklab, ${colour} 9%, transparent), transparent 70%)` }}
+    >
+      <span className="absolute inset-x-0 top-0 h-1.5" style={{ background: colour }} aria-hidden />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 id={`series-${s.name}`} className="flex items-center gap-2 font-heading text-lg font-semibold text-heading">
-            <Layers className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <Layers className="size-4 shrink-0" style={{ color: colour }} aria-hidden />
             <Link href={libraryUrl({ series: s.name })} className="truncate hover:underline">
               {s.name}
             </Link>
           </h2>
           {s.authors.length > 0 && <p className="truncate text-sm text-muted-foreground">{s.authors.join(", ")}</p>}
         </div>
-        <TotalEditor series={s.name} total={s.total} known={known} />
+        <div className="flex items-center gap-1">
+          <TotalEditor series={s.name} total={s.total} known={known} />
+          <StopTrackingButton kind="series" name={s.name} />
+        </div>
       </div>
 
       {known > 0 && (
@@ -126,7 +175,7 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
             read <span className="text-muted-foreground">· {status}</span>
           </p>
           <span className="h-1.5 rounded-full bg-muted" aria-hidden>
-            <span className="block h-full rounded-full bg-chart-actual transition-[width] duration-700" style={{ width: `${pct}%` }} />
+            <span className="block h-full rounded-full transition-[width] duration-700" style={{ width: `${pct}%`, background: colour }} />
           </span>
         </div>
       )}
@@ -134,8 +183,9 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
       <ol className="flex flex-wrap gap-1.5" aria-label={`Books in ${s.name}`}>
         {s.volumes.map((v) => {
           const book = v.books[0];
-          const label = `${v.index}. ${book ? book.title : "not in your library"}: ${STATE[v.state].label.toLowerCase()}`;
-          const box = cn("grid size-10 place-items-center rounded-lg text-sm font-semibold tabular-nums transition-transform", STATE[v.state].box);
+          const label = `${v.index}. ${book ? book.title : "not in your library"}: ${STATE_LABEL[v.state].toLowerCase()}`;
+          const look = volumeBox(v.state, slot);
+          const box = cn("grid size-10 place-items-center rounded-lg text-sm font-semibold tabular-nums transition-transform", look.className);
           return (
             <li key={v.index}>
               {book ? (
@@ -144,6 +194,7 @@ function SeriesCard({ s }: { s: SeriesSummary }) {
                   title={label}
                   aria-label={label}
                   className={cn(box, "hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none")}
+                  style={look.style}
                 >
                   {v.index}
                 </Link>

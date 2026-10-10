@@ -6,6 +6,7 @@ import { SeriesView } from "@/components/series/series-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBooks } from "@/lib/data/books";
 import { getSeriesTotals } from "@/lib/data/series";
+import { getSettings } from "@/lib/data/settings";
 import { seriesTracker } from "@/lib/series";
 
 export const metadata: Metadata = { title: "Series" };
@@ -23,8 +24,8 @@ export default function SeriesPage() {
 }
 
 async function SeriesData() {
-  const [books, totals] = await Promise.all([getBooks(), getSeriesTotals()]);
-  return <SeriesView series={seriesTracker(books, totals)} />;
+  const [books, totals, settings] = await Promise.all([getBooks(), getSeriesTotals(), getSettings()]);
+  return <SeriesView series={seriesTracker(books, totals)} hidden={settings.hiddenSeries} />;
 }
 
 function SeriesSkeleton() {
