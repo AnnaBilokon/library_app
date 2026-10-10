@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ChevronDown, Globe } from "lucide-react";
+import { BookMarked, ChevronDown, Globe } from "lucide-react";
 import { libraryUrl } from "@/lib/books/library-url";
-import { worldReading, type AuthorCountries } from "@/lib/countries";
+import { waitingCountries, worldReading, type AuthorCountries } from "@/lib/countries";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CountriesGoal } from "./countries-goal";
@@ -179,6 +179,71 @@ export function WorldReadingSection({ books, map, year, countriesGoal = null }: 
           )}
         </div>
       </div>
+
+      <WaitingCountries books={books} map={map} />
     </section>
+  );
+}
+
+/**
+ * Countries you own unread books from but have never read: the trips already on your shelves.
+ * Pick one to see its books.
+ */
+function WaitingCountries({ books, map }: { books: Book[]; map: AuthorCountries }) {
+  const waiting = useMemo(() => waitingCountries(books, map), [books, map]);
+  const [open, setOpen] = useState<string | null>(null);
+  if (waiting.length === 0) return null;
+  const picked = waiting.find((c) => c.code === open);
+  const total = new Set(waiting.flatMap((c) => c.books.map((b) => b.id))).size;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl bg-muted/50 p-4 md:p-5" aria-labelledby="waiting-title">
+      <div className="flex flex-col gap-0.5">
+        <h3 id="waiting-title" className="flex items-center gap-2 font-heading text-lg font-semibold text-heading">
+          <BookMarked className="size-4 text-muted-foreground" aria-hidden />
+          Waiting on your shelves
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          {waiting.length} {waiting.length === 1 ? "country" : "countries"} you haven&apos;t read yet, with {total} unread {total === 1 ? "book" : "books"} you
+          already own
+        </p>
+      </div>
+      <ul className="flex flex-wrap gap-2" aria-label="Countries not read yet">
+        {waiting.map((c) => (
+          <li key={c.code}>
+            <button
+              type="button"
+              onClick={() => setOpen(open === c.code ? null : c.code)}
+              aria-pressed={open === c.code}
+              className={cn(
+                "inline-flex h-8 items-center gap-2 rounded-full bg-background pr-3 pl-2 text-sm font-medium ring-1 ring-border/70 transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                open === c.code && "bg-highlight text-highlight-foreground ring-highlight hover:bg-highlight",
+              )}
+            >
+              <Flag code={c.code} decorative className="h-3.5 w-[21px]" />
+              {c.name}
+              <span className="tabular-nums opacity-70">{c.books.length}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {picked && (
+        <ul className="flex flex-col gap-0.5 text-sm">
+          {picked.books.map((b) => (
+            <li key={b.id} className="truncate">
+              <Link href={`/books/${b.id}`} lang={b.language} className="font-medium hover:underline">
+                {b.title}
+              </Link>
+              {b.authors.length > 0 && <span className="text-muted-foreground"> · {b.authors.join(", ")}</span>}
+            </li>
+          ))}
+          <li className="mt-1 text-xs">
+            <Link href={libraryUrl({ country: [picked.code], status: ["to-read"] })} className="font-medium underline underline-offset-4">
+              Open in the Library
+            </Link>
+          </li>
+        </ul>
+      )}
+    </div>
   );
 }

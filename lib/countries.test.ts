@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book } from "@/lib/types";
-import { authorList, bookCountries, countryName, isCountryCode, worldReading, type AuthorCountries } from "./countries";
+import { authorList, bookCountries, countryName, isCountryCode, waitingCountries, worldReading, type AuthorCountries } from "./countries";
 import { MAP_ID_TO_CODE } from "./geo/map-ids";
 import { EMPTY_FILTERS, filterBooks } from "./books/filters";
 
@@ -51,6 +51,25 @@ describe("countries", () => {
     expect(worldReading(books, map, null).countries[0].books).toHaveLength(3);
   });
 
+  it("finds countries you own unread books from but have never read", () => {
+    const owned = { owned: true, timesRead: 0 };
+    const books = [
+      book("Жадан", ["Сергій Жадан"], "2024-02-01", { owned: true, timesRead: 1 }),
+      book("Жадан непрочитаний", ["Сергій Жадан"], undefined, owned),
+      book("Гейман 1", ["Ніл Гейман"], undefined, owned),
+      book("Гейман 2", ["Ніл Гейман"], undefined, owned),
+      book("Разом", ["Двоє"], undefined, owned),
+      book("Продана", ["Ніл Гейман"], undefined, { ...owned, soldAt: "2026-01-01" }),
+      book("Бажана", ["Ніл Гейман"], undefined, { ...owned, wanted: true }),
+      book("Чужа", ["Ніл Гейман"], undefined, { owned: false, timesRead: 0 }),
+    ];
+    // UA is read already; GB has two books waiting, PL one (the co-authored book).
+    expect(waitingCountries(books, map).map((c) => [c.code, c.books.map((b) => b.title)])).toEqual([
+      ["GB", ["Гейман 1", "Гейман 2"]],
+      ["PL", ["Разом"]],
+    ]);
+  });
+
   it("lists authors without a country first, then by number of books", () => {
     const books = [book("1", ["Сергій Жадан"]), book("2", ["Сергій Жадан"]), book("3", ["Хтось"]), book("4", ["Ніл Гейман"])];
     expect(authorList(books, map).map((a) => a.author)).toEqual(["Хтось", "Сергій Жадан", "Ніл Гейман"]);
@@ -62,7 +81,7 @@ describe("country extras", () => {
   const books = [
     book("Жадан 2025", ["Сергій Жадан"], "2025-05-01", { rating: 4 }),
     book("Жадан 2026", ["Сергій Жадан"], "2026-02-01", { rating: 5 }),
-    book("Гейман 2026", ["Ніл Гейман"], "2026-03-01", { rating: 3 }),
+    book("Гейман 2026", ["Ніл Гейман"], "2026-03-01", { rating: 3, owned: true }),
     book("Муракамі unread", ["Харукі Муракамі"], undefined, { owned: true, timesRead: 0 }),
     book("Гейман unread", ["Ніл Гейман"], undefined, { owned: true, timesRead: 0 }),
   ];

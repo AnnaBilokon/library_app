@@ -83,3 +83,25 @@ export function authorList(books: Book[], map: AuthorCountries): { author: strin
     .map(([author, n]) => ({ author, books: n, countries: map[author] ?? [] }))
     .sort((a, b) => Number(a.countries.length > 0) - Number(b.countries.length > 0) || b.books - a.books || a.author.localeCompare(b.author, "uk"));
 }
+
+export interface WaitingCountry {
+  code: string;
+  name: string;
+  /** Unread books you own by authors from this country. */
+  books: Book[];
+}
+
+/**
+ * Countries waiting on your shelves: you own unread books by authors from there, but you've never
+ * finished a book by anyone from there. Most books first.
+ */
+export function waitingCountries(allBooks: Book[], map: AuthorCountries): WaitingCountry[] {
+  const read = new Set(worldReading(allBooks, map, null).countries.map((c) => c.code));
+  const byCountry = new Map<string, Book[]>();
+  for (const b of allBooks)
+    if (!b.wanted && b.owned && !b.soldAt && b.timesRead === 0)
+      for (const c of bookCountries(b, map)) if (!read.has(c)) byCountry.set(c, [...(byCountry.get(c) ?? []), b]);
+  return [...byCountry]
+    .map(([code, books]) => ({ code, name: countryName(code), books }))
+    .sort((a, b) => b.books.length - a.books.length || a.name.localeCompare(b.name, "en"));
+}

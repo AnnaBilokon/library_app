@@ -45,6 +45,12 @@ describe("filterBooks", () => {
     expect(filterBooks(books, EMPTY_FILTERS)).toHaveLength(4);
   });
 
+  it("shows the books on your shelves, or only the ones read but not owned", () => {
+    const withBorrowed = [...books, book({ title: "Позичена", owned: false, status: "finished" })];
+    expect(titles(filterBooks(withBorrowed, EMPTY_FILTERS))).not.toContain("Позичена");
+    expect(titles(filterBooks(withBorrowed, { ...EMPTY_FILTERS, owned: false }))).toEqual(["Позичена"]);
+  });
+
   it("searches title and authors, all words must match", () => {
     expect(titles(filterBooks(books, { ...EMPTY_FILTERS, q: "остін" }))).toEqual(["Емма"]);
     expect(titles(filterBooks(books, { ...EMPTY_FILTERS, q: "ліс мур" }))).toEqual(["Лісовий бог"]);

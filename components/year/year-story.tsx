@@ -152,7 +152,7 @@ export function YearStory({ y, years }: { y: YearInBooks; years: number[] }) {
       </Reveal>
 
       <Reveal>
-        <YearShelf books={y.shelf} goal={y.goal?.goal ?? null} year={y.year} />
+        <YearShelf books={y.shelf} goal={y.goal?.goal ?? null} year={y.year} genres={y.genres} />
       </Reveal>
 
       <Reveal>

@@ -27,16 +27,15 @@ export function BookFiltersPanel({ filters, facets, onChange }: BookFiltersPanel
       <Section title="Shelf">
         <ToggleGroup
           variant="outline"
-          value={[filters.owned === null ? "all" : filters.owned ? "owned" : "not-owned"]}
+          value={[filters.owned === false ? "not-owned" : "owned"]}
           onValueChange={(v) => {
             const next = v[0];
-            if (next) onChange({ owned: next === "all" ? null : next === "owned" });
+            if (next) onChange({ owned: next === "owned" ? null : false });
           }}
           className="w-full"
         >
-          <ToggleGroupItem value="all" className="flex-1">All</ToggleGroupItem>
-          <ToggleGroupItem value="owned" className="flex-1">Owned</ToggleGroupItem>
-          <ToggleGroupItem value="not-owned" className="flex-1">Not owned</ToggleGroupItem>
+          <ToggleGroupItem value="owned" className="flex-1">On my shelves</ToggleGroupItem>
+          <ToggleGroupItem value="not-owned" className="flex-1">Read, not owned</ToggleGroupItem>
         </ToggleGroup>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={filters.favorite === true} onCheckedChange={(c) => onChange({ favorite: c ? true : null })} />

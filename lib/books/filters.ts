@@ -53,6 +53,7 @@ export interface BookFilters {
   format: BookFormat[];
   publisher: string[];
   series: string | null;
+  /** The Library shows the books on your shelves; false shows the ones you read but don't own. */
   owned: boolean | null;
   favorite: boolean | null;
   /** Only books read more than once. */
@@ -117,7 +118,8 @@ export function filterBooks(books: Book[], f: BookFilters, authorCountries: Reco
     if (!anyOf(f.format, b.format ? [b.format] : [])) return false;
     if (!anyOf(f.publisher, b.publisher ? [b.publisher] : [])) return false;
     if (f.series && b.series !== f.series) return false;
-    if (f.owned !== null && b.owned !== f.owned) return false;
+    // Your shelves by default; books you read elsewhere (borrowed, sold before, ebooks) on request.
+    if (f.owned === false ? b.owned : !b.owned) return false;
     if (f.favorite !== null && b.favorite !== f.favorite) return false;
     if (f.reread && b.timesRead < 2) return false;
     if (!within(b.rating, f.ratingMin, f.ratingMax)) return false;
