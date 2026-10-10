@@ -34,6 +34,35 @@ pnpm dev
 
 Schema changes always go in a **new** migration (`npx supabase migration new <name>`). Never edit one that has already been applied.
 
+## Deploy (Vercel)
+
+The app runs on Vercel and talks to the same Supabase project as local development.
+
+1. On [vercel.com/new](https://vercel.com/new), import the GitHub repo. The framework (Next.js) is detected automatically.
+2. **Settings → Environment Variables** (Production and Preview):
+   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, the same values as in `.env.local`
+   - `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel uses the pnpm version from `packageManager`
+   - **Never** add `SUPABASE_SECRET_KEY` (or the Notion values): they're for local scripts only.
+3. Node.js: `engines.node` in `package.json` (`>=22`) makes Vercel build and run on Node 22.
+4. In Supabase, **Authentication → URL Configuration**: set **Site URL** to the Vercel domain (e.g. `https://your-app.vercel.app`) and add it under **Redirect URLs**.
+
+Every push to `main` deploys to production; every pull request gets a preview deployment.
+
+> Preview deployments use the **same database** as production, so changes you make while trying a preview are real.
+
+### Database changes and deploys
+
+When a pull request adds a migration, apply it **before** merging (`npx supabase db push`): the new code expects the new columns as soon as it's live. Migrations only ever add things, so applying one early doesn't break the version that's running.
+
+### Backups
+
+**Settings → Your data** downloads a full JSON backup (every table, the trash included) or a CSV spreadsheet. Supabase's free plan has no backups you can restore yourself, so download one now and then.
+
+### Outside services
+
+- **National Bank of Ukraine** exchange rates (`bank.gov.ua`, free, no key), used when you mark a book sold in another currency.
+- Publisher and shop pages, fetched server-side when you use "Fill from a link".
+
 ## Notion import (one-time)
 
 ### Notion setup
