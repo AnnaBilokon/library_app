@@ -64,7 +64,7 @@ function Group({ title, items, today, fresh = false }: { title: string; items: R
               <span
                 className={cn(
                   "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums",
-                  fresh ? "bg-primary text-primary-foreground" : "bg-background text-foreground ring-1 ring-border/70",
+                  fresh ? "bg-primary text-primary-foreground" : "bg-soon text-soon-foreground",
                 )}
               >
                 {releaseLabel(date, today, formatDate)}
