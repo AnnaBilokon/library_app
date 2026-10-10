@@ -143,8 +143,6 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
 
   // A cover found by "Fill from a link"; copied into Storage when the book is saved.
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  // Bumped after adding a book, to start the link box and cover picker afresh.
-  const [resetKey, setResetKey] = useState(0);
 
   /**
    * Puts details read from a web page into the form. For a new book everything found is used;
@@ -178,8 +176,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
     return { filled, kept };
   };
 
-  const onSubmit = (values: BookInput, event?: React.BaseSyntheticEvent) => {
-    const formEl = event?.target instanceof HTMLFormElement ? event.target : null;
+  const onSubmit = (values: BookInput) =>
     startSaving(async () => {
       const result = book ? await updateBook(book.id, values) : await createBook(values);
       if (!result.ok) {
@@ -201,29 +198,16 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
         onDone?.();
         return;
       }
-      // Stay on "Add a book" with an empty form, ready for the next one.
-      toast.success(values.wanted ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`, {
-        action: { label: "Open", onClick: () => router.push(`/books/${bookId}`) },
-      });
-      // Empty the inputs first: number fields (prices, pages, year) have no default, and
-      // react-hook-form would otherwise keep what was typed there and send it again.
-      formEl?.reset();
-      form.reset(newBookDefaults(forWishlist));
-      setCoverFile(null);
-      setCoverUrl(null);
-      setResetKey((k) => k + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      setTimeout(() => form.setFocus("title"), 50);
+      toast.success(values.wanted ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`);
+      router.push(`/books/${bookId}`);
     });
-  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-8">
-      <PrefillFromLink key={`prefill-${resetKey}`} onPrefill={applyPrefill} editing={editing} />
+      <PrefillFromLink onPrefill={applyPrefill} editing={editing} />
 
       <div className="grid gap-8 md:grid-cols-[11rem_1fr]">
         <CoverPicker
-          key={`cover-${resetKey}`}
           book={book}
           title={title}
           authors={authors}
