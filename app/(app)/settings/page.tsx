@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LogOut } from "lucide-react";
+import { Download, FileSpreadsheet, LogOut } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { TrashList } from "@/components/books/trash-list";
 import { AuthorCountryList } from "@/components/countries/author-country-list";
 import { PalettePicker } from "@/components/layout/palette-picker";
 import { ThemePicker } from "@/components/layout/theme-picker";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { authorList } from "@/lib/countries";
@@ -28,6 +28,30 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col gap-5">
           <ThemePicker />
           <PalettePicker />
+        </CardContent>
+      </Card>
+      <Card id="backup" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Your data</CardTitle>
+          <CardDescription>
+            Download a copy of everything, to keep somewhere safe. Your books live only in this app&apos;s database, so a backup now and
+            then is a good idea.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          {/* Plain links: the browser downloads the file the route sends back. */}
+          <a href="/api/export?format=json" download className={buttonVariants({ className: "h-10 rounded-full px-5" })}>
+            <Download aria-hidden />
+            Full backup (JSON)
+          </a>
+          <a href="/api/export?format=csv" download className={buttonVariants({ variant: "outline", className: "h-10 rounded-full px-5" })}>
+            <FileSpreadsheet aria-hidden />
+            Spreadsheet (CSV)
+          </a>
+          <p className="w-full text-xs text-muted-foreground">
+            The backup has every book (the trash too) with readings, reviews and notes, author countries, reading goals and Book Battle
+            picks. The spreadsheet opens in Excel or Google Sheets. Covers are included as links.
+          </p>
         </CardContent>
       </Card>
       <Card id="author-countries" className="scroll-mt-24">
