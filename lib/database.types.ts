@@ -82,6 +82,7 @@ export type Database = {
           description: string | null
           favorite: boolean
           for_sale: boolean
+          forgotten: boolean
           format: Database["public"]["Enums"]["book_format"] | null
           genres: string[]
           id: string
@@ -126,6 +127,7 @@ export type Database = {
           description?: string | null
           favorite?: boolean
           for_sale?: boolean
+          forgotten?: boolean
           format?: Database["public"]["Enums"]["book_format"] | null
           genres?: string[]
           id?: string
@@ -170,6 +172,7 @@ export type Database = {
           description?: string | null
           favorite?: boolean
           for_sale?: boolean
+          forgotten?: boolean
           format?: Database["public"]["Enums"]["book_format"] | null
           genres?: string[]
           id?: string

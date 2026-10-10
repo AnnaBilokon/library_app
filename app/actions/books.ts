@@ -167,7 +167,7 @@ export async function setBookStatus(bookId: string, status: string, today: strin
     });
     if (error) return fail(dbError(error));
   }
-  // Starting or finishing a book takes it out of the "Up next" queue;
+  // Starting or finishing a book takes it out of the "Up next" queue and the Forgotten box;
   // any reading status takes a wishlist book back into your library.
   const leaves = LEAVES_QUEUE.has(s.data) && book.queuePosition !== undefined;
   const { error } = await supabase
@@ -176,6 +176,7 @@ export async function setBookStatus(bookId: string, status: string, today: strin
       status: s.data,
       ...(leaves ? { queue_position: null } : {}),
       ...(book.wanted ? { wanted: false, priority: null } : {}),
+      ...((s.data === "reading" || s.data === "finished") && book.forgotten ? { forgotten: false } : {}),
     })
     .eq("id", bookId);
   if (error) return fail(dbError(error));
@@ -395,3 +396,15 @@ export async function setReview(bookId: string, text: string): Promise<ActionRes
   refreshAll();
   return ok(undefined);
 }
+
+/** Put a book in the Forgotten box (so "Surprise me" can remind you of it), or take it out. */
+export async function setForgotten(bookId: string, forgotten: boolean): Promise<ActionResult> {
+  await requireUser();
+  if (!id.safeParse(bookId).success || typeof forgotten !== "boolean") return fail("Invalid input.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("books").update({ forgotten }).eq("id", bookId);
+  if (error) return fail(dbError(error));
+  refreshAll();
+  return ok(undefined);
+}
+

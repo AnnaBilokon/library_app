@@ -12,6 +12,7 @@ function row(overrides: Partial<BookRowWithReadings> = {}): BookRowWithReadings 
     status: "finished",
     favorite: false,
     for_sale: false,
+    forgotten: false,
     rating: null,
     cover_path: null,
     cover_url: null,

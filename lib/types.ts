@@ -56,6 +56,8 @@ export interface Book {
   owned: boolean;
   acquiredAt?: string;
   purchasePrice?: number;
+  /** In the Forgotten box: "Surprise me" can pick it to remind you. */
+  forgotten: boolean;
   /** On the sell shelf: you own it and want to sell it. */
   forSale: boolean;
   /** Set once sold; a sold book leaves the library but stays on the Sell page. */

@@ -376,3 +376,39 @@
     border-inline-start: 6px solid var(--bracket-line);
   }
 }
+
+/* Surprise me: the floating deck, the sparkle burst and the card flip. Off with reduced motion. */
+@layer components {
+  @keyframes surprise-float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -6px; }
+  }
+  @keyframes surprise-sparkle {
+    0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--r, 0deg)) translateY(0) scale(0.4); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--r, 0deg)) translateY(var(--d, -140px)) scale(1); }
+  }
+  @keyframes surprise-flip {
+    0% { transform: perspective(1200px) rotateY(90deg) scale(0.9); opacity: 0; }
+    60% { transform: perspective(1200px) rotateY(-8deg) scale(1.02); opacity: 1; }
+    100% { transform: perspective(1200px) rotateY(0deg) scale(1); }
+  }
+  @keyframes surprise-glow {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--highlight) 60%, transparent); }
+    50% { box-shadow: 0 0 0 12px color-mix(in oklab, var(--highlight) 0%, transparent); }
+  }
+  .surprise-float { animation: surprise-float 3.2s ease-in-out infinite; }
+  .surprise-sparkle { animation: surprise-sparkle 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  @keyframes surprise-halo {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+    35% { opacity: 1; }
+    100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  }
+  .surprise-halo { animation: surprise-halo 1.4s ease-out both; }
+  .surprise-flip { animation: surprise-flip 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .surprise-glow { animation: surprise-glow 2.2s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .surprise-float, .surprise-sparkle, .surprise-flip, .surprise-glow, .surprise-halo { animation: none; }
+    .surprise-sparkle { display: none; }
+  }
+}
