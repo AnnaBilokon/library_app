@@ -19,6 +19,11 @@ import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MonthlyChart, ProgressChart } from "./challenge-charts";
+import { BookishFacts } from "./bookish-facts";
+import { ChallengeRing } from "./challenge-ring";
+import { GenreDonut } from "./genre-donut";
+import { YearShelf } from "./year-shelf";
+import { bookishFacts, genreSlices, shelfBooks } from "@/lib/bookish";
 import { WorldReadingSection } from "@/components/countries/world-reading";
 import type { AuthorCountries } from "@/lib/countries";
 
@@ -45,6 +50,9 @@ export function ChallengeView({
   const years = useMemo(() => challengeYears(books, currentYear, Object.keys(goals).map(Number)), [books, currentYear, goals]);
   const goal = goals[year] ?? null;
   const c = useMemo(() => computeChallenge(books, year, goal, today), [books, year, goal, today]);
+  const shelf = useMemo(() => shelfBooks(books, year), [books, year]);
+  const facts = useMemo(() => bookishFacts(shelf), [shelf]);
+  const slices = useMemo(() => genreSlices(books, year), [books, year]);
   const undated = useMemo(() => books.reduce((n, b) => n + b.readings.filter((r) => r.outcome === "finished" && !r.finishedAt).length, 0), [books]);
 
   return (
@@ -68,6 +76,8 @@ export function ChallengeView({
       </div>
 
       <Headline challenge={c} />
+
+      <YearShelf books={shelf} goal={goal} year={c.year} />
 
       <BooksRead books={books} year={c.year} initialView={initialBooksView} />
 
@@ -120,6 +130,11 @@ export function ChallengeView({
         </div>
       </details>
 
+      <div className="grid gap-6 lg:grid-cols-2">
+        <GenreDonut slices={slices} year={c.year} />
+        <BookishFacts facts={facts} year={c.year} />
+      </div>
+
       <WorldReadingSection books={books} map={authorCountries} year={c.year} />
 
       {undated > 0 && (
@@ -151,24 +166,23 @@ function Headline({ challenge: c }: { challenge: Challenge }) {
 
       {c.goal ? (
         <>
-          <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-            {/* Hero figure: the one number the dashboard leads with (sans, proportional digits). */}
-            <span className="font-sans text-6xl leading-none font-semibold tracking-tight text-heading md:text-7xl dark:text-foreground">{c.read}</span>
-            <span className="pb-1.5 text-lg text-muted-foreground">of {plural(c.goal, "book", "books")}</span>
+          {/* The ring draws itself and the count rises when it scrolls into view. */}
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-8">
+            <ChallengeRing challenge={c} />
+            <div className="flex flex-col gap-2 text-center sm:text-left">
+              <p className="text-lg">
+                <span className="font-semibold">{plural(c.read, "book", "books")}</span> of {c.goal} <span className="text-muted-foreground">({pct}%)</span>
+              </p>
+              <p className="text-[15px]">
+                <PaceSentence challenge={c} />
+              </p>
+              {c.elapsed > 0 && c.elapsed < 1 && (
+                <p className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground sm:justify-start">
+                  <span className="inline-block h-3 w-1 rounded-full bg-chart-plan" aria-hidden /> The tick on the ring is where the plan says you&apos;d be today.
+                </p>
+              )}
+            </div>
           </div>
-          <div
-            role="meter"
-            aria-label={`${c.read} of ${c.goal} books`}
-            aria-valuemin={0}
-            aria-valuemax={c.goal}
-            aria-valuenow={Math.min(c.read, c.goal)}
-            className="h-3 w-full overflow-hidden rounded-full bg-background/80"
-          >
-            <div className="h-full rounded-full bg-(--chart-actual) transition-[width]" style={{ width: `${pct}%` }} />
-          </div>
-          <p className="text-[15px]">
-            <PaceSentence challenge={c} />
-          </p>
         </>
       ) : (
         <p className="text-[15px]">

@@ -1,0 +1,51 @@
+import { describe, expect, it } from "vitest";
+import type { Book } from "@/lib/types";
+import { bookishFacts, compareHeight, genreSlices, jacketFor, shelfBooks } from "./bookish";
+
+const book = (title: string, finished: string[], o: Partial<Book> = {}) =>
+  ({ id: title, title, authors: [], genres: [], wanted: false, readings: finished.map((d, i) => ({ id: `${title}${i}`, outcome: "finished", finishedAt: d })), ...o }) as unknown as Book;
+
+describe("bookish", () => {
+  it("puts each reading of the year on the shelf, oldest first", () => {
+    const shelf = shelfBooks([book("B", ["2026-05-01"]), book("A", ["2026-01-02", "2026-09-09"]), book("Old", ["2025-03-01"]), book("Wish", ["2026-02-01"], { wanted: true })], 2026);
+    expect(shelf.map((s) => `${s.title} ${s.finishedAt}`)).toEqual(["A 2026-01-02", "B 2026-05-01", "A 2026-09-09"]);
+    expect(shelf[0].jacket).toBe(jacketFor("A"));
+    expect(jacketFor("anything")).toBeGreaterThanOrEqual(1);
+    expect(jacketFor("anything")).toBeLessThanOrEqual(5);
+  });
+
+  it("compares the stack with everyday things", () => {
+    expect(compareHeight(30)).toEqual({ count: 1.2, thing: "cats" });
+    expect(compareHeight(5)).toEqual({ count: 0.5, thing: "coffee mugs" });
+    expect(compareHeight(100)).toEqual({ count: 1, thing: "guitar" });
+  });
+
+  it("works out pages, words, hours and War and Peaces, assuming 300 pages when unknown", () => {
+    const facts = bookishFacts([
+      { id: "1", title: "Long", authors: [], pages: 925, finishedAt: "2026-01-01", jacket: 1 },
+      { id: "2", title: "Short", authors: [], pages: 120, finishedAt: "2026-02-01", jacket: 2 },
+      { id: "3", title: "Unknown", authors: [], finishedAt: "2026-03-01", jacket: 3 },
+    ]);
+    expect(facts.pages).toBe(1345);
+    expect(facts.assumed).toBe(1);
+    expect(facts.warAndPeace).toBe(1.1);
+    expect(facts.words).toBe(370000);
+    expect(facts.hours).toBe(34);
+    expect(facts.longest?.title).toBe("Long");
+    expect(facts.shortest?.title).toBe("Short");
+    expect(facts.stackCm).toBe(9.6);
+  });
+
+  it("slices genres into the top five plus Other", () => {
+    const books = ["A", "A", "A", "B", "B", "C", "D", "E", "F", "G"].map((g, i) => book(`b${i}`, ["2026-04-01"], { genres: [g] }));
+    expect(genreSlices(books, 2026)).toEqual([
+      { genre: "A", count: 3 },
+      { genre: "B", count: 2 },
+      { genre: "C", count: 1 },
+      { genre: "D", count: 1 },
+      { genre: "E", count: 1 },
+      { genre: "Other", count: 2 },
+    ]);
+    expect(genreSlices(books.slice(0, 6), 2026)).toHaveLength(3);
+  });
+});
