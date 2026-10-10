@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookIcon, Plus, Search, Sparkles } from "lucide-react";
+import { BookIcon, PartyPopper, Plus, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -71,6 +71,10 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
               <CommandItem value="surprise me pick my next book random" onSelect={() => go("/surprise")}>
                 <Sparkles aria-hidden />
                 Surprise me
+              </CommandItem>
+              <CommandItem value="year in books annual report" onSelect={() => go("/year-in-books")}>
+                <PartyPopper aria-hidden />
+                Year in Books
               </CommandItem>
             </CommandGroup>
             <CommandGroup heading="Pages">
