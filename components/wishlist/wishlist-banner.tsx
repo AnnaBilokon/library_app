@@ -3,14 +3,15 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gift, ShoppingBag } from "lucide-react";
+import { Gift } from "lucide-react";
 import { toast } from "sonner";
 import { markBought, removeFromWishlist } from "@/app/actions/wishlist";
 import { Button } from "@/components/ui/button";
+import { BoughtButton } from "./bought-button";
 import { todayLocal } from "@/lib/dates";
 
 /** Top of a wishlist book's page: makes clear it isn't on your shelves, with the wishlist actions. */
-export function WishlistBanner({ bookId }: { bookId: string }) {
+export function WishlistBanner({ bookId, expected, currency }: { bookId: string; expected?: number; currency: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -32,10 +33,7 @@ export function WishlistBanner({ bookId }: { bookId: string }) {
         On your wishlist, not on your shelves yet.
       </p>
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-        <Button size="sm" className="rounded-full" disabled={pending} onClick={() => run(() => markBought(bookId, todayLocal()), "On your shelves now")}>
-          <ShoppingBag aria-hidden />
-          Bought it!
-        </Button>
+        <BoughtButton size="sm" expected={expected} currency={currency} disabled={pending} onConfirm={(paid) => run(() => markBought(bookId, todayLocal(), paid), "On your shelves now")} />
         <Button
           size="sm"
           variant="ghost"

@@ -35,8 +35,12 @@ export async function removeFromWishlist(bookId: string): Promise<ActionResult> 
   return updateBook(bookId, { wanted: false, priority: null });
 }
 
-/** "Bought it!": the book moves onto your shelves, added today, and off the wishlist. */
-export async function markBought(bookId: string, today: string): Promise<ActionResult> {
+/**
+ * "Bought it!": the book moves onto your shelves, added today, and off the wishlist. What you paid
+ * (optional) is kept next to the expected price, so Stats can show what you saved.
+ */
+export async function markBought(bookId: string, today: string, paid: number | null = null): Promise<ActionResult> {
   if (!z.iso.date().safeParse(today).success) return { ok: false, error: "Invalid date." };
-  return updateBook(bookId, { wanted: false, priority: null, owned: true, acquired_at: today });
+  if (paid !== null && !z.number().min(0).max(1_000_000).safeParse(paid).success) return { ok: false, error: "Invalid price." };
+  return updateBook(bookId, { wanted: false, priority: null, owned: true, acquired_at: today, ...(paid !== null ? { purchase_price: Math.round(paid * 100) / 100 } : {}) });
 }

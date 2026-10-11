@@ -298,3 +298,37 @@ export function computeExtras(allBooks: Book[], year: number | null, topN = 6): 
     missing,
   };
 }
+
+export interface SavingsRow {
+  id: string;
+  title: string;
+  expected: number;
+  paid: number;
+  /** Expected minus paid: positive = saved, negative = paid more. */
+  saved: number;
+  currency: string;
+  boughtOn: string;
+}
+
+/**
+ * Books you bought with both an expected price (from the wishlist) and the price you paid, biggest
+ * saving first, with totals per currency. A year narrows it to books bought that year.
+ */
+export function priceSavings(allBooks: Book[], year: number | null): { rows: SavingsRow[]; totals: { currency: string; expected: number; paid: number; saved: number }[] } {
+  const rows = allBooks
+    .filter((b) => !b.wanted && b.wishPrice !== undefined && b.purchasePrice !== undefined)
+    .map((b) => {
+      const boughtOn = b.acquiredAt ?? b.createdAt.slice(0, 10);
+      return { id: b.id, title: b.title, expected: b.wishPrice!, paid: b.purchasePrice!, saved: Math.round((b.wishPrice! - b.purchasePrice!) * 100) / 100, currency: b.currency, boughtOn };
+    })
+    .filter((r) => inYear(r.boughtOn, year))
+    .sort((a, b) => b.saved - a.saved || a.title.localeCompare(b.title, "uk"));
+  const byCurrency = new Map<string, { expected: number; paid: number }>();
+  for (const r of rows) {
+    const t = byCurrency.get(r.currency) ?? { expected: 0, paid: 0 };
+    byCurrency.set(r.currency, { expected: t.expected + r.expected, paid: t.paid + r.paid });
+  }
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const totals = [...byCurrency].map(([currency, t]) => ({ currency, expected: round(t.expected), paid: round(t.paid), saved: round(t.expected - t.paid) }));
+  return { rows, totals };
+}
