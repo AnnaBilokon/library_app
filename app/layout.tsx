@@ -5,7 +5,7 @@ import { TabIcon } from "@/components/layout/tab-icon";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { paletteScript } from "@/lib/palettes";
+import { DEFAULT_PALETTE, paletteScript } from "@/lib/palettes";
 import "./globals.css";
 
 const sans = Geist({ variable: "--font-sans", subsets: ["latin", "cyrillic"] });
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // next-themes sets the "dark" class on <html> before React loads, so the server HTML
     // and the browser differ on purpose; suppressHydrationWarning silences that one warning.
-    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${mono.variable} ${serif.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning data-palette={DEFAULT_PALETTE} className={`${sans.variable} ${mono.variable} ${serif.variable} antialiased`}>
       <head>
         {/* Applies the saved colour palette before the first paint (same idea as next-themes). */}
         <script dangerouslySetInnerHTML={{ __html: paletteScript }} />
