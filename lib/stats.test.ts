@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book, Reading } from "@/lib/types";
-import { computeExtras, computeStats, statsYears } from "./stats";
+import { computeExtras, computeStats, priceSavings, statsYears } from "./stats";
 
 let n = 0;
 const read = (finishedAt?: string, o: Partial<Reading> = {}): Reading => ({ id: `r${++n}`, outcome: "finished", finishedAt, ...o });
@@ -180,4 +180,33 @@ describe("stats extras", () => {
     expect(m.pages).toBe(6);
     expect(m.genre).toBe(6);
   });
+
+describe("price savings", () => {
+  const books = [
+    book({ title: "Bargain", wishPrice: 500, purchasePrice: 320, acquiredAt: "2026-10-01" }),
+    book({ title: "Pricier", wishPrice: 300, purchasePrice: 350, acquiredAt: "2026-09-15" }),
+    book({ title: "Same", wishPrice: 400, purchasePrice: 400, acquiredAt: "2025-12-01" }),
+    book({ title: "Swedish", wishPrice: 200, purchasePrice: 150, currency: "SEK", acquiredAt: "2026-08-01" }),
+    book({ title: "No expected price", purchasePrice: 300, acquiredAt: "2026-10-02" }),
+    book({ title: "Still wanted", wanted: true, wishPrice: 250, purchasePrice: 200 }),
+  ];
+
+  it("compares expected and paid prices, biggest saving first, with totals per currency", () => {
+    const s = priceSavings(books, null);
+    expect(s.rows.map((r) => [r.title, r.saved])).toEqual([
+      ["Bargain", 180],
+      ["Swedish", 50],
+      ["Same", 0],
+      ["Pricier", -50],
+    ]);
+    expect(s.totals).toEqual([
+      { currency: "UAH", expected: 1200, paid: 1070, saved: 130 },
+      { currency: "SEK", expected: 200, paid: 150, saved: 50 },
+    ]);
+  });
+
+  it("narrows to books bought in a year", () => {
+    expect(priceSavings(books, 2025).rows.map((r) => r.title)).toEqual(["Same"]);
+  });
+});
 });

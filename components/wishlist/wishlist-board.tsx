@@ -18,10 +18,11 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { CalendarClock, EllipsisVertical, GripVertical, ShoppingBag, Store } from "lucide-react";
+import { CalendarClock, EllipsisVertical, GripVertical, Store } from "lucide-react";
 import { toast } from "sonner";
 import { markBought, moveWishlistBook, removeFromWishlist } from "@/app/actions/wishlist";
 import { BookCover } from "@/components/books/book-cover";
+import { BoughtButton } from "@/components/wishlist/bought-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -111,7 +112,7 @@ export function WishlistBoard({ books }: { books: Book[] }) {
     book: b,
     group: groups[b.id],
     onMove: (to: WishGroup) => move(b.id, to),
-    onBought: () => takeOut(b.id, () => markBought(b.id, todayLocal()), `“${b.title}” is on your shelves now`),
+    onBought: (paid: number | null) => takeOut(b.id, () => markBought(b.id, todayLocal(), paid), `“${b.title}” is on your shelves now`),
     onRemove: () => takeOut(b.id, () => removeFromWishlist(b.id), "Removed from the wishlist"),
   });
 
@@ -242,7 +243,7 @@ function WishCard({
   book: Book;
   group: WishGroup;
   onMove: (to: WishGroup) => void;
-  onBought: () => void;
+  onBought: (paid: number | null) => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: book.id });
@@ -287,10 +288,7 @@ function WishCard({
         {book.wishlistReason && <p className="line-clamp-2 text-xs italic">“{book.wishlistReason}”</p>}
       </div>
       <div className="flex items-center gap-1 px-0.5">
-        <Button size="xs" className="rounded-full" onClick={onBought}>
-          <ShoppingBag aria-hidden />
-          Bought it!
-        </Button>
+        <BoughtButton expected={book.wishPrice} currency={book.currency} onConfirm={onBought} />
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" className="rounded-full" aria-label={`More for ${book.title}`} />}>
             <EllipsisVertical aria-hidden />

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { ChallengeView } from "@/components/dashboard/challenge-view";
+import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { ReleaseReminders } from "@/components/dashboard/release-reminders";
 import { DashboardHabits } from "@/components/habits/dashboard-habits";
 import { getHabitSessions, getHabits } from "@/lib/data/habits";
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   return (
     <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-8 px-4 pt-6 pb-12 md:px-8 md:pt-10">
       <PageHeader eyebrow="Your reading year" title="Dashboard" />
+      <DashboardTabs current="overview" />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardData />
       </Suspense>

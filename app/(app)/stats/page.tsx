@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
+import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatsView } from "@/components/stats/stats-view";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBooks } from "@/lib/data/books";
-import { computeExtras, computeStats, statsYears } from "@/lib/stats";
+import { computeExtras, computeStats, priceSavings, statsYears } from "@/lib/stats";
 
 export const metadata: Metadata = { title: "Stats" };
 
@@ -22,6 +23,7 @@ export default function StatsPage({ searchParams }: PageProps<"/stats">) {
           </Link>
         }
       />
+      <DashboardTabs current="stats" />
       <Suspense fallback={<StatsSkeleton />}>
         <StatsData searchParams={searchParams} />
       </Suspense>
@@ -35,7 +37,7 @@ async function StatsData({ searchParams }: { searchParams: PageProps<"/stats">["
   // ?year=2025 picks one year; anything else (or a year with no books) shows all years.
   const asked = Number(Array.isArray(params.year) ? params.year[0] : params.year);
   const year = years.includes(asked) ? asked : null;
-  return <StatsView stats={computeStats(books, year)} extras={computeExtras(books, year)} years={years} />;
+  return <StatsView stats={computeStats(books, year)} extras={computeExtras(books, year)} years={years} savings={priceSavings(books, year)} />;
 }
 
 function StatsSkeleton() {

@@ -66,7 +66,7 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="flex min-w-0 flex-col gap-10">
         <header className="flex flex-col gap-5">
-          {book.wanted && <WishlistBanner bookId={book.id} />}
+          {book.wanted && <WishlistBanner bookId={book.id} expected={book.wishPrice} currency={book.currency} />}
           <SellBanner key={`${book.forSale}-${book.soldAt}`} book={book} />
           <div className="flex flex-col gap-3">
             <h1 lang={book.language} className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance text-heading md:text-5xl">
@@ -189,7 +189,11 @@ function Details({ book }: { book: Book }) {
   add("ISBN", book.isbn);
   add("On my shelf", book.owned ? "Yes" : book.soldAt ? "Sold" : "No");
   add("Added", book.acquiredAt && formatDate(book.acquiredAt));
-  add("Bought for", book.purchasePrice !== undefined && formatMoney(book.purchasePrice, book.currency));
+  add(
+    "Bought for",
+    book.purchasePrice !== undefined &&
+      `${formatMoney(book.purchasePrice, book.currency)}${!book.wanted && book.wishPrice !== undefined ? ` (expected ${formatMoney(book.wishPrice, book.currency)})` : ""}`,
+  );
   const sold = salePriceLabel(book);
   add("Sold", book.soldAt && `${formatDate(book.soldAt)}${sold ? ` for ${sold.main}${sold.converted ? ` (≈ ${sold.converted})` : ""}` : ""}`);
   if (book.wanted) {

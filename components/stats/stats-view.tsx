@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 import { FORMAT_LABEL, formatDate, formatMoney, languageLabel } from "@/lib/books/labels";
 import { MISSING_LABEL } from "@/lib/books/filters";
 import { libraryUrl } from "@/lib/books/library-url";
-import { SPENDING_SINCE, type Extras, type Money, type Stats } from "@/lib/stats";
+import { SPENDING_SINCE, type Extras, type Money, type SavingsRow, type Stats } from "@/lib/stats";
 import type { Book, BookFormat } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { TimelineChart } from "./stats-charts";
@@ -14,7 +14,18 @@ const SPENDING_START = new Date(`${SPENDING_SINCE}T00:00:00`).toLocaleDateString
 const money = (m: Money[]) => (m.length ? m.map((x) => formatMoney(x.total, x.currency)).join(" + ") : "—");
 
 /** All-time (or one year's) reading: key numbers, books over time, ratings, genres, authors, pace, money. */
-export function StatsView({ stats: s, extras: x, years }: { stats: Stats; extras: Extras; years: number[] }) {
+export function StatsView({
+  stats: s,
+  extras: x,
+  years,
+  savings,
+}: {
+  stats: Stats;
+  extras: Extras;
+  years: number[];
+  /** Expected (wishlist) vs paid prices. */
+  savings: { rows: SavingsRow[]; totals: { currency: string; expected: number; paid: number; saved: number }[] };
+}) {
   const scope = s.year === null ? "all years" : String(s.year);
   return (
     <div className="flex flex-col gap-8">
@@ -24,7 +35,10 @@ export function StatsView({ stats: s, extras: x, years }: { stats: Stats; extras
         <p className="rounded-2xl bg-card p-6 text-muted-foreground ring-1 ring-border/60">
           No finished books {s.year === null ? "yet" : `with a date in ${s.year}`}. Mark books as finished to see your stats.
         </p>
-      ) : (
+      ) : null}
+      {/* Savings don't depend on reading, so they show even before you've finished a book. */}
+      {s.readings === 0 && savings.rows.length > 0 && <SavingsCard savings={savings} year={s.year} />}
+      {s.readings === 0 ? null : (
         <>
           <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             <StatTile label="Books read" value={fmt(s.booksRead)} hint={s.year === null && s.undated > 0 ? `${fmt(s.undated)} without a finish date` : undefined} />
@@ -152,6 +166,8 @@ export function StatsView({ stats: s, extras: x, years }: { stats: Stats; extras
               </Card>
             </div>
           </div>
+
+          <SavingsCard savings={savings} year={s.year} />
 
           <div className="grid gap-6 lg:grid-cols-2">
             <AfterReading stats={s} scope={scope} />
@@ -512,6 +528,72 @@ function MissingCard({ extras: x }: { extras: Extras }) {
             </li>
           ))}
         </ul>
+      )}
+    </Card>
+  );
+}
+
+/** Expected price (from the wishlist) against what you paid, book by book, and the total you saved. */
+function SavingsCard({ savings, year }: { savings: { rows: SavingsRow[]; totals: { currency: string; expected: number; paid: number; saved: number }[] }; year: number | null }) {
+  const { rows, totals } = savings;
+  const signed = (n: number, currency: string) => (n > 0 ? `+${formatMoney(n, currency)}` : n < 0 ? `−${formatMoney(-n, currency)}` : formatMoney(0, currency));
+  const tone = (n: number) => (n > 0 ? "text-emerald-700 dark:text-emerald-400" : n < 0 ? "text-destructive" : "text-muted-foreground");
+  return (
+    <Card title="What you saved" subtitle={`The price you expected against what you paid${year !== null ? ` (bought in ${year})` : ""}`}>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No books with both prices yet. Give wishlist books an expected price; when you press &ldquo;Bought it!&rdquo;, add what you paid.
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
+            {totals.map((t) => (
+              <div key={t.currency} className="flex flex-col gap-0.5">
+                <span className={cn("text-3xl font-semibold tabular-nums", tone(t.saved))}>{signed(t.saved, t.currency)}</span>
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  paid {formatMoney(t.paid, t.currency)} instead of {formatMoney(t.expected, t.currency)}
+                  {t.expected > 0 && t.saved !== 0 && ` (${Math.round((Math.abs(t.saved) / t.expected) * 100)}% ${t.saved > 0 ? "less" : "more"})`}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm tabular-nums">
+              <thead className="text-left text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-4 font-medium">Book</th>
+                  <th className="py-2 pr-4 text-right font-medium">Expected</th>
+                  <th className="py-2 pr-4 text-right font-medium">Paid</th>
+                  <th className="py-2 text-right font-medium">Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t border-border/60">
+                    <td className="max-w-64 py-2 pr-4">
+                      <Link href={`/books/${r.id}`} className="block truncate hover:underline">
+                        {r.title}
+                      </Link>
+                    </td>
+                    <td className="py-2 pr-4 text-right">{formatMoney(r.expected, r.currency)}</td>
+                    <td className="py-2 pr-4 text-right">{formatMoney(r.paid, r.currency)}</td>
+                    <td className={cn("py-2 text-right font-semibold", tone(r.saved))}>{signed(r.saved, r.currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                {totals.map((t) => (
+                  <tr key={t.currency} className="border-t-2 border-border font-semibold">
+                    <td className="py-2 pr-4">Total{totals.length > 1 ? ` (${t.currency})` : ""}</td>
+                    <td className="py-2 pr-4 text-right">{formatMoney(t.expected, t.currency)}</td>
+                    <td className="py-2 pr-4 text-right">{formatMoney(t.paid, t.currency)}</td>
+                    <td className={cn("py-2 text-right", tone(t.saved))}>{signed(t.saved, t.currency)}</td>
+                  </tr>
+                ))}
+              </tfoot>
+            </table>
+          </div>
+        </>
       )}
     </Card>
   );
