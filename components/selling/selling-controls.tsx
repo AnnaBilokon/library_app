@@ -8,6 +8,7 @@ import { getExchangeRate, type ExchangeRate } from "@/app/actions/rates";
 import { keepBook, markSold, putUpForSale, undoSale } from "@/app/actions/selling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { formatDate, formatMoney } from "@/lib/books/labels";
 import { convert, formatRate, SALE_CURRENCIES } from "@/lib/currency";
@@ -126,7 +127,7 @@ export function SoldDialog({ book, open, onOpenChange, editing }: { book: Book; 
             <label htmlFor={dateId} className="text-sm font-medium">
               Sold on
             </label>
-            <Input id={dateId} type="date" value={date} max={todayLocal()} onChange={(e) => setDate(e.target.value)} aria-invalid={badDate || undefined} className="h-10 w-44" />
+            <DateField id={dateId} value={date} max={todayLocal()} onChange={setDate} aria-invalid={badDate || undefined} className="w-44" />
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor={priceId} className="text-sm font-medium">
