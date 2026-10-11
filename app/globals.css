@@ -219,7 +219,7 @@
   --chart-plan: #686165;
 }
 
-/* ── Tea green & pollen ───────────────────────────────────────────────
+/* ── Pollen & charcoal ───────────────────────────────────────────────
  *   tea-green #bdd9bf · charcoal-blue #2e4052 · golden-pollen #ffc857
  *   white #ffffff · midnight-violet #412234
  */
@@ -295,6 +295,84 @@
   /* reading challenge: your books vs the plan (validated with the dataviz checks) */
   --chart-actual: #bd871c;
   --chart-plan: #5b656a;
+}
+
+/* ── Tea green ───────────────────────────────────────────────────────
+ *   tea-green #bdd9bf · sage #8fb996 · fern #4f7d5c · forest #1f3a2b · cream #f7f9f2
+ *   Chart pair checked with the dataviz validator like the others (neutral plan line).
+ */
+:root[data-palette="tea"] {
+  --background: #f5f9f3;
+  --foreground: #1f3a2b;
+  --heading: #1f3a2b;
+  --card: #ffffff;
+  --card-foreground: #1f3a2b;
+  --popover: #ffffff;
+  --popover-foreground: #1f3a2b;
+  --primary: #2f5d40;
+  --primary-foreground: #ffffff;
+  --secondary: #e2efe1;
+  --secondary-foreground: #1f3a2b;
+  --muted: #e8f1e6;
+  --muted-foreground: #4e6356;
+  --accent: #e4f1e4;
+  --accent-foreground: #1f3a2b;
+  --highlight: #bdd9bf;
+  --highlight-foreground: #1f3a2b;
+  --destructive: #b42318;
+  --border: #d6e5d4;
+  --input: #7d9284;
+  --ring: #2f5d40;
+  --book-shadow: 0 1px 2px rgb(31 58 43 / 0.12), 0 8px 20px -6px rgb(31 58 43 / 0.28);
+  --book-shadow-hover: 0 2px 4px rgb(31 58 43 / 0.14), 0 18px 32px -10px rgb(31 58 43 / 0.38);
+  --chart-1: #2f5d40;
+  --chart-2: #8fb996;
+  --chart-3: #1f3a2b;
+  --chart-4: #bdd9bf;
+  --chart-5: #7d9284;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #25874f;
+  --chart-plan: #a7b3aa;
+
+  --jacket-1-bg: #1f3a2b; --jacket-1-fg: #f5f9f3; --jacket-1-line: rgb(189 217 191 / 0.5);
+  --jacket-2-bg: #4f7d5c; --jacket-2-fg: #ffffff; --jacket-2-line: rgb(189 217 191 / 0.55);
+  --jacket-3-bg: #bdd9bf; --jacket-3-fg: #1f3a2b; --jacket-3-line: rgb(31 58 43 / 0.3);
+  --jacket-4-bg: #8fb996; --jacket-4-fg: #1f3a2b; --jacket-4-line: rgb(31 58 43 / 0.3);
+  --jacket-5-bg: #ffffff; --jacket-5-fg: #1f3a2b; --jacket-5-line: rgb(31 58 43 / 0.25);
+}
+
+.dark[data-palette="tea"] {
+  --background: #0e1611;
+  --foreground: #eef5ee;
+  --heading: #eef5ee;
+  --card: #16211a;
+  --card-foreground: #eef5ee;
+  --popover: #1b281f;
+  --popover-foreground: #eef5ee;
+  --primary: #bdd9bf;
+  --primary-foreground: #0e1611;
+  --secondary: #2a4434;
+  --secondary-foreground: #eef5ee;
+  --muted: #1f2e24;
+  --muted-foreground: #b2c6b7;
+  --accent: #1a2a20;
+  --accent-foreground: #eef5ee;
+  --highlight: #bdd9bf;
+  --highlight-foreground: #0e1611;
+  --destructive: #f28b82;
+  --border: #243529;
+  --input: #6d8574;
+  --ring: #bdd9bf;
+  --book-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.85);
+  --book-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 22px 36px -10px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(189 217 191 / 0.3);
+  --chart-1: #bdd9bf;
+  --chart-2: #8fb996;
+  --chart-3: #6fa37c;
+  --chart-4: #4f7d5c;
+  --chart-5: #eef5ee;
+  /* reading challenge: your books vs the plan (validated with the dataviz checks) */
+  --chart-actual: #44a564;
+  --chart-plan: #5d6b61;
 }
 
 @layer base {

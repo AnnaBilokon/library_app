@@ -25,8 +25,7 @@ function subscribe(onChange: () => void) {
 }
 
 function apply(id: PaletteId, persist = true) {
-  if (id === DEFAULT_PALETTE) document.documentElement.removeAttribute("data-palette");
-  else document.documentElement.setAttribute("data-palette", id);
+  document.documentElement.setAttribute("data-palette", id);
   if (persist) {
     try {
       localStorage.setItem(PALETTE_STORAGE_KEY, id);
