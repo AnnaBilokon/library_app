@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { setBookStatus, setReview, updateProgress } from "@/app/actions/books";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -473,19 +474,11 @@ export function FinishDialog({ book, open, onOpenChange }: { book: Book; open: b
           <div className="grid gap-3 sm:grid-cols-2">
             <label htmlFor={startId} className="flex flex-col gap-1.5 text-sm font-medium">
               Started
-              <Input id={startId} type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} className="h-10" />
+              <DateField id={startId} value={startedAt} onChange={setStartedAt} />
             </label>
             <label htmlFor={endId} className="flex flex-col gap-1.5 text-sm font-medium">
               Finished
-              <Input
-                id={endId}
-                type="date"
-                value={finishedAt}
-                max={todayLocal()}
-                onChange={(e) => setFinishedAt(e.target.value)}
-                aria-invalid={Boolean(error) || undefined}
-                className="h-10"
-              />
+              <DateField id={endId} value={finishedAt} max={todayLocal()} onChange={setFinishedAt} aria-invalid={Boolean(error) || undefined} />
             </label>
           </div>
           <div className="flex flex-col gap-1.5">

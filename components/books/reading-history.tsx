@@ -5,7 +5,7 @@ import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { addReading, deleteReading, updateReading } from "@/app/actions/books";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateField } from "@/components/ui/date-field";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, STATUS_LABEL } from "@/lib/books/labels";
 import { progressInfo } from "@/lib/books/progress";
@@ -214,18 +214,12 @@ function ReadingEditor({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm font-medium">
           Started
-          <Input type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} className="h-10 bg-background" />
+          <DateField value={startedAt} onChange={setStartedAt} inputClassName="bg-background" />
         </label>
         {outcome !== "in-progress" && (
           <label className="flex flex-col gap-1.5 text-sm font-medium">
             {outcome === "finished" ? "Finished" : "Stopped"}
-            <Input
-              type="date"
-              value={finishedAt}
-              onChange={(e) => setFinishedAt(e.target.value)}
-              aria-invalid={Boolean(error) || undefined}
-              className="h-10 bg-background"
-            />
+            <DateField value={finishedAt} onChange={setFinishedAt} aria-invalid={Boolean(error) || undefined} inputClassName="bg-background" />
           </label>
         )}
       </div>

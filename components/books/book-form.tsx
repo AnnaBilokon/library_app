@@ -10,6 +10,7 @@ import { createBook, updateBook, uploadCover } from "@/app/actions/books";
 import { importCoverFromUrl, prefillFromUrl } from "@/app/actions/prefill";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { duplicateKey } from "@/lib/books/duplicates";
@@ -303,12 +304,12 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
           {!editing && !wanted && status !== "to-read" && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Started" error={errors.startedAt}>
-                {(id, d) => <Input id={id} type="date" {...register("startedAt")} aria-describedby={d} className="h-10" />}
+                {(id, d) => <Controller control={control} name="startedAt" render={({ field }) => <DateField id={id} value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur} aria-describedby={d} />} />}
               </Field>
               {(status === "finished" || status === "abandoned") && (
                 <Field label={status === "finished" ? "Finished" : "Stopped"} error={errors.finishedAt}>
                   {(id, d) => (
-                    <Input id={id} type="date" {...register("finishedAt")} aria-invalid={Boolean(errors.finishedAt) || undefined} aria-describedby={d} className="h-10" />
+                    <Controller control={control} name="finishedAt" render={({ field }) => <DateField id={id} value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur} aria-invalid={Boolean(errors.finishedAt) || undefined} aria-describedby={d} />} />
                   )}
                 </Field>
               )}
@@ -451,7 +452,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
             )}
           />
           <Field label="Added to my shelf" error={errors.acquiredAt}>
-            {(id, d) => <Input id={id} type="date" {...register("acquiredAt")} aria-describedby={d} className="h-10" />}
+            {(id, d) => <Controller control={control} name="acquiredAt" render={({ field }) => <DateField id={id} value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur} aria-describedby={d} />} />}
           </Field>
           <Field label="Price paid (UAH)" error={errors.purchasePrice}>
             {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("purchasePrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
@@ -464,7 +465,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
           <p className="-mt-2 text-sm text-muted-foreground">This book will only show on your Wishlist until you mark it bought.</p>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Comes out on" error={errors.releaseDate}>
-              {(id, d) => <Input id={id} type="date" {...register("releaseDate")} aria-describedby={d} className="h-10" />}
+              {(id, d) => <Controller control={control} name="releaseDate" render={({ field }) => <DateField id={id} value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur} aria-describedby={d} />} />}
             </Field>
             <Field label="Expected price (UAH)" error={errors.wishPrice}>
               {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("wishPrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
