@@ -85,12 +85,14 @@ export function releaseReminders(books: Book[], today: string, window = RELEASE_
   };
 }
 
-/** "Out today", "Out tomorrow", "Out in 12 days", "Out since 3 Oct" — for a wishlist card. */
+/** "Out today", "Out tomorrow", "Out in 12 days", "Out 3 days ago", "Out since 3 Oct" — short enough for a chip. */
 export function releaseLabel(date: string, today: string, format: (iso: string) => string): string {
   const d = daysUntil(date, today);
   if (d === 0) return "Out today";
   if (d === 1) return "Out tomorrow";
   if (d > 1 && d <= RELEASE_WINDOW_DAYS) return `Out in ${d} days`;
   if (d > 0) return `Out ${format(date)}`;
+  if (d === -1) return "Out yesterday";
+  if (d >= -RELEASE_WINDOW_DAYS) return `Out ${-d} days ago`;
   return `Out since ${format(date)}`;
 }
