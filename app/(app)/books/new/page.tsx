@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { BookForm } from "@/components/books/book-form";
+import { NewBookForm as NewBookFormFields } from "@/components/books/new-book-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildSuggestions } from "@/lib/books/suggestions";
@@ -40,5 +40,5 @@ async function NewBookForm({ searchParams }: { searchParams: Promise<Record<stri
     series: one(params.series)?.slice(0, 200),
     seriesIndex: Number.isInteger(index) && index > 0 && index <= 1000 ? index : undefined,
   };
-  return <BookForm suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} />;
+  return <NewBookFormFields suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} />;
 }
