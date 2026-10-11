@@ -78,6 +78,8 @@ describe("release reminders", () => {
     expect(releaseLabel("2026-10-11", "2026-10-10", fmt)).toBe("Out tomorrow");
     expect(releaseLabel("2026-10-22", "2026-10-10", fmt)).toBe("Out in 12 days");
     expect(releaseLabel("2027-03-01", "2026-10-10", fmt)).toBe("Out 2027-03-01");
-    expect(releaseLabel("2026-10-03", "2026-10-10", fmt)).toBe("Out since 2026-10-03");
+    expect(releaseLabel("2026-10-09", "2026-10-10", fmt)).toBe("Out yesterday");
+    expect(releaseLabel("2026-10-03", "2026-10-10", fmt)).toBe("Out 7 days ago");
+    expect(releaseLabel("2026-06-01", "2026-10-10", fmt)).toBe("Out since 2026-06-01");
   });
 });
