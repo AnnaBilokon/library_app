@@ -116,9 +116,11 @@ interface BookFormProps {
   forWishlist?: boolean;
   /** Fields filled in by the link that opened the form (author, series, number). */
   preset?: NewBookPreset;
+  /** A new book was saved (the page uses it to start the next one from a blank form). */
+  onCreated?: () => void;
 }
 
-export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset }: BookFormProps) {
+export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset, onCreated }: BookFormProps) {
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -211,6 +213,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
         return;
       }
       toast.success(values.wanted ? `Added “${values.title}” to your wishlist` : `Added “${values.title}”`);
+      onCreated?.();
       router.push(`/books/${bookId}`);
     });
 
