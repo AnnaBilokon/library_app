@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookIcon, PartyPopper, Plus, Search, Sparkles } from "lucide-react";
+import { BookIcon, PartyPopper, Plus, Search, Sparkles, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -75,6 +75,10 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
               <CommandItem value="year in books annual report" onSelect={() => go("/year-in-books")}>
                 <PartyPopper aria-hidden />
                 Year in Books
+              </CommandItem>
+              <CommandItem value="reading habits streak badges" onSelect={() => go("/habits")}>
+                <Sprout aria-hidden />
+                Reading habits
               </CommandItem>
             </CommandGroup>
             <CommandGroup heading="Pages">

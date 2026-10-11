@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { ChallengeView } from "@/components/dashboard/challenge-view";
 import { ReleaseReminders } from "@/components/dashboard/release-reminders";
+import { DashboardHabits } from "@/components/habits/dashboard-habits";
+import { getHabitSessions, getHabits } from "@/lib/data/habits";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BOOKS_READ_VIEW_COOKIE } from "@/lib/books/layout";
@@ -25,10 +27,19 @@ export default function DashboardPage() {
 }
 
 async function DashboardData() {
-  const [books, goals, authorCountries, settings, cookieStore] = await Promise.all([getBooks(), getGoals(), getAuthorCountries(), getSettings(), cookies()]);
+  const [books, goals, authorCountries, settings, cookieStore, habits, sessions] = await Promise.all([
+    getBooks(),
+    getGoals(),
+    getAuthorCountries(),
+    getSettings(),
+    cookies(),
+    getHabits(),
+    getHabitSessions(),
+  ]);
   const view = cookieStore.get(BOOKS_READ_VIEW_COOKIE)?.value === "grid" ? "grid" : "list";
   return (
     <>
+      <DashboardHabits habits={habits} sessions={sessions} books={books} />
       <ReleaseReminders books={books} />
       <ChallengeView books={books} goals={goals} authorCountries={authorCountries} countriesGoal={settings.countriesGoal} initialBooksView={view} />
     </>
