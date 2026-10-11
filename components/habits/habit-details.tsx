@@ -40,7 +40,8 @@ export function HabitDetails({ habit, sessions, books, genres }: { habit: Habit;
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-heading text-lg font-semibold text-heading">Your last six months</h3>
           <p className="text-sm text-muted-foreground tabular-nums">
-            {p.totalSessions} sessions · {p.totalMinutes} min · {p.weeksDone} weeks done · best streak {p.bestStreak}
+            {p.totalSessions} {p.totalSessions === 1 ? "session" : "sessions"} · {p.totalMinutes} min · {p.weeksDone} {p.weeksDone === 1 ? "week" : "weeks"} done · best streak{" "}
+            {p.bestStreak}
           </p>
         </div>
         <Heatmap weeks={p.heatmap} minMinutes={habit.minMinutes} />
