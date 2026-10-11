@@ -533,68 +533,125 @@ function MissingCard({ extras: x }: { extras: Extras }) {
   );
 }
 
-/** Expected price (from the wishlist) against what you paid, book by book, and the total you saved. */
-function SavingsCard({ savings, year }: { savings: { rows: SavingsRow[]; totals: { currency: string; expected: number; paid: number; saved: number }[] }; year: number | null }) {
+const TOP_SAVINGS = 5;
+type SavingsTotals = { currency: string; expected: number; paid: number; saved: number }[];
+const signed = (n: number, currency: string) => (n > 0 ? `+${formatMoney(n, currency)}` : n < 0 ? `−${formatMoney(-n, currency)}` : formatMoney(0, currency));
+const savedTone = (n: number) => (n > 0 ? "text-emerald-700 dark:text-emerald-400" : n < 0 ? "text-destructive" : "text-muted-foreground");
+
+/**
+ * The price you expected against what you paid: the total, a few numbers, the biggest savings,
+ * and every book behind "Show all" so the card stays short however many books you buy.
+ */
+function SavingsCard({ savings, year }: { savings: { rows: SavingsRow[]; totals: SavingsTotals }; year: number | null }) {
   const { rows, totals } = savings;
-  const signed = (n: number, currency: string) => (n > 0 ? `+${formatMoney(n, currency)}` : n < 0 ? `−${formatMoney(-n, currency)}` : formatMoney(0, currency));
-  const tone = (n: number) => (n > 0 ? "text-emerald-700 dark:text-emerald-400" : n < 0 ? "text-destructive" : "text-muted-foreground");
+  const cheaper = rows.filter((r) => r.saved > 0).length;
+  const pricier = rows.filter((r) => r.saved < 0).length;
+  const best = rows[0];
   return (
     <Card title="What you saved" subtitle={`The price you expected against what you paid${year !== null ? ` (bought in ${year})` : ""}`}>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No books with both prices yet. Give wishlist books an expected price; when you press &ldquo;Bought it!&rdquo;, add what you paid.
+          No books with both prices yet. Give wishlist books an expected price and add what you paid when you press &ldquo;Bought it!&rdquo;, or fill in both prices on a book&apos;s page.
         </p>
       ) : (
         <>
-          <div className="flex flex-wrap gap-x-8 gap-y-3">
+          <div className="flex flex-wrap gap-x-10 gap-y-4">
             {totals.map((t) => (
               <div key={t.currency} className="flex flex-col gap-0.5">
-                <span className={cn("text-3xl font-semibold tabular-nums", tone(t.saved))}>{signed(t.saved, t.currency)}</span>
+                <span className={cn("text-3xl font-semibold tabular-nums", savedTone(t.saved))}>{signed(t.saved, t.currency)}</span>
                 <span className="text-sm text-muted-foreground tabular-nums">
                   paid {formatMoney(t.paid, t.currency)} instead of {formatMoney(t.expected, t.currency)}
                   {t.expected > 0 && t.saved !== 0 && ` (${Math.round((Math.abs(t.saved) / t.expected) * 100)}% ${t.saved > 0 ? "less" : "more"})`}
                 </span>
               </div>
             ))}
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-muted-foreground">Books</dt>
+                <dd className="font-semibold tabular-nums">{rows.length}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Cheaper</dt>
+                <dd className="font-semibold text-emerald-700 tabular-nums dark:text-emerald-400">{cheaper}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Pricier</dt>
+                <dd className={cn("font-semibold tabular-nums", pricier > 0 && "text-destructive")}>{pricier}</dd>
+              </div>
+              {totals.length === 1 && (
+                <div>
+                  <dt className="text-muted-foreground">Average</dt>
+                  <dd className={cn("font-semibold tabular-nums", savedTone(totals[0].saved))}>{signed(Math.round(totals[0].saved / rows.length), totals[0].currency)}</dd>
+                </div>
+              )}
+            </dl>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm tabular-nums">
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th className="py-2 pr-4 font-medium">Book</th>
-                  <th className="py-2 pr-4 text-right font-medium">Expected</th>
-                  <th className="py-2 pr-4 text-right font-medium">Paid</th>
-                  <th className="py-2 text-right font-medium">Saved</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-border/60">
-                    <td className="max-w-64 py-2 pr-4">
-                      <Link href={`/books/${r.id}`} className="block truncate hover:underline">
-                        {r.title}
-                      </Link>
-                    </td>
-                    <td className="py-2 pr-4 text-right">{formatMoney(r.expected, r.currency)}</td>
-                    <td className="py-2 pr-4 text-right">{formatMoney(r.paid, r.currency)}</td>
-                    <td className={cn("py-2 text-right font-semibold", tone(r.saved))}>{signed(r.saved, r.currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                {totals.map((t) => (
-                  <tr key={t.currency} className="border-t-2 border-border font-semibold">
-                    <td className="py-2 pr-4">Total{totals.length > 1 ? ` (${t.currency})` : ""}</td>
-                    <td className="py-2 pr-4 text-right">{formatMoney(t.expected, t.currency)}</td>
-                    <td className="py-2 pr-4 text-right">{formatMoney(t.paid, t.currency)}</td>
-                    <td className={cn("py-2 text-right", tone(t.saved))}>{signed(t.saved, t.currency)}</td>
-                  </tr>
-                ))}
-              </tfoot>
-            </table>
-          </div>
+          {best && best.saved > 0 && (
+            <p className="text-sm">
+              Biggest saving:{" "}
+              <Link href={`/books/${best.id}`} className="font-medium hover:underline">
+                {best.title}
+              </Link>{" "}
+              <span className={cn("font-semibold tabular-nums", savedTone(best.saved))}>{signed(best.saved, best.currency)}</span>
+            </p>
+          )}
+          <SavingsTable rows={rows.slice(0, TOP_SAVINGS)} caption={rows.length > TOP_SAVINGS ? `Top ${TOP_SAVINGS} savings` : undefined} />
+          {rows.length > TOP_SAVINGS && (
+            <details className="group">
+              <summary className="cursor-pointer text-sm font-medium">
+                Show all {rows.length} books<span className="text-muted-foreground">, with totals</span>
+              </summary>
+              <div className="mt-3">
+                <SavingsTable rows={rows} totals={totals} />
+              </div>
+            </details>
+          )}
         </>
       )}
     </Card>
+  );
+}
+
+function SavingsTable({ rows, totals, caption }: { rows: SavingsRow[]; totals?: SavingsTotals; caption?: string }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm tabular-nums">
+        {caption && <caption className="pb-1 text-left text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">{caption}</caption>}
+        <thead className="text-left text-muted-foreground">
+          <tr>
+            <th className="py-2 pr-4 font-medium">Book</th>
+            <th className="py-2 pr-4 text-right font-medium">Expected</th>
+            <th className="py-2 pr-4 text-right font-medium">Paid</th>
+            <th className="py-2 text-right font-medium">Saved</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-t border-border/60">
+              <td className="max-w-64 py-2 pr-4">
+                <Link href={`/books/${r.id}`} className="block truncate hover:underline">
+                  {r.title}
+                </Link>
+              </td>
+              <td className="py-2 pr-4 text-right">{formatMoney(r.expected, r.currency)}</td>
+              <td className="py-2 pr-4 text-right">{formatMoney(r.paid, r.currency)}</td>
+              <td className={cn("py-2 text-right font-semibold", savedTone(r.saved))}>{signed(r.saved, r.currency)}</td>
+            </tr>
+          ))}
+        </tbody>
+        {totals && (
+          <tfoot>
+            {totals.map((t) => (
+              <tr key={t.currency} className="border-t-2 border-border font-semibold">
+                <td className="py-2 pr-4">Total{totals.length > 1 ? ` (${t.currency})` : ""}</td>
+                <td className="py-2 pr-4 text-right">{formatMoney(t.expected, t.currency)}</td>
+                <td className="py-2 pr-4 text-right">{formatMoney(t.paid, t.currency)}</td>
+                <td className={cn("py-2 text-right", savedTone(t.saved))}>{signed(t.saved, t.currency)}</td>
+              </tr>
+            ))}
+          </tfoot>
+        )}
+      </table>
+    </div>
   );
 }
