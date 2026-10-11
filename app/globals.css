@@ -622,6 +622,31 @@
   }
 }
 
+/* Habits: circles filling, a badge popping in, confetti falling. */
+@layer components {
+  @keyframes habit-pop {
+    0% { transform: scale(0.6); }
+    70% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+  .habit-pop { animation: habit-pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @keyframes badge-pop {
+    0% { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+    60% { opacity: 1; transform: scale(1.15) rotate(6deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .badge-pop { animation: badge-pop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @keyframes confetti-fall {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(420px) rotate(540deg); }
+  }
+  .confetti-fall { animation: confetti-fall 1.6s ease-in both; }
+  @media (prefers-reduced-motion: reduce) {
+    .habit-pop, .badge-pop { animation: none; }
+    .confetti-fall { display: none; }
+  }
+}
+
 /* Year in Books: each part of the story rises into place as you scroll to it. */
 @layer components {
   @keyframes story-in {

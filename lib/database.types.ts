@@ -211,6 +211,78 @@ export type Database = {
         }
         Relationships: []
       }
+      habit_sessions: {
+        Row: {
+          book_id: string | null
+          created_at: string
+          date: string
+          habit_id: string
+          id: string
+          minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id?: string | null
+          created_at?: string
+          date: string
+          habit_id: string
+          id?: string
+          minutes: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          book_id?: string | null
+          created_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habits: {
+        Row: {
+          archived_at: string | null
+          book_id: string | null
+          created_at: string
+          genres: string[]
+          id: string
+          min_minutes: number
+          name: string
+          sessions_per_week: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          book_id?: string | null
+          created_at?: string
+          genres?: string[]
+          id?: string
+          min_minutes: number
+          name: string
+          sessions_per_week: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          archived_at?: string | null
+          book_id?: string | null
+          created_at?: string
+          genres?: string[]
+          id?: string
+          min_minutes?: number
+          name?: string
+          sessions_per_week?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reading_goals: {
         Row: {
           goal: number
