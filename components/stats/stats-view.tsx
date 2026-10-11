@@ -539,7 +539,7 @@ function SavingsCard({ savings, year }: { savings: { rows: SavingsRow[]; totals:
   const signed = (n: number, currency: string) => (n > 0 ? `+${formatMoney(n, currency)}` : n < 0 ? `−${formatMoney(-n, currency)}` : formatMoney(0, currency));
   const tone = (n: number) => (n > 0 ? "text-emerald-700 dark:text-emerald-400" : n < 0 ? "text-destructive" : "text-muted-foreground");
   return (
-    <Card title="What you saved" subtitle={`Expected price from your wishlist against what you paid${year !== null ? ` (bought in ${year})` : ""}`}>
+    <Card title="What you saved" subtitle={`The price you expected against what you paid${year !== null ? ` (bought in ${year})` : ""}`}>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No books with both prices yet. Give wishlist books an expected price; when you press &ldquo;Bought it!&rdquo;, add what you paid.

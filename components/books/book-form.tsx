@@ -433,7 +433,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
       </Section>
 
       <Section title="On my shelf">
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <Controller
             control={control}
             name="owned"
@@ -457,6 +457,12 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
           <Field label="Price paid (UAH)" error={errors.purchasePrice}>
             {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("purchasePrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
           </Field>
+          {/* For a book you have, the price you expected (Stats compares it with what you paid). On the wishlist it's under Wishlist details. */}
+          {!wanted && (
+            <Field label="Expected price (UAH)" error={errors.wishPrice}>
+              {(id, d) => <Input id={id} type="number" step="0.01" inputMode="decimal" {...register("wishPrice", { valueAsNumber: true })} aria-describedby={d} className="h-10" />}
+            </Field>
+          )}
         </div>
       </Section>
 
