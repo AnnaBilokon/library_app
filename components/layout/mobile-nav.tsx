@@ -31,7 +31,8 @@ function ActiveTabs() {
 
 function Tabs({ pathname }: { pathname: string | null }) {
   return (
-    <ul className="grid grid-cols-5">
+    // Room at the edges so the outer labels ("Dashboard", "Sell") clear rounded screen corners.
+    <ul className="grid grid-cols-5 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))]">
       {TAB_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname !== null && isActive(href, pathname);
         return (
