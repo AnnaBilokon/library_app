@@ -31,7 +31,7 @@ function ActiveTabs() {
 
 function Tabs({ pathname }: { pathname: string | null }) {
   return (
-    <ul className="grid grid-cols-6">
+    <ul className="grid grid-cols-5">
       {TAB_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname !== null && isActive(href, pathname);
         return (
