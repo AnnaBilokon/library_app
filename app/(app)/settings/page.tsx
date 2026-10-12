@@ -9,6 +9,7 @@ import { HideForSaleToggle } from "@/components/layout/hide-for-sale-toggle";
 import { PalettePicker } from "@/components/layout/palette-picker";
 import { ThemePicker } from "@/components/layout/theme-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { InstallApp } from "@/components/layout/install-app";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { authorList } from "@/lib/countries";
@@ -30,6 +31,15 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col gap-5">
           <ThemePicker />
           <PalettePicker />
+        </CardContent>
+      </Card>
+      <Card id="install" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Put P·unkt on your phone</CardTitle>
+          <CardDescription>Its own icon on the home screen, opening full screen like an app: log your reading in one tap.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InstallApp />
         </CardContent>
       </Card>
       <Card>

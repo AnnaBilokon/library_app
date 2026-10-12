@@ -17,6 +17,8 @@ const serif = Literata({ variable: "--font-serif", subsets: ["latin", "cyrillic"
 export const metadata: Metadata = {
   title: { default: "Punkt", template: "%s · Punkt" },
   description: "Punkt: my personal book library",
+  // Added to an iPhone's home screen it opens full screen, named "Punkt" (the manifest covers Android).
+  appleWebApp: { capable: true, title: "Punkt", statusBarStyle: "black-translucent" },
   robots: { index: false, follow: false },
 };
 
