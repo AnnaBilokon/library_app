@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  */
 export function BoughtButton({
   expected,
+  prefill,
   currency,
   onConfirm,
   size = "xs",
@@ -19,6 +20,8 @@ export function BoughtButton({
   label = "Bought it!",
 }: {
   expected?: number;
+  /** A price you already noted (e.g. when you ordered it); otherwise the expected price. */
+  prefill?: number;
   currency: string;
   onConfirm: (paid: number | null) => void;
   size?: "xs" | "sm";
@@ -26,7 +29,8 @@ export function BoughtButton({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [paid, setPaid] = useState(expected !== undefined ? String(expected) : "");
+  const start = prefill ?? expected;
+  const [paid, setPaid] = useState(start !== undefined ? String(start) : "");
   const value = paid.trim() === "" ? null : Number(paid);
   const invalid = value !== null && (!Number.isFinite(value) || value < 0);
   const done = (p: number | null) => {
@@ -34,7 +38,14 @@ export function BoughtButton({
     onConfirm(p);
   };
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        // Start from the latest noted price each time it opens (it may have changed since).
+        if (o) setPaid(start !== undefined ? String(start) : "");
+        setOpen(o);
+      }}
+    >
       <PopoverTrigger render={<Button size={size} className="rounded-full" disabled={disabled} />}>
         <ShoppingBag aria-hidden />
         {label}
