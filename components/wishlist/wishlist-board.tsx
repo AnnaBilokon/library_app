@@ -20,10 +20,12 @@ import {
 } from "@dnd-kit/core";
 import { CalendarClock, ChevronDown, EllipsisVertical, GripVertical, Store, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
-import { markBought, moveWishlistBook, removeFromWishlist, setOrdered } from "@/app/actions/wishlist";
+import { markBought, moveWishlistBook, removeFromWishlist, setOrdered, setPricePaid } from "@/app/actions/wishlist";
 import { BookCover } from "@/components/books/book-cover";
 import { BoughtButton } from "@/components/wishlist/bought-button";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +58,19 @@ export function WishlistBoard({ books }: { books: Book[] }) {
   // The group each book is in, updated immediately when you drop it (saved in the background).
   const [groups, setGroups] = useState<Record<string, WishGroup>>(() => Object.fromEntries(books.map((b) => [b.id, wishGroup(b)])));
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // What you paid for ordered books (id -> price), updated right away when you type it.
+  const [paidPrices, setPaidPrices] = useState<Record<string, number | undefined>>(() => Object.fromEntries(books.map((b) => [b.id, b.purchasePrice])));
+  const savePaid = (bookId: string, price: number | null) => {
+    const before = paidPrices[bookId];
+    setPaidPrices((p) => ({ ...p, [bookId]: price ?? undefined }));
+    startTransition(async () => {
+      const r = await setPricePaid(bookId, price);
+      if (!r.ok) {
+        setPaidPrices((p) => ({ ...p, [bookId]: before }));
+        toast.error(r.error);
+      }
+    });
+  };
   // Books you've ordered (id -> the day), waiting in their own box at the bottom.
   const [ordered, setOrderedState] = useState<Record<string, string | undefined>>(() => Object.fromEntries(books.map((b) => [b.id, b.orderedAt])));
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -206,6 +221,8 @@ export function WishlistBoard({ books }: { books: Book[] }) {
         <OrderedBox
           books={onTheWay}
           orderedOn={ordered}
+          paid={paidPrices}
+          onPaid={savePaid}
           onArrived={(b, paid) => takeOut(b.id, () => markBought(b.id, todayLocal(), paid), `“${b.title}” arrived: it’s on your shelves now`)}
           onNotOrdered={(b) => order(b.id, false)}
         />
@@ -392,17 +409,24 @@ function ReleaseChip({ date }: { date: string }) {
 function OrderedBox({
   books,
   orderedOn,
+  paid,
+  onPaid,
   onArrived,
   onNotOrdered,
 }: {
   books: Book[];
   orderedOn: Record<string, string | undefined>;
+  paid: Record<string, number | undefined>;
+  onPaid: (bookId: string, price: number | null) => void;
   onArrived: (b: Book, paid: number | null) => void;
   onNotOrdered: (b: Book) => void;
 }) {
   const [open, setOpen] = useState(false);
   const { setNodeRef, isOver } = useDroppable({ id: ORDERED_ZONE });
   const cost = wishlistCost(books);
+  // Paid so far, per currency (books with a price paid).
+  const paidTotals = new Map<string, number>();
+  for (const b of books) if (paid[b.id] !== undefined) paidTotals.set(b.currency, (paidTotals.get(b.currency) ?? 0) + paid[b.id]!);
   return (
     <section ref={setNodeRef} aria-labelledby="wish-ordered" className={cn("rounded-3xl bg-muted/50 px-5 py-4 ring-1 ring-border/60 transition-shadow md:px-6", isOver && "ring-3 ring-highlight")}>
       <button
@@ -420,7 +444,13 @@ function OrderedBox({
           <span className="text-sm text-muted-foreground tabular-nums">{books.length}</span>
         </span>
         <span className="flex items-center gap-3 text-sm text-muted-foreground">
-          {cost.length > 0 && <span>about {cost.map((c) => formatMoney(c.total, c.currency)).join(" + ")}</span>}
+          {paidTotals.size > 0 && (
+            <span>
+              paid <span className="font-semibold text-foreground">{[...paidTotals].map(([c, t]) => formatMoney(t, c)).join(" + ")}</span>
+              {cost.length > 0 && " ·"}
+            </span>
+          )}
+          {cost.length > 0 && <span>{paidTotals.size > 0 ? "" : "about "}{cost.map((c) => formatMoney(c.total, c.currency)).join(" + ")} expected</span>}
           <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
         </span>
       </button>
@@ -441,9 +471,10 @@ function OrderedBox({
                     </Link>
                     {b.authors.length > 0 && <p className="truncate text-xs text-muted-foreground">{b.authors.join(", ")}</p>}
                     {orderedOn[b.id] && <p className="text-xs text-muted-foreground">Ordered {formatDate(orderedOn[b.id]!)}</p>}
+                    <PricePaid book={b} paid={paid[b.id]} onSave={(price) => onPaid(b.id, price)} />
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
-                    <BoughtButton label="Arrived!" expected={b.wishPrice} currency={b.currency} onConfirm={(paid) => onArrived(b, paid)} />
+                    <BoughtButton label="Arrived!" expected={b.wishPrice} prefill={paid[b.id]} currency={b.currency} onConfirm={(price) => onArrived(b, price)} />
                     <Button variant="ghost" size="icon-xs" className="rounded-full" aria-label={`${b.title}: not ordered after all`} title="Not ordered after all" onClick={() => onNotOrdered(b)}>
                       <Undo2 aria-hidden />
                     </Button>
@@ -455,5 +486,78 @@ function OrderedBox({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * The price you paid for an ordered book, next to the one you expected: "Paid UAH 350 · expected
+ * UAH 400 · saved UAH 50". Click it (or "Add price paid") to type it.
+ */
+function PricePaid({ book, paid, onSave }: { book: Book; paid?: number; onSave: (price: number | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(paid !== undefined ? String(paid) : book.wishPrice !== undefined ? String(book.wishPrice) : "");
+  const n = value.trim() === "" ? null : Number(value);
+  const invalid = n !== null && (!Number.isFinite(n) || n < 0);
+  const diff = paid !== undefined && book.wishPrice !== undefined ? Math.round((book.wishPrice - paid) * 100) / 100 : null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<button type="button" className="mt-0.5 flex flex-col items-start rounded-sm text-left text-xs hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />}>
+        {paid !== undefined ? (
+          <>
+            <span>
+              Paid <span className="font-semibold tabular-nums">{formatMoney(paid, book.currency)}</span>
+            </span>
+            {book.wishPrice !== undefined && <span className="text-muted-foreground tabular-nums">expected {formatMoney(book.wishPrice, book.currency)}</span>}
+            {diff !== null && diff !== 0 && (
+              <span className={cn("font-semibold tabular-nums", diff > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
+                {diff > 0 ? `saved ${formatMoney(diff, book.currency)}` : `${formatMoney(-diff, book.currency)} more`}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            {book.wishPrice !== undefined && <span className="text-muted-foreground tabular-nums">Expected {formatMoney(book.wishPrice, book.currency)}</span>}
+            <span className="font-medium text-primary dark:text-highlight">+ Add price paid</span>
+          </>
+        )}
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-60">
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (invalid) return;
+            onSave(n);
+            setOpen(false);
+          }}
+        >
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            What did you pay? ({book.currency})
+            <Input type="number" inputMode="decimal" step="0.01" min={0} value={value} onChange={(e) => setValue(e.target.value)} aria-invalid={invalid || undefined} className="h-10" autoFocus />
+          </label>
+          {book.wishPrice !== undefined && <p className="-mt-1 text-xs text-muted-foreground">You expected {formatMoney(book.wishPrice, book.currency)}.</p>}
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm" className="rounded-full px-4" disabled={invalid}>
+              Save
+            </Button>
+            {paid !== undefined && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={() => {
+                  onSave(null);
+                  setValue("");
+                  setOpen(false);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
   );
 }

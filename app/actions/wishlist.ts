@@ -50,3 +50,9 @@ export async function markBought(bookId: string, today: string, paid: number | n
   if (paid !== null && !z.number().min(0).max(1_000_000).safeParse(paid).success) return { ok: false, error: "Invalid price." };
   return updateBook(bookId, { wanted: false, priority: null, owned: true, acquired_at: today, ordered_at: null, ...(paid !== null ? { purchase_price: Math.round(paid * 100) / 100 } : {}) });
 }
+
+/** What you paid for a book you've ordered (or null to clear it); kept when it arrives. */
+export async function setPricePaid(bookId: string, price: number | null): Promise<ActionResult> {
+  if (price !== null && !z.number().min(0).max(1_000_000).safeParse(price).success) return { ok: false, error: "Invalid price." };
+  return updateBook(bookId, { purchase_price: price === null ? null : Math.round(price * 100) / 100 });
+}
