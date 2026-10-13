@@ -70,6 +70,7 @@ export function rowToBook(row: BookRowWithReadings, supabaseUrl: string): Book {
     priority: opt(row.priority),
     wishPrice: opt(row.wish_price),
     releaseDate: opt(row.release_date),
+    orderedAt: opt(row.ordered_at),
     whereToBuy: opt(row.where_to_buy),
     wishlistReason: opt(row.wishlist_reason),
     queuePosition: opt(row.queue_position),

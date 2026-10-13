@@ -90,6 +90,7 @@ export type Database = {
           language: string | null
           notes: string | null
           notion_page_id: string | null
+          ordered_at: string | null
           original_language: string | null
           owned: boolean
           pages: number | null
@@ -136,6 +137,7 @@ export type Database = {
           language?: string | null
           notes?: string | null
           notion_page_id?: string | null
+          ordered_at?: string | null
           original_language?: string | null
           owned?: boolean
           pages?: number | null
@@ -182,6 +184,7 @@ export type Database = {
           language?: string | null
           notes?: string | null
           notion_page_id?: string | null
+          ordered_at?: string | null
           original_language?: string | null
           owned?: boolean
           pages?: number | null

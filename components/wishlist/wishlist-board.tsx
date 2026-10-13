@@ -18,9 +18,9 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { CalendarClock, EllipsisVertical, GripVertical, Store } from "lucide-react";
+import { CalendarClock, ChevronDown, EllipsisVertical, GripVertical, Store, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
-import { markBought, moveWishlistBook, removeFromWishlist } from "@/app/actions/wishlist";
+import { markBought, moveWishlistBook, removeFromWishlist, setOrdered } from "@/app/actions/wishlist";
 import { BookCover } from "@/components/books/book-cover";
 import { BoughtButton } from "@/components/wishlist/bought-button";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,9 @@ import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { daysUntil, RELEASE_WINDOW_DAYS, releaseLabel, WISH_GROUPS, wishGroup, wishlistCost, type WishGroup } from "@/lib/wishlist";
 
+/** Drop target id of the "Ordered" box (not a wishlist group: it sets the order date). */
+const ORDERED_ZONE = "ordered";
+
 /** Drop where the pointer is; fall back to overlap for keyboard dragging (no pointer). */
 const pointerFirst: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
@@ -53,12 +56,30 @@ export function WishlistBoard({ books }: { books: Book[] }) {
   // The group each book is in, updated immediately when you drop it (saved in the background).
   const [groups, setGroups] = useState<Record<string, WishGroup>>(() => Object.fromEntries(books.map((b) => [b.id, wishGroup(b)])));
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // Books you've ordered (id -> the day), waiting in their own box at the bottom.
+  const [ordered, setOrderedState] = useState<Record<string, string | undefined>>(() => Object.fromEntries(books.map((b) => [b.id, b.orderedAt])));
   const [activeId, setActiveId] = useState<string | null>(null);
   const justDragged = useRef(false);
   const [, startTransition] = useTransition();
   const byId = new Map(books.map((b) => [b.id, b]));
-  const visible = books.filter((b) => !hidden.has(b.id));
+  const shown = books.filter((b) => !hidden.has(b.id));
+  const onTheWay = shown.filter((b) => ordered[b.id]).sort((a, b) => (ordered[b.id] ?? "").localeCompare(ordered[a.id] ?? ""));
+  const visible = shown.filter((b) => !ordered[b.id]);
   const inGroup = (g: WishGroup) => visible.filter((b) => groups[b.id] === g).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  /** Ordered (or not after all): moves the card right away, saved in the background. */
+  const order = (bookId: string, yes: boolean) => {
+    const before = ordered[bookId];
+    const today = todayLocal();
+    setOrderedState((o) => ({ ...o, [bookId]: yes ? today : undefined }));
+    startTransition(async () => {
+      const r = await setOrdered(bookId, yes, today);
+      if (!r.ok) {
+        setOrderedState((o) => ({ ...o, [bookId]: before }));
+        toast.error(r.error);
+      } else toast.success(yes ? "In Ordered: on the way" : "Back on the wishlist");
+    });
+  };
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -97,7 +118,8 @@ export function WishlistBoard({ books }: { books: Book[] }) {
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveId(null);
-    if (over) move(String(active.id), over.id as WishGroup);
+    if (over?.id === ORDERED_ZONE) order(String(active.id), true);
+    else if (over) move(String(active.id), over.id as WishGroup);
   };
 
   const groupTitle = (g: unknown) => WISH_GROUPS.find((x) => x.id === g)?.title ?? "";
@@ -114,6 +136,7 @@ export function WishlistBoard({ books }: { books: Book[] }) {
     onMove: (to: WishGroup) => move(b.id, to),
     onBought: (paid: number | null) => takeOut(b.id, () => markBought(b.id, todayLocal(), paid), `“${b.title}” is on your shelves now`),
     onRemove: () => takeOut(b.id, () => removeFromWishlist(b.id), "Removed from the wishlist"),
+    onOrder: () => order(b.id, true),
   });
 
   const inbox = inGroup("inbox");
@@ -179,6 +202,13 @@ export function WishlistBoard({ books }: { books: Book[] }) {
             );
           })}
         </div>
+
+        <OrderedBox
+          books={onTheWay}
+          orderedOn={ordered}
+          onArrived={(b, paid) => takeOut(b.id, () => markBought(b.id, todayLocal(), paid), `“${b.title}” arrived: it’s on your shelves now`)}
+          onNotOrdered={(b) => order(b.id, false)}
+        />
       </div>
 
       {/* The card that follows the pointer, so it can leave the scrolling row without being clipped. */}
@@ -239,12 +269,14 @@ function WishCard({
   onMove,
   onBought,
   onRemove,
+  onOrder,
 }: {
   book: Book;
   group: WishGroup;
   onMove: (to: WishGroup) => void;
   onBought: (paid: number | null) => void;
   onRemove: () => void;
+  onOrder: () => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: book.id });
   // The whole card starts a drag with the mouse or a press on touch; the grip is the keyboard handle.
@@ -303,6 +335,10 @@ function WishCard({
               ))}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onOrder}>
+              <Truck aria-hidden />
+              Ordered (on the way)
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onRemove}>Remove from wishlist</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -345,5 +381,79 @@ function ReleaseChip({ date }: { date: string }) {
       <CalendarClock className="size-3" aria-hidden />
       {releaseLabel(date, today, formatDate)}
     </p>
+  );
+}
+
+/**
+ * Books you've ordered and are waiting for: at the bottom, collapsed until you open it, one row
+ * that scrolls sideways. "Arrived!" puts a book on your shelves (asking what you paid). Drop a
+ * card on it (even closed) to mark it ordered.
+ */
+function OrderedBox({
+  books,
+  orderedOn,
+  onArrived,
+  onNotOrdered,
+}: {
+  books: Book[];
+  orderedOn: Record<string, string | undefined>;
+  onArrived: (b: Book, paid: number | null) => void;
+  onNotOrdered: (b: Book) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { setNodeRef, isOver } = useDroppable({ id: ORDERED_ZONE });
+  const cost = wishlistCost(books);
+  return (
+    <section ref={setNodeRef} aria-labelledby="wish-ordered" className={cn("rounded-3xl bg-muted/50 px-5 py-4 ring-1 ring-border/60 transition-shadow md:px-6", isOver && "ring-3 ring-highlight")}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="wish-ordered-list"
+        onClick={() => setOpen(!open)}
+        className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg text-left focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <span className="flex items-center gap-2">
+          <Truck className="size-5 text-muted-foreground" aria-hidden />
+          <span id="wish-ordered" className="font-heading text-lg font-semibold text-heading md:text-xl">
+            Ordered · on the way
+          </span>
+          <span className="text-sm text-muted-foreground tabular-nums">{books.length}</span>
+        </span>
+        <span className="flex items-center gap-3 text-sm text-muted-foreground">
+          {cost.length > 0 && <span>about {cost.map((c) => formatMoney(c.total, c.currency)).join(" + ")}</span>}
+          <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
+        </span>
+      </button>
+      {open && (
+        <div id="wish-ordered-list" className="mt-4">
+          {books.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nothing on the way. Ordered a book? Choose &ldquo;Ordered&rdquo; in its ⋯ menu, or drop it here.</p>
+          ) : (
+            <ul className="-mx-5 flex gap-5 overflow-x-auto px-5 pt-1 pb-2 md:-mx-6 md:px-6">
+              {books.map((b) => (
+                <li key={b.id} className="flex w-32 shrink-0 flex-col gap-2">
+                  <Link href={`/books/${b.id}`} className="block rounded-sm focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none">
+                    <BookCover title={b.title} authors={b.authors} src={b.coverSrc} lang={b.language} sizes="128px" />
+                  </Link>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <Link href={`/books/${b.id}`} lang={b.language} className="line-clamp-2 font-heading text-sm leading-snug font-semibold text-heading hover:underline">
+                      {b.title}
+                    </Link>
+                    {b.authors.length > 0 && <p className="truncate text-xs text-muted-foreground">{b.authors.join(", ")}</p>}
+                    {orderedOn[b.id] && <p className="text-xs text-muted-foreground">Ordered {formatDate(orderedOn[b.id]!)}</p>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <BoughtButton label="Arrived!" expected={b.wishPrice} currency={b.currency} onConfirm={(paid) => onArrived(b, paid)} />
+                    <Button variant="ghost" size="icon-xs" className="rounded-full" aria-label={`${b.title}: not ordered after all`} title="Not ordered after all" onClick={() => onNotOrdered(b)}>
+                      <Undo2 aria-hidden />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
