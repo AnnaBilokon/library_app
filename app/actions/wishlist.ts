@@ -32,7 +32,13 @@ export async function addToWishlist(bookId: string): Promise<ActionResult> {
 }
 
 export async function removeFromWishlist(bookId: string): Promise<ActionResult> {
-  return updateBook(bookId, { wanted: false, priority: null });
+  return updateBook(bookId, { wanted: false, priority: null, ordered_at: null });
+}
+
+/** You've ordered a wishlist book (it waits in "Ordered" until it arrives), or you haven't after all. */
+export async function setOrdered(bookId: string, ordered: boolean, today: string): Promise<ActionResult> {
+  if (!z.iso.date().safeParse(today).success || typeof ordered !== "boolean") return { ok: false, error: "Invalid input." };
+  return updateBook(bookId, { ordered_at: ordered ? today : null });
 }
 
 /**
@@ -42,5 +48,5 @@ export async function removeFromWishlist(bookId: string): Promise<ActionResult> 
 export async function markBought(bookId: string, today: string, paid: number | null = null): Promise<ActionResult> {
   if (!z.iso.date().safeParse(today).success) return { ok: false, error: "Invalid date." };
   if (paid !== null && !z.number().min(0).max(1_000_000).safeParse(paid).success) return { ok: false, error: "Invalid price." };
-  return updateBook(bookId, { wanted: false, priority: null, owned: true, acquired_at: today, ...(paid !== null ? { purchase_price: Math.round(paid * 100) / 100 } : {}) });
+  return updateBook(bookId, { wanted: false, priority: null, owned: true, acquired_at: today, ordered_at: null, ...(paid !== null ? { purchase_price: Math.round(paid * 100) / 100 } : {}) });
 }

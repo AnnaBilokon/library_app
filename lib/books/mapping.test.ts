@@ -42,6 +42,7 @@ function row(overrides: Partial<BookRowWithReadings> = {}): BookRowWithReadings 
     priority: null,
     wish_price: null,
     release_date: null,
+    ordered_at: null,
     where_to_buy: null,
     wishlist_reason: null,
     notion_page_id: null,

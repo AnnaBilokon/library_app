@@ -16,12 +16,14 @@ export function BoughtButton({
   onConfirm,
   size = "xs",
   disabled,
+  label = "Bought it!",
 }: {
   expected?: number;
   currency: string;
   onConfirm: (paid: number | null) => void;
   size?: "xs" | "sm";
   disabled?: boolean;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [paid, setPaid] = useState(expected !== undefined ? String(expected) : "");
@@ -35,7 +37,7 @@ export function BoughtButton({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={<Button size={size} className="rounded-full" disabled={disabled} />}>
         <ShoppingBag aria-hidden />
-        Bought it!
+        {label}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64">
         <form

@@ -198,6 +198,7 @@ function Details({ book }: { book: Book }) {
   add("Sold", book.soldAt && `${formatDate(book.soldAt)}${sold ? ` for ${sold.main}${sold.converted ? ` (≈ ${sold.converted})` : ""}` : ""}`);
   if (book.wanted) {
     add("Comes out", book.releaseDate && formatDate(book.releaseDate));
+    add("Ordered", book.orderedAt && `${formatDate(book.orderedAt)} (on the way)`);
     add("Wishlist priority", book.priority);
     add("Expected price", book.wishPrice !== undefined && formatMoney(book.wishPrice, book.currency));
     add("Where to buy", book.whereToBuy);
