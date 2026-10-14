@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { dmyToIso, isoToDmy } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,6 @@ interface DateFieldProps {
 export function DateField({ id, value, onChange, onBlur, min, max, className, inputClassName, ...aria }: DateFieldProps) {
   // While you type, the text is yours; otherwise it shows the stored date.
   const [draft, setDraft] = useState<string | null>(null);
-  const picker = useRef<HTMLInputElement>(null);
   const parsed = draft === null ? value : dmyToIso(draft);
   const invalid = parsed === null || (parsed !== "" && ((min && parsed < min) || (max && parsed > max)));
 
@@ -60,37 +59,37 @@ export function DateField({ id, value, onChange, onBlur, min, max, className, in
           inputClassName,
         )}
       />
-      <button
-        type="button"
-        onClick={() => {
-          const el = picker.current;
-          if (!el) return;
-          try {
-            el.showPicker();
-          } catch {
-            el.focus();
-          }
-        }}
-        className="absolute top-1/2 right-1.5 grid size-7 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-        aria-label="Pick a date from the calendar"
-      >
-        <CalendarDays className="size-4" aria-hidden />
-      </button>
-      {/* The browser's picker, opened by the button; it isn't shown or reachable on its own. */}
+      {/*
+        The calendar: a real date input, invisible, lying exactly over the icon. Tapping it is a tap
+        on the input itself, so phones (iPhone Safari, the home-screen app, Android) open their own
+        picker, which they refuse to do when a script asks. Computers get showPicker() on click.
+      */}
       <input
-        ref={picker}
         type="date"
-        tabIndex={-1}
-        aria-hidden
+        aria-label="Pick a date from the calendar"
         value={parsed ?? ""}
         min={min}
         max={max}
+        onClick={(e) => {
+          try {
+            e.currentTarget.showPicker();
+          } catch {
+            // Phones open their picker from the tap itself.
+          }
+        }}
         onChange={(e) => {
           setDraft(null);
           onChange(e.target.value);
         }}
-        className="pointer-events-none absolute right-2 bottom-0 size-px opacity-0"
+        // Always invisible (the icon below shows hover and focus); 16px text stops iPhone zooming in.
+        className="peer absolute top-1/2 right-1.5 z-10 size-7 -translate-y-1/2 cursor-pointer appearance-none rounded-md border-0 bg-transparent p-0 text-base opacity-0 outline-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:size-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
       />
+      <span
+        className="pointer-events-none absolute top-1/2 right-1.5 grid size-7 -translate-y-1/2 place-items-center rounded-md text-muted-foreground peer-hover:bg-muted peer-hover:text-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50"
+        aria-hidden
+      >
+        <CalendarDays className="size-4" />
+      </span>
     </div>
   );
 }
