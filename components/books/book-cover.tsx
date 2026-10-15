@@ -19,9 +19,6 @@ function hash(text: string): number {
   return Math.abs(h);
 }
 
-/** Our own Storage copies can go through Next's image optimiser; other hosts are shown as-is. */
-const isOptimizable = (src: string) => /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\//.test(src);
-
 interface BookCoverProps {
   title: string;
   authors?: string[];
@@ -37,11 +34,18 @@ interface BookCoverProps {
 
 /**
  * A 2:3 book: slightly rounded on the open side, a shaded spine on the left and a soft shadow.
- * Falls back to a designed jacket with the title when there's no image or it fails to load.
+ * Falls back to a designed jacket with the title when there's no image or it fails to load
+ * (after one retry, so a brief network hiccup doesn't leave the jacket up for the whole visit).
  */
 export function BookCover({ title, authors = [], src, sizes, priority, className, lang, compact }: BookCoverProps) {
-  const [failed, setFailed] = useState(false);
-  const showImage = src && !failed;
+  // ok → (error) → retrying: the jacket shows for a moment, then the image gets a fresh try → (error) → failed.
+  const [load, setLoad] = useState<"ok" | "retrying" | "retried" | "failed">("ok");
+  const showImage = src && (load === "ok" || load === "retried");
+  const onError = () => {
+    if (load === "retried") return setLoad("failed");
+    setLoad("retrying");
+    setTimeout(() => setLoad("retried"), 1500);
+  };
   const jacket = JACKETS[hash(title) % JACKETS.length];
 
   return (
@@ -53,14 +57,14 @@ export function BookCover({ title, authors = [], src, sizes, priority, className
     >
       {showImage ? (
         <Image
+          key={load}
           src={src}
           alt={`Cover of ${title}`}
           fill
           sizes={sizes}
           priority={priority}
-          unoptimized={!isOptimizable(src)}
           className="object-cover"
-          onError={() => setFailed(true)}
+          onError={onError}
         />
       ) : (
         <div lang={lang} role="img" aria-label={`${title} (no cover)`} className={cn("size-full p-[7%]", jacket.bg, jacket.fg)}>
