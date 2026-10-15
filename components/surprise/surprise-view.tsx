@@ -2,17 +2,14 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { BookOpen, ListPlus, Loader2, PackageOpen, Plus, RotateCcw, Search, Sparkles, X } from "lucide-react";
+import { BookOpen, ListPlus, Loader2, PackageOpen, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { setBookStatus, setForgotten } from "@/app/actions/books";
+import { setBookStatus } from "@/app/actions/books";
 import { changeQueue } from "@/app/actions/queue";
 import { BookCover } from "@/components/books/book-cover";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayLocal } from "@/lib/dates";
-import { inLibrary } from "@/lib/selling";
 import { applyGenre, poolBooks, recentGenres, spin, type GenreChoice, type Pool } from "@/lib/surprise";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -150,8 +147,6 @@ export function SurpriseView({ books }: { books: Book[] }) {
           <Reveal key={phase.pick.id} book={phase.pick} fromBox={phase.pick.forgotten} onAgain={go} canAgain={candidates.length > 1} onReset={() => setPhase({ kind: "idle" })} />
         )}
       </section>
-
-      <ForgottenBox books={books} />
     </div>
   );
 }
@@ -188,7 +183,15 @@ function Deck({ count, pool, onSpin, books }: { count: number; pool: Pool; onSpi
         <p className="text-sm text-muted-foreground">
           {count === 0
             ? pool === "forgotten"
-              ? "Your Forgotten box is empty. Add books below."
+              ? (
+                <>
+                  Your Forgotten box is empty. Add books on the{" "}
+                  <Link href="/library" className="underline underline-offset-4 hover:text-foreground">
+                    Library
+                  </Link>{" "}
+                  shelf.
+                </>
+              )
               : "No books match. Try another genre."
             : `Picking from ${count} ${count === 1 ? "book" : "books"}`}
         </p>
@@ -286,107 +289,5 @@ function Reveal({ book, fromBox, onAgain, canAgain, onReset }: { book: Book; fro
         </button>
       </div>
     </div>
-  );
-}
-
-/** Books you chose to be reminded of; "Surprise me" can pick from them. */
-function ForgottenBox({ books }: { books: Book[] }) {
-  const [adding, setAdding] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const box = books.filter((b) => b.forgotten && inLibrary(b));
-
-  const toggle = (book: Book, on: boolean) =>
-    startTransition(async () => {
-      const r = await setForgotten(book.id, on);
-      if (!r.ok) toast.error(r.error);
-      else toast.success(on ? `“${book.title}” is in the Forgotten box` : `Took “${book.title}” out of the box`);
-    });
-
-  return (
-    <section aria-labelledby="forgotten-title" className="flex flex-col gap-4 rounded-3xl bg-card p-5 ring-1 ring-border/60 md:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 id="forgotten-title" className="flex items-center gap-2 font-heading text-2xl font-semibold text-heading">
-            <PackageOpen className="size-5 text-muted-foreground" aria-hidden />
-            Forgotten box
-            <span className="font-sans text-sm font-normal text-muted-foreground tabular-nums">{box.length}</span>
-          </h2>
-          <p className="text-sm text-muted-foreground">Books you&apos;d like to be reminded of. Pick “Forgotten box” above to spin from them.</p>
-        </div>
-        <Button variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
-          <Plus aria-hidden />
-          Add books
-        </Button>
-      </div>
-      {box.length === 0 ? (
-        <p className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-          Empty for now. Add books you keep meaning to get to, or ones you&apos;d love to reread.
-        </p>
-      ) : (
-        <ul className="grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9">
-          {box.map((b) => (
-            <li key={b.id} className="group relative flex flex-col gap-1.5">
-              <Link href={`/books/${b.id}`} className="rounded-sm focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none">
-                <BookCover title={b.title} authors={b.authors} src={b.coverSrc} lang={b.language} sizes="128px" />
-              </Link>
-              <span lang={b.language} className="line-clamp-2 text-xs leading-snug font-medium">
-                {b.title}
-              </span>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => toggle(b, false)}
-                aria-label={`Take ${b.title} out of the Forgotten box`}
-                className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-background shadow-sm ring-1 ring-border hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100"
-              >
-                <X className="size-3.5" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {adding && <AddToBox books={books} onClose={() => setAdding(false)} onToggle={toggle} pending={pending} />}
-    </section>
-  );
-}
-
-function AddToBox({ books, onClose, onToggle, pending }: { books: Book[]; onClose: () => void; onToggle: (b: Book, on: boolean) => void; pending: boolean }) {
-  const [query, setQuery] = useState("");
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return books
-      .filter((b) => inLibrary(b) && b.status !== "reading" && (!q || b.title.toLowerCase().includes(q) || b.authors.some((a) => a.toLowerCase().includes(q))))
-      .slice(0, 60);
-  }, [books, query]);
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Add to the Forgotten box</DialogTitle>
-          <DialogDescription>Search your library and add the books you&apos;d like to be reminded of.</DialogDescription>
-        </DialogHeader>
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Title or author" aria-label="Search your library" className="h-10 pl-8" autoFocus />
-        </div>
-        <ul className="-mx-2 max-h-80 overflow-y-auto">
-          {results.map((b) => (
-            <li key={b.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/60">
-              <BookCover title={b.title} src={b.coverSrc} sizes="32px" className="w-8 shrink-0" compact />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span lang={b.language} className="truncate text-sm font-medium">
-                  {b.title}
-                </span>
-                {b.authors.length > 0 && <span className="truncate text-xs text-muted-foreground">{b.authors.join(", ")}</span>}
-              </span>
-              <Button size="sm" variant={b.forgotten ? "secondary" : "outline"} className="rounded-full" disabled={pending} onClick={() => onToggle(b, !b.forgotten)}>
-                {b.forgotten ? "In the box" : "Add"}
-              </Button>
-            </li>
-          ))}
-          {results.length === 0 && <li className="px-2 py-6 text-center text-sm text-muted-foreground">No book matches “{query}”.</li>}
-        </ul>
-      </DialogContent>
-    </Dialog>
   );
 }
