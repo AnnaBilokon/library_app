@@ -4,8 +4,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
-    // Covers stored in our Supabase Storage bucket can be resized by next/image.
-    remotePatterns: [{ protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" }],
+    // Covers load straight from Supabase Storage: they're already small, and Vercel's image
+    // optimisation (5,000 transformations a month on the free plan) ran out and broke them.
+    unoptimized: true,
   },
   turbopack: {
     rules: {
