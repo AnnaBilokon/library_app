@@ -92,7 +92,7 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
     <div className="flex flex-col gap-10">
       <Stats books={books} />
 
-      {browsing && <ReadingShelf books={books} />}
+      {browsing && <ReadingShelf books={books} library={everything} />}
 
       <section aria-label="All books" className="flex flex-col gap-6">
         {/* Search + quiet controls */}

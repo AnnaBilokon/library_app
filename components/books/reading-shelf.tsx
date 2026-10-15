@@ -5,29 +5,35 @@ import { queueOf } from "@/lib/books/queue";
 import type { Book } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookCard } from "./book-grid";
+import { ForgottenShelf } from "./forgotten-shelf";
 import { QueueShelf } from "./queue-shelf";
 import { ShelfProgress } from "./reading-tools";
 
-type Tab = "reading" | "queue" | "paused";
+type Tab = "reading" | "queue" | "paused" | "forgotten";
 
-/** The shelf at the top of the Library: what you're reading, your "Up next" queue, and paused books. */
-export function ReadingShelf({ books }: { books: Book[] }) {
+/**
+ * The shelf at the top of the Library: what you're reading, your "Up next" queue, paused books
+ * and the Forgotten box. `library` is every book in the Library (also ones you don't own), for the box.
+ */
+export function ReadingShelf({ books, library }: { books: Book[]; library: Book[] }) {
   const reading = books.filter((b) => b.status === "reading");
   const paused = books.filter((b) => b.status === "paused");
   const queue = queueOf(books);
-  const [tab, setTab] = useState<Tab>(reading.length > 0 ? "reading" : queue.length > 0 ? "queue" : "paused");
+  const box = library.filter((b) => b.forgotten);
+  const [tab, setTab] = useState<Tab>(reading.length > 0 ? "reading" : queue.length > 0 ? "queue" : paused.length > 0 ? "paused" : "reading");
 
   const tabs: [Tab, string, number][] = [
     ["reading", "Reading now", reading.length],
     ["queue", "Up next", queue.length],
     ["paused", "Paused", paused.length],
+    ["forgotten", "Forgotten box", box.length],
   ];
 
   return (
     <section aria-label="Current reads" className="rounded-3xl bg-accent/70 px-5 py-6 md:px-8 md:py-8 dark:bg-accent/60">
       <div role="tablist" aria-label="Current reads" className="mb-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
         {tabs.map(([value, label, count]) =>
-          // Paused only appears when there is something paused; Up next always, so it can be discovered.
+          // Paused only appears when there is something paused; Up next and the Forgotten box always, so they can be discovered.
           count === 0 && value === "paused" ? null : (
             <button
               key={value}
@@ -53,6 +59,8 @@ export function ReadingShelf({ books }: { books: Book[] }) {
         {tab === "queue" ? (
           // key: start from the server's order whenever it changes (e.g. a book was added elsewhere).
           <QueueShelf key={queue.map((b) => b.id).join()} queue={queue} />
+        ) : tab === "forgotten" ? (
+          <ForgottenShelf box={box} books={library} />
         ) : (
           <BookRow
             books={tab === "reading" ? reading : paused}
