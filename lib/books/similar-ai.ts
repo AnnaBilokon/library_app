@@ -1,21 +1,26 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import type { Edition } from "@/lib/catalog/editions";
 import type { Book } from "@/lib/types";
-import { resolveAnswer, shelfCandidates, SIMILAR_SYSTEM, similarAnswerSchema, similarPrompt, type SimilarPick } from "./similar";
+import { resolveAnswer, shelfCandidates, SIMILAR_SYSTEM, similarAnswerSchema, similarPrompt, type SimilarBooks } from "./similar";
 
 /** Haiku: a request costs well under a cent. Switch to "claude-sonnet-5-5" if picks feel off. */
 export const SIMILAR_MODEL = "claude-haiku-5-5";
 
-/** Asks Claude for unread books on your shelves like `book`. Returns null when it declines or the answer doesn't parse. Throws Anthropic.APIError. */
-export async function askForSimilar(book: Book, all: Book[]): Promise<SimilarPick[] | null> {
+/**
+ * Asks Claude for books like `book`: unread ones on your shelves, and catalog editions (the
+ * shortlist) you don't have. Returns null when it declines or the answer doesn't parse. Throws
+ * Anthropic.APIError.
+ */
+export async function askForSimilar(book: Book, all: Book[], catalog: Edition[]): Promise<SimilarBooks | null> {
   const candidates = shelfCandidates(book, all);
   const response = await new Anthropic().messages.parse({
     model: SIMILAR_MODEL,
     max_tokens: 16000,
     output_config: { effort: "medium", format: zodOutputFormat(similarAnswerSchema) },
     system: SIMILAR_SYSTEM,
-    messages: [{ role: "user", content: similarPrompt(book, candidates, all) }],
+    messages: [{ role: "user", content: similarPrompt(book, candidates, all, catalog) }],
   });
   if (response.stop_reason === "refusal" || !response.parsed_output) return null;
-  return resolveAnswer(response.parsed_output, candidates);
+  return resolveAnswer(response.parsed_output, candidates, catalog);
 }

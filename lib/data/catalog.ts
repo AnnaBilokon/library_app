@@ -4,7 +4,8 @@ import { requireAdmin, requireUser } from "@/lib/auth";
 import { likeEscape, possibleDuplicates, rowToEdition, type Edition } from "@/lib/catalog/editions";
 import { normalizeIsbn } from "@/lib/isbn";
 import { createClient } from "@/lib/supabase/server";
-import type { BookStatus } from "@/lib/types";
+import { catalogShortlist } from "@/lib/books/similar";
+import type { Book, BookStatus } from "@/lib/types";
 
 export const CATALOG_FILTERS = ["all", "recent", "to-review", "drafts", "no-cover", "no-isbn", "duplicates"] as const;
 export type CatalogFilter = (typeof CATALOG_FILTERS)[number];
@@ -141,3 +142,29 @@ export const getVisibleEdition = cache(async (id: string): Promise<Edition | nul
   if (error) throw new Error(`Couldn't load the edition: ${error.message}`);
   return data ? rowToEdition(data, supabaseUrl()) : null;
 });
+
+/**
+ * Catalog editions to suggest next to `book`: public ones you don't have a book for, closest
+ * first (see catalogShortlist). Reads only a few columns of the whole catalog, then the full rows
+ * of the shortlist.
+ */
+export async function getCatalogShortlist(book: Book, myEditionIds: Set<string>): Promise<Edition[]> {
+  await requireUser();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("editions")
+    .select("id, title, authors, genres, series, created_at")
+    .eq("status", "public")
+    .limit(5000);
+  if (error) throw new Error(`Couldn't load the catalog: ${error.message}`);
+  const ids = catalogShortlist(
+    book,
+    data.map((e) => ({ id: e.id, title: e.title, authors: e.authors, genres: e.genres, series: e.series ?? undefined, createdAt: e.created_at })),
+    myEditionIds,
+  );
+  if (ids.length === 0) return [];
+  const { data: rows, error: rowsError } = await supabase.from("editions").select("*").in("id", ids);
+  if (rowsError) throw new Error(`Couldn't load the catalog: ${rowsError.message}`);
+  const byId = new Map(rows.map((r) => [r.id, rowToEdition(r, supabaseUrl())]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
