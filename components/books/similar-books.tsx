@@ -5,10 +5,11 @@ import Link from "next/link";
 import { Gift, Plus, RotateCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { suggestSimilar } from "@/app/actions/similar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SimilarBooks as Suggestions } from "@/lib/books/similar";
 import type { Book } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { BookCover } from "./book-cover";
 
 /**
@@ -69,19 +70,14 @@ export function SimilarBooks({ book }: { book: Book }) {
           <Group title="From the catalog, not in your library yet" empty="Nothing in the catalog is close enough yet. It grows as books are added.">
             {result.fromCatalog.map(({ edition: e, reason }) => (
               <Pick key={e.id} title={e.title} authors={e.authors} coverSrc={e.coverSrc} lang={e.language} reason={reason}>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Link
-                    href={`/books/new?edition=${e.id}`}
-                    className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-sm font-medium ring-1 ring-border hover:bg-muted"
-                  >
-                    <Plus className="size-4" aria-hidden />
+                {/* Side by side: adding it is the main action, the wishlist the second one. */}
+                <div className="mt-2 flex gap-2">
+                  <Link href={`/books/new?edition=${e.id}`} className={cn(buttonVariants({ size: "sm" }), "rounded-full")}>
+                    <Plus aria-hidden />
                     Add to my library
                   </Link>
-                  <Link
-                    href={`/books/new?edition=${e.id}&wishlist=1`}
-                    className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-sm font-medium ring-1 ring-border hover:bg-muted"
-                  >
-                    <Gift className="size-4" aria-hidden />
+                  <Link href={`/books/new?edition=${e.id}&wishlist=1`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full")}>
+                    <Gift aria-hidden />
                     Add to wishlist
                   </Link>
                 </div>
