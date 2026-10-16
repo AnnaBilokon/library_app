@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { CircleAlert, CircleCheck, CircleSlash, Loader2, RotateCcw, Square, Upload } from "lucide-react";
-import { importCatalogLine, type ImportResult } from "@/app/actions/catalog-import";
+import { CircleAlert, CircleCheck, CircleSlash, Link2, Loader2, RotateCcw, Square, Upload } from "lucide-react";
+import { collectBookLinks, importCatalogLine, type ImportResult } from "@/app/actions/catalog-import";
 import { BookCover } from "@/components/books/book-cover";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { IMPORT_LIMIT, parseImportList, type ImportLine } from "@/lib/catalog/import";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,8 @@ export function ImportList({ hasGoogleKey }: { hasGoogleKey: boolean }) {
 
   const run = async () => {
     const queue = usable.slice(0, IMPORT_LIMIT);
+    // Lines beyond the limit stay in the box for the next round.
+    setText(usable.slice(IMPORT_LIMIT).map((l) => l.text).join("\n"));
     setRows(queue.map((line) => ({ line })));
     setRunning(true);
     stop.current = false;
@@ -58,6 +61,11 @@ export function ImportList({ hasGoogleKey }: { hasGoogleKey: boolean }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <CollectFromPage
+        disabled={running}
+        onCollected={(found) => setText((t) => [t.trim(), ...found].filter(Boolean).join("\n"))}
+      />
+
       <div className="flex flex-col gap-2">
         <label htmlFor="import-list" className="text-sm font-medium">
           Links or ISBNs, one per line
@@ -77,7 +85,7 @@ export function ImportList({ hasGoogleKey }: { hasGoogleKey: boolean }) {
             : [links && plural(links, "link", "links"), isbns && plural(isbns, "ISBN", "ISBNs"), invalid && `${plural(invalid, "line", "lines")} that can't be used`]
                 .filter(Boolean)
                 .join(" · ")}
-          {tooMany && ` · only the first ${IMPORT_LIMIT} will be imported`}
+          {tooMany && ` · the first ${IMPORT_LIMIT} are imported now, the rest stay here for the next round`}
         </p>
         {isbns > 0 && !hasGoogleKey && (
           <p className="text-xs text-muted-foreground">
@@ -119,7 +127,8 @@ export function ImportList({ hasGoogleKey }: { hasGoogleKey: boolean }) {
               variant="outline"
               className="h-10 rounded-full px-5"
               onClick={() => {
-                setText(failed.map((r) => r.line.text).join("\n"));
+                // Ahead of any lines still waiting for the next round.
+                setText((t) => [...failed.map((r) => r.line.text), t.trim()].filter(Boolean).join("\n"));
                 setRows([]);
               }}
             >
@@ -182,5 +191,110 @@ function ResultRow({ row: { line, result, running } }: { row: Row }) {
         {result && result.status !== "failed" && <span className="truncate font-mono text-xs text-muted-foreground">{line.text}</span>}
       </div>
     </li>
+  );
+}
+
+/**
+ * "Collect links from a page": reads a listing page (new releases, coming soon) and all its
+ * further pages, and adds the book links it finds to the list below.
+ */
+function CollectFromPage({ disabled, onCollected }: { disabled: boolean; onCollected: (links: string[]) => void }) {
+  const [url, setUrl] = useState("");
+  const [pattern, setPattern] = useState("");
+  const [pages, setPages] = useState(10);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [pending, start] = useTransition();
+  const urlId = useId();
+  const patternId = useId();
+  const pagesId = useId();
+
+  const collect = () =>
+    start(async () => {
+      setMessage(null);
+      const r = await collectBookLinks(url, pattern, pages);
+      if (!r.ok) return setMessage({ kind: "error", text: r.error });
+      const { links, alreadyImported, note } = r.data;
+      setPattern(r.data.pattern);
+      onCollected(links);
+      setMessage({
+        kind: "ok",
+        text: [
+          `Found ${plural(links.length + alreadyImported, "book link", "book links")} on ${plural(r.data.pages, "page", "pages")} (links starting with ${r.data.pattern})`,
+          alreadyImported > 0 && `${alreadyImported} already imported before ${alreadyImported === 1 ? "was" : "were"} left out`,
+          links.length > 0 ? "added to the list below; check it, then import" : "nothing new to add",
+          note,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      });
+    });
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl bg-accent/70 p-4 dark:bg-accent/60">
+      <label htmlFor={urlId} className="flex items-center gap-2 text-sm font-medium">
+        <Link2 className="size-4" aria-hidden />
+        Collect links from a page
+      </label>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          id={urlId}
+          type="url"
+          inputMode="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && url.trim()) {
+              e.preventDefault();
+              collect();
+            }
+          }}
+          placeholder="A publisher's new releases or coming soon page"
+          className="h-10 bg-background"
+          disabled={disabled || pending}
+        />
+        <Button type="button" variant="secondary" className="h-10 rounded-full px-4" onClick={collect} disabled={disabled || pending || !url.trim()}>
+          {pending && <Loader2 className="animate-spin" aria-hidden />}
+          {pending ? "Reading the pages…" : "Collect"}
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div className="flex flex-col gap-1">
+          <label htmlFor={pagesId} className="text-xs text-muted-foreground">
+            Read up to
+          </label>
+          <select
+            id={pagesId}
+            value={pages}
+            onChange={(e) => setPages(Number(e.target.value))}
+            disabled={disabled || pending}
+            className="h-8 rounded-lg border border-input bg-background px-2 text-xs"
+          >
+            {[1, 2, 3, 5, 10, 20].map((n) => (
+              <option key={n} value={n}>
+                {plural(n, "page", "pages")}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex min-w-48 flex-1 flex-col gap-1">
+          <label htmlFor={patternId} className="text-xs text-muted-foreground">
+            Book links start with <span className="opacity-70">(found automatically; change it if the wrong links were picked)</span>
+          </label>
+          <Input
+            id={patternId}
+            value={pattern}
+            onChange={(e) => setPattern(e.target.value)}
+            placeholder="/product/"
+            className="h-8 max-w-xs bg-background font-mono text-xs"
+            disabled={disabled || pending}
+          />
+        </div>
+      </div>
+      {message && (
+        <p className={cn("text-sm", message.kind === "error" ? "text-destructive" : "text-muted-foreground")} role="status">
+          {message.text}
+        </p>
+      )}
+    </div>
   );
 }

@@ -9,6 +9,9 @@ import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Import a list" };
 
+// "Collect links from a page" reads up to 20 pages of a listing in one Server Action.
+export const maxDuration = 120;
+
 export default function ImportPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-12 md:px-8 md:pt-10">
@@ -30,7 +33,7 @@ async function Import() {
       <PageHeader
         eyebrow="Catalog"
         title="Import a list"
-        description="Paste links to book pages (publishers, bookshops) or ISBNs. Each one becomes a draft in To review: nobody else can find it until you check it and approve it."
+        description="Collect the book links from a publisher's listing page, or paste links and ISBNs yourself. Each one becomes a draft in To review: nobody else can find it until you check it and approve it."
       />
       <ImportList hasGoogleKey={Boolean(process.env.GOOGLE_BOOKS_API_KEY)} />
     </>
