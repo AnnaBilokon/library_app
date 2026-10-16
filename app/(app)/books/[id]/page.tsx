@@ -10,6 +10,7 @@ import { AuthorLinks, PublisherLink } from "@/components/books/name-links";
 import { AuthorCountriesProvider } from "@/components/countries/author-countries-context";
 import { CountryPicker } from "@/components/countries/country-picker";
 import { ReadingHistory } from "@/components/books/reading-history";
+import { SimilarBooks } from "@/components/books/similar-books";
 import { DescriptionSection, ProgressPanel, RereadControls, ReviewSection } from "@/components/books/reading-tools";
 import { SellBanner, SellButton } from "@/components/selling/selling-controls";
 import { ForgottenButton } from "@/components/surprise/forgotten-button";
@@ -25,6 +26,9 @@ import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBook, getBooks } from "@/lib/data/books";
 import { inLibrary, salePriceLabel } from "@/lib/selling";
 import type { Book } from "@/lib/types";
+
+// "Books like this" waits on Claude from a Server Action on this page; give it time.
+export const maxDuration = 60;
 
 export async function generateMetadata({ params }: PageProps<"/books/[id]">): Promise<Metadata> {
   const book = await getBook((await params).id);
@@ -156,6 +160,8 @@ async function BookDetail({ params }: { params: Promise<{ id: string }> }) {
           </section>
         )}
 
+        {/* Only when the server has a Claude API key */}
+        {process.env.ANTHROPIC_API_KEY && <SimilarBooks book={book} />}
         <MoreBooks book={book} all={all} />
       </div>
     </article>
