@@ -16,12 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
 import { normalizeIsbn } from "@/lib/isbn";
+import type { Edition } from "@/lib/catalog/editions";
 import type { Prefill } from "@/lib/prefill/parse";
 import { bookInputSchema, type BookFormValues, type BookInput } from "@/lib/schemas";
 import { BOOK_FORMATS, type Book } from "@/lib/types";
 import { STATUS_CHOICES, type StatusChoice } from "@/lib/wishlist";
 import { cn } from "@/lib/utils";
 import { BookCover } from "./book-cover";
+import { editionFormFields, FindInCatalog } from "./find-in-catalog";
 import { RatingStars } from "./rating-stars";
 import { TagInput } from "./tag-input";
 
@@ -33,7 +35,7 @@ export interface BookFormSuggestions {
   tags: string[];
   publishers: string[];
   /** Other books, to warn about duplicates. */
-  existing: Pick<Book, "id" | "title" | "authors" | "isbn">[];
+  existing: Pick<Book, "id" | "title" | "authors" | "isbn" | "editionId">[];
 }
 
 export function bookToFormValues(book: Book): BookFormValues {
@@ -99,10 +101,14 @@ export interface NewBookPreset {
   seriesIndex?: number;
 }
 
-/** An empty form; from the Wishlist page it starts as a wishlist book (wanted, not owned). */
-function newBookDefaults(forWishlist?: boolean, preset?: NewBookPreset): BookFormValues {
+/**
+ * An empty form; from the Wishlist page it starts as a wishlist book (wanted, not owned), and from
+ * a catalog edition it starts with that edition's details.
+ */
+function newBookDefaults(forWishlist?: boolean, preset?: NewBookPreset, edition?: Edition): BookFormValues {
   const base = forWishlist ? { ...EMPTY, wanted: true, owned: false } : EMPTY;
-  return { ...base, authors: preset?.authors ?? base.authors, series: preset?.series ?? base.series, seriesIndex: preset?.seriesIndex };
+  const values = { ...base, authors: preset?.authors ?? base.authors, series: preset?.series ?? base.series, seriesIndex: preset?.seriesIndex };
+  return edition ? { ...values, ...editionFormFields(edition) } : values;
 }
 
 interface BookFormProps {
@@ -119,9 +125,11 @@ interface BookFormProps {
   preset?: NewBookPreset;
   /** A new book was saved (the page uses it to start the next one from a blank form). */
   onCreated?: () => void;
+  /** Start the new book from this catalog edition ("Add to my library"). */
+  edition?: Edition;
 }
 
-export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset, onCreated }: BookFormProps) {
+export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset, onCreated, edition }: BookFormProps) {
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -131,7 +139,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
   // re-render the whole form; zodResolver runs the same schema the server uses.
   const form = useForm<BookFormValues, unknown, BookInput>({
     resolver: zodResolver(bookInputSchema),
-    defaultValues: book ? bookToFormValues(book) : newBookDefaults(forWishlist, preset),
+    defaultValues: book ? bookToFormValues(book) : newBookDefaults(forWishlist, preset, edition),
     mode: "onTouched",
   });
   const { register, control, handleSubmit, formState } = form;
@@ -157,7 +165,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
   }, [suggestions.existing, book?.id, isbn, title, authors]);
 
   // A cover found by "Fill from a link"; copied into Storage when the book is saved.
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(edition?.coverSrc ?? null);
 
   /**
    * Puts details read from a web page into the form. For a new book everything found is used;
@@ -191,6 +199,16 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
     return { filled, kept };
   };
 
+  /** Starts the book from a catalog edition: its details replace what's in the form, and its cover is used unless you chose a file. */
+  const applyEdition = (e: Edition) => {
+    for (const [name, value] of Object.entries(editionFormFields(e))) {
+      form.setValue(name as Path<BookFormValues>, value as PathValue<BookFormValues, Path<BookFormValues>>, { shouldDirty: true, shouldValidate: true });
+    }
+    if (!coverFile) setCoverUrl(e.coverSrc ?? null);
+  };
+  // Editions you already have a copy of, so the catalog search can say so.
+  const ownedEditionIds = useMemo(() => new Set(suggestions.existing.flatMap((b) => (b.editionId ? [b.editionId] : []))), [suggestions.existing]);
+
   const onSubmit = (values: BookInput) =>
     startSaving(async () => {
       const result = book ? await updateBook(book.id, values) : await createBook(values);
@@ -220,6 +238,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-8">
+      {!editing && <FindInCatalog onPick={applyEdition} ownedIds={ownedEditionIds} />}
       <PrefillFromLink onPrefill={applyPrefill} editing={editing} />
 
       <div className="grid gap-8 md:grid-cols-[11rem_1fr]">

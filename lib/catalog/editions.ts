@@ -110,6 +110,11 @@ export function possibleDuplicates(editions: Pick<EditionRow, "id" | "title" | "
   return new Set([...groups.values()].filter((ids) => ids.length > 1).flat());
 }
 
+/** % and _ are wildcards in ILIKE; a search for them means the characters themselves. */
+export function likeEscape(text: string): string {
+  return text.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /** Where a catalog cover lives in the 'covers' bucket. */
 export function catalogCoverPath(editionId: string, ext: string, suffix: string): string {
   return `catalog/${editionId}-${suffix}.${ext}`;

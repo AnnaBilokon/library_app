@@ -78,6 +78,9 @@ export interface Book {
   whereToBuy?: string;
   wishlistReason?: string;
 
+  /** The shared catalog edition this book is a copy of. */
+  editionId?: string;
+
   /** Place in the "Up next" queue (1 = pinned next read); absent when not queued. */
   queuePosition?: number;
 

@@ -64,7 +64,13 @@ async function LibraryData() {
   const columns = parseColumns(cookieStore.get(COLUMNS_COOKIE)?.value);
   return (
     <AuthorCountriesProvider value={authorCountries}>
-    <LibraryView books={books} initialLayout={layout} initialColumns={columns} wishlistCount={all.filter(isWishlistOnly).length} />
+    <LibraryView
+      books={books}
+      initialLayout={layout}
+      initialColumns={columns}
+      wishlistCount={all.filter(isWishlistOnly).length}
+      otherBooks={all.filter((b) => !books.includes(b))}
+    />
     </AuthorCountriesProvider>
   );
 }

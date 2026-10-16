@@ -11,6 +11,6 @@ export function buildSuggestions(books: Book[]): BookFormSuggestions {
     genres: values(f.genre),
     tags: values(f.tag),
     publishers: values(f.publisher),
-    existing: books.map(({ id, title, authors, isbn }) => ({ id, title, authors, isbn })),
+    existing: books.map(({ id, title, authors, isbn, editionId }) => ({ id, title, authors, isbn, editionId })),
   };
 }

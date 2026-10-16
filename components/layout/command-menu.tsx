@@ -19,6 +19,8 @@ export interface CommandBook {
   id: string;
   title: string;
   authors: string[];
+  /** Typing the digits finds the book. */
+  isbn?: string;
   /** On the wishlist (not on your shelves). */
   wanted?: boolean;
   /** Sold (not in the library anymore). */
@@ -99,7 +101,7 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
             </CommandGroup>
             <CommandGroup heading="Books">
               {books.map((b) => (
-                <CommandItem key={b.id} value={`${b.title} ${b.authors.join(" ")} ${b.id}`} onSelect={() => go(`/books/${b.id}`)}>
+                <CommandItem key={b.id} value={`${b.title} ${b.authors.join(" ")} ${b.isbn ?? ""} ${b.id}`} onSelect={() => go(`/books/${b.id}`)}>
                   <BookIcon aria-hidden />
                   <span className="truncate">
                     {b.title}

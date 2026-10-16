@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildSuggestions } from "@/lib/books/suggestions";
 import { getBooks } from "@/lib/data/books";
+import { getVisibleEdition } from "@/lib/data/catalog";
 
 export const metadata: Metadata = { title: "Add a book" };
 
@@ -40,5 +41,8 @@ async function NewBookForm({ searchParams }: { searchParams: Promise<Record<stri
     series: one(params.series)?.slice(0, 200),
     seriesIndex: Number.isInteger(index) && index > 0 && index <= 1000 ? index : undefined,
   };
-  return <NewBookFormFields suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} />;
+  // From the catalog ("Add to my library"): ?edition=<id> starts from that edition.
+  const editionId = one(params.edition);
+  const edition = editionId && /^[0-9a-f-]{36}$/i.test(editionId) ? ((await getVisibleEdition(editionId)) ?? undefined) : undefined;
+  return <NewBookFormFields suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} edition={edition} />;
 }
