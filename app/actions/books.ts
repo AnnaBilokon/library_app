@@ -56,7 +56,7 @@ export async function createBook(raw: unknown): Promise<ActionResult<{ id: strin
     .select("*")
     .single();
   if (error) return fail(dbError(error));
-  await linkToCatalog(supabase, user, data);
+  await linkToCatalog(supabase, user, data, input.editionId || undefined);
 
   // The first reading, unless the book is simply waiting to be read.
   if (input.status !== "to-read") {

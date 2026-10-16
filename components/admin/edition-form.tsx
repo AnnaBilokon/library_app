@@ -188,18 +188,26 @@ export function EditionForm({ edition, hasMyCopy, suggestions }: { edition?: Edi
         />
       </Section>
 
-      <div className="flex flex-col gap-4 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
-        {editing && hasMyCopy ? (
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={alsoUpdateMine} onCheckedChange={(c) => setAlsoUpdateMine(Boolean(c))} />
-            Also update my own copy of this book
+      {editing && hasMyCopy && (
+        <Section title="Your copy">
+          <label className="flex items-start gap-3 text-sm">
+            <Checkbox className="mt-0.5" checked={alsoUpdateMine} onCheckedChange={(c) => setAlsoUpdateMine(Boolean(c))} />
+            <span className="flex flex-col gap-0.5">
+              <span className="font-medium">When I save, update my own book too</span>
+              <span className="text-muted-foreground">
+                Copies these details to your book, and the cover if your book has none. Your shelf, status, rating and notes stay as they are.
+              </span>
+            </span>
           </label>
-        ) : (
-          <span />
-        )}
+        </Section>
+      )}
+
+      {/* Always in view while you edit; on phones it sits above the tab bar. */}
+      <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-10 -mx-1 flex items-center justify-end gap-3 border-t bg-background/90 px-1 py-3 backdrop-blur md:bottom-0">
+        {formState.isDirty && <span className="text-sm text-muted-foreground">Unsaved changes</span>}
         <Button type="submit" className="h-10 rounded-full px-6" disabled={saving}>
           {saving && <Loader2 className="animate-spin" aria-hidden />}
-          {editing ? "Save" : "Add to the catalog"}
+          {editing ? "Save changes" : "Add to the catalog"}
         </Button>
       </div>
     </form>

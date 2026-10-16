@@ -1,9 +1,10 @@
 import "server-only";
 import { cache } from "react";
-import { requireAdmin } from "@/lib/auth";
-import { possibleDuplicates, rowToEdition, type Edition } from "@/lib/catalog/editions";
+import { requireAdmin, requireUser } from "@/lib/auth";
+import { likeEscape, possibleDuplicates, rowToEdition, type Edition } from "@/lib/catalog/editions";
 import { normalizeIsbn } from "@/lib/isbn";
 import { createClient } from "@/lib/supabase/server";
+import type { BookStatus } from "@/lib/types";
 
 export const CATALOG_FILTERS = ["all", "drafts", "no-cover", "no-isbn", "duplicates"] as const;
 export type CatalogFilter = (typeof CATALOG_FILTERS)[number];
@@ -11,9 +12,6 @@ export const PAGE_SIZE = 50;
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 const supabaseUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-/** % and _ are wildcards in ILIKE; a search for them means the characters themselves. */
-const likeEscape = (text: string) => text.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 /** Ids of editions that look entered twice. Reads only titles and authors, so it stays cheap. */
 async function duplicateIds(supabase: Supabase): Promise<string[]> {
@@ -82,11 +80,18 @@ export const getCatalogCounts = cache(async (): Promise<Record<CatalogFilter, nu
   return { all, drafts, "no-cover": noCover, "no-isbn": noIsbn, duplicates: dupes.length };
 });
 
+/** Your own book linked to an edition: where it is and whether it has a cover. */
+export interface MyCopy {
+  id: string;
+  where: "shelves" | "not-owned" | "wishlist" | "sold";
+  status: BookStatus;
+  hasCover: boolean;
+}
+
 export interface EditionDetail {
   edition: Edition;
   copies: number;
-  /** Your own book linked to this edition, if you have one. */
-  myBookId?: string;
+  myCopy?: MyCopy;
 }
 
 export const getEdition = cache(async (id: string): Promise<EditionDetail | null> => {
@@ -97,8 +102,31 @@ export const getEdition = cache(async (id: string): Promise<EditionDetail | null
   if (!data) return null;
   // RLS shows only your own books, so this finds your copy (if any).
   const [{ data: mine }, copies] = await Promise.all([
-    supabase.from("books").select("id").eq("edition_id", id).is("deleted_at", null).limit(1).maybeSingle(),
+    supabase
+      .from("books")
+      .select("id, owned, wanted, sold_at, status, cover_path, cover_url")
+      .eq("edition_id", id)
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle(),
     copiesOf(supabase, [id]),
   ]);
-  return { edition: rowToEdition(data, supabaseUrl()), copies: copies.get(id) ?? 0, myBookId: mine?.id };
+  const myCopy: MyCopy | undefined = mine
+    ? {
+        id: mine.id,
+        where: mine.wanted ? "wishlist" : mine.sold_at ? "sold" : mine.owned ? "shelves" : "not-owned",
+        status: mine.status,
+        hasCover: Boolean(mine.cover_path || mine.cover_url),
+      }
+    : undefined;
+  return { edition: rowToEdition(data, supabaseUrl()), copies: copies.get(id) ?? 0, myCopy };
+});
+
+/** An edition you can see (public, or your own draft), to start a new book from it. */
+export const getVisibleEdition = cache(async (id: string): Promise<Edition | null> => {
+  await requireUser();
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("editions").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Couldn't load the edition: ${error.message}`);
+  return data ? rowToEdition(data, supabaseUrl()) : null;
 });

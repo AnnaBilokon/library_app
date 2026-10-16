@@ -73,6 +73,7 @@ export function rowToBook(row: BookRowWithReadings, supabaseUrl: string): Book {
     orderedAt: opt(row.ordered_at),
     whereToBuy: opt(row.where_to_buy),
     wishlistReason: opt(row.wishlist_reason),
+    editionId: opt(row.edition_id),
     queuePosition: opt(row.queue_position),
     readings,
     lastFinishedAt: finishDates.sort().at(-1),

@@ -43,6 +43,7 @@ import { useAuthorCountries } from "@/components/countries/author-countries-cont
 import { countryName } from "@/lib/countries";
 import { BookTable } from "./book-table";
 import { ReadingShelf } from "./reading-shelf";
+import { SearchElsewhere } from "./search-elsewhere";
 
 const CLEARED = Object.fromEntries(Object.keys(EMPTY_FILTERS).map((k) => [k, null])) as Record<keyof BookFilters, null>;
 
@@ -52,9 +53,11 @@ interface LibraryViewProps {
   initialColumns: Record<string, boolean>;
   /** Wishlist books left out of the Library. */
   wishlistCount?: number;
+  /** Books left out of the Library (wishlist, sold, hidden for sale), so a search can point to them. */
+  otherBooks?: Book[];
 }
 
-export function LibraryView({ books: everything, initialLayout, initialColumns, wishlistCount = 0 }: LibraryViewProps) {
+export function LibraryView({ books: everything, initialLayout, initialColumns, wishlistCount = 0, otherBooks = [] }: LibraryViewProps) {
   // Like a reactive `route.query` in Nuxt: reading and writing these updates the URL,
   // so a filtered view survives a refresh and can be shared as a link.
   const [params, setParams] = useQueryStates(libraryParams, { urlKeys: libraryUrlKeys });
@@ -72,6 +75,15 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
     [books, deferredFilters, sort, dir, authorCountries],
   );
   const facets = useMemo(() => computeFacets(books), [books]);
+  // While searching: matches on the shelf you're not looking at.
+  const otherShelfCount = useMemo(
+    () => (deferredFilters.q.trim() ? filterBooks(everything, { ...deferredFilters, owned: elsewhere ? null : false }, authorCountries).length : 0),
+    [everything, deferredFilters, elsewhere, authorCountries],
+  );
+  const myEditionIds = useMemo(
+    () => new Set([...everything, ...otherBooks].flatMap((b) => (b.editionId ? [b.editionId] : []))),
+    [everything, otherBooks],
+  );
   const duplicateIds = useMemo(() => findDuplicateIds(books), [books]);
 
   const panelFilters = countActiveFilters({ ...filters, status: [] });
@@ -104,7 +116,7 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
               type="search"
               value={filters.q}
               onChange={(e) => void setParams({ q: e.target.value }, { limitUrlUpdates: debounce(300) })}
-              placeholder="Search by title, author, series or notes"
+              placeholder="Search by title, author, series, notes or ISBN"
               className="h-11 w-full rounded-full bg-card pr-4 pl-11 text-[15px] shadow-sm ring-1 ring-border transition-shadow outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring dark:bg-muted/60"
             />
           </label>
@@ -200,6 +212,14 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
           </p>
           <ActiveFilters filters={filters} onChange={update} onClear={clearFilters} />
         </div>
+
+        <SearchElsewhere
+          q={deferredFilters.q}
+          otherShelf={{ count: otherShelfCount, label: elsewhere ? "your shelves" : "Read, not owned" }}
+          onShowOtherShelf={() => update({ owned: elsewhere ? null : false })}
+          otherBooks={otherBooks}
+          myEditionIds={myEditionIds}
+        />
 
         {results.length === 0 ? (
           <EmptyState

@@ -1,3 +1,4 @@
+import { normalizeIsbn } from "@/lib/isbn";
 import type { Book, BookFormat, BookStatus } from "@/lib/types";
 
 export const SORT_KEYS = ["title", "author", "added", "finished", "rating", "pages", "published"] as const;
@@ -103,13 +104,25 @@ const anyOf = <T>(selected: T[], values: T[]) => selected.length === 0 || select
 const within = (value: number | undefined, min: number | null, max: number | null) =>
   (min === null && max === null) || (value !== undefined && (min === null || value >= min) && (max === null || value <= max));
 
+/**
+ * A search box test: every word appears in the title, authors, series, publisher, notes or ISBN.
+ * A whole ISBN (with or without dashes, ISBN-10 or -13) finds exactly that book.
+ */
+export function searchMatcher(q: string): (b: Book) => boolean {
+  const isbn = normalizeIsbn(q);
+  if (isbn) return (b) => b.isbn === isbn;
+  const terms = normalize(q).split(/\s+/).filter(Boolean);
+  if (!terms.length) return () => true;
+  return (b) => {
+    const haystack = normalize([b.title, ...b.authors, b.series ?? "", b.publisher ?? "", b.notes ?? "", b.isbn ?? ""].join(" "));
+    return terms.every((t) => haystack.includes(t));
+  };
+}
+
 export function filterBooks(books: Book[], f: BookFilters, authorCountries: Record<string, string[]> = {}): Book[] {
-  const terms = normalize(f.q).split(/\s+/).filter(Boolean);
+  const matches = searchMatcher(f.q);
   return books.filter((b) => {
-    if (terms.length) {
-      const haystack = normalize([b.title, ...b.authors, b.series ?? "", b.publisher ?? "", b.notes ?? ""].join(" "));
-      if (!terms.every((t) => haystack.includes(t))) return false;
-    }
+    if (!matches(b)) return false;
     if (!anyOf(f.status, [b.status])) return false;
     if (!anyOf(f.genre, b.genres)) return false;
     if (!anyOf(f.tag, b.tags)) return false;

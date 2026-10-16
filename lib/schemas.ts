@@ -46,6 +46,8 @@ export const bookInputSchema = z
     /** Only used when creating a book: dates for its first reading. */
     startedAt: isoDate.optional().or(z.literal("")),
     finishedAt: isoDate.optional().or(z.literal("")),
+    /** Only when creating a book: the catalog edition it was started from. */
+    editionId: z.uuid().optional().or(z.literal("")),
     /** Only when creating a book you didn't finish: where you stopped and why. */
     stoppedPage: optionalNumber(z.number().int("Whole pages only.").min(0).max(100_000)),
     stopReason: z.string().trim().max(2000).optional(),

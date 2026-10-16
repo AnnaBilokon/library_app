@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book } from "@/lib/types";
-import { countActiveFilters, EMPTY_FILTERS, facets, filterBooks, normalize, sortBooks } from "./filters";
+import { countActiveFilters, EMPTY_FILTERS, facets, filterBooks, normalize, searchMatcher, sortBooks } from "./filters";
 
 function book(overrides: Partial<Book>): Book {
   return {
@@ -123,5 +123,28 @@ describe("re-read filter", () => {
   it("keeps only books read more than once", () => {
     const list = [book({ title: "Once", timesRead: 1 }), book({ title: "Twice", timesRead: 2 }), book({ title: "Never" })];
     expect(titles(filterBooks(list, { ...EMPTY_FILTERS, reread: true }))).toEqual(["Twice"]);
+  });
+});
+
+describe("search by ISBN", () => {
+  const addie = book({ title: "Невидиме життя Адді Ларю", isbn: "9786178012137" });
+  const other = book({ title: "Other", isbn: "9786171707078" });
+
+  it("finds a book by its whole ISBN, with or without dashes", () => {
+    expect(titles([addie, other].filter(searchMatcher("978-617-8012-13-7")))).toEqual([addie.title]);
+    expect(titles([addie, other].filter(searchMatcher("9786178012137")))).toEqual([addie.title]);
+  });
+
+  it("matches an ISBN-10 to the stored ISBN-13", () => {
+    const tolkien = book({ title: "The Hobbit", isbn: "9780261102217" });
+    expect(searchMatcher("0261102214")(tolkien)).toBe(true);
+  });
+
+  it("finds part of an ISBN like any other word", () => {
+    expect(titles([addie, other].filter(searchMatcher("8012")))).toEqual([addie.title]);
+  });
+
+  it("applies in the Library filters too", () => {
+    expect(titles(filterBooks([addie, other], { ...EMPTY_FILTERS, q: "978-617-8012-13-7" }))).toEqual([addie.title]);
   });
 });

@@ -7,14 +7,19 @@ import { catalogCoverPath, sharedFields, type BookRow } from "./editions";
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Links a newly added book to its catalog edition: the one with the same ISBN, or a new one built
- * from the book (public when an admin adds it, a draft waiting for review otherwise). Best effort:
- * adding a book never fails because of the catalog.
+ * Links a newly added book to its catalog edition: the one it was started from, else the one with
+ * the same ISBN, else a new one built from the book (public when an admin adds it, a draft waiting
+ * for review otherwise). Best effort: adding a book never fails because of the catalog.
  */
-export async function linkToCatalog(supabase: Supabase, user: CurrentUser, book: BookRow): Promise<void> {
+export async function linkToCatalog(supabase: Supabase, user: CurrentUser, book: BookRow, fromEditionId?: string): Promise<void> {
   try {
     let editionId: string | undefined;
-    if (book.isbn) {
+    if (fromEditionId) {
+      // Only an edition you can see (RLS): public, or your own draft.
+      const { data } = await supabase.from("editions").select("id").eq("id", fromEditionId).maybeSingle();
+      editionId = data?.id;
+    }
+    if (!editionId && book.isbn) {
       const { data } = await supabase.from("editions").select("id").eq("isbn", book.isbn).maybeSingle();
       editionId = data?.id;
     }
@@ -52,5 +57,26 @@ export async function shareCoverWithCatalog(supabase: Supabase, user: CurrentUse
     if (error) throw error;
   } catch (e) {
     console.error("Couldn't share the cover with the catalog:", e);
+  }
+}
+
+/**
+ * Your own books linked to this edition that have no cover get a copy of the catalog's cover
+ * (never replacing a cover you chose). RLS limits it to your books; Storage to admins' reads.
+ */
+export async function fillMyCoversFromEdition(supabase: Supabase, user: CurrentUser, editionId: string): Promise<void> {
+  try {
+    const { data: edition } = await supabase.from("editions").select("cover_path").eq("id", editionId).single();
+    if (!edition?.cover_path) return;
+    const { data: mine } = await supabase.from("books").select("id").eq("edition_id", editionId).is("cover_path", null);
+    for (const book of mine ?? []) {
+      const path = `${user.id}/${book.id}-${randomUUID().slice(0, 8)}.${edition.cover_path.split(".").pop() ?? "jpg"}`;
+      const { error: copyError } = await supabase.storage.from("covers").copy(edition.cover_path, path);
+      if (copyError) throw copyError;
+      const { error } = await supabase.from("books").update({ cover_path: path, cover_url: null }).eq("id", book.id);
+      if (error) throw error;
+    }
+  } catch (e) {
+    console.error("Couldn't copy the catalog cover to your book:", e);
   }
 }
