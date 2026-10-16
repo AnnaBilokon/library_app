@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { defaultFilter } from "cmdk";
 import { BarChart3, BookIcon, PartyPopper, Plus, Search, Sparkles, Sprout, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { normalizeIsbn } from "@/lib/isbn";
 import { NAV_ITEMS } from "./nav-items";
 
 export interface CommandBook {
@@ -25,6 +27,16 @@ export interface CommandBook {
   wanted?: boolean;
   /** Sold (not in the library anymore). */
   soldAt?: string;
+}
+
+/**
+ * A whole ISBN (with or without dashes, ISBN-10 or -13) finds exactly the book that has it;
+ * anything else is cmdk's usual fuzzy match on titles, authors and pages.
+ */
+function matchItem(value: string, search: string, keywords?: string[]): number {
+  const isbn = normalizeIsbn(search);
+  if (isbn) return keywords?.includes(isbn) ? 1 : 0;
+  return defaultFilter(value, search, keywords);
 }
 
 /** Ctrl/Cmd+K: jump to any page or book. */
@@ -61,8 +73,8 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
         <kbd className="ml-auto hidden rounded-full bg-background px-1.5 font-mono text-[10px] md:inline">Ctrl K</kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} title="Search" description="Jump to a book or a page">
-        <Command>
-          <CommandInput placeholder="Book title, author or page…" />
+        <Command filter={matchItem}>
+          <CommandInput placeholder="Book title, author, ISBN or page…" />
           <CommandList>
             <CommandEmpty>Nothing found.</CommandEmpty>
             <CommandGroup heading="Actions">
@@ -101,7 +113,12 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
             </CommandGroup>
             <CommandGroup heading="Books">
               {books.map((b) => (
-                <CommandItem key={b.id} value={`${b.title} ${b.authors.join(" ")} ${b.isbn ?? ""} ${b.id}`} onSelect={() => go(`/books/${b.id}`)}>
+                <CommandItem
+                  key={b.id}
+                  value={`${b.title} ${b.authors.join(" ")} ${b.id}`}
+                  keywords={b.isbn ? [b.isbn] : undefined}
+                  onSelect={() => go(`/books/${b.id}`)}
+                >
                   <BookIcon aria-hidden />
                   <span className="truncate">
                     {b.title}
