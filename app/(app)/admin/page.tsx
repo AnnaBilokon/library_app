@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
+import { CatalogSearch } from "@/components/admin/catalog-search";
 import { BookCover } from "@/components/books/book-cover";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth";
 import { CATALOG_FILTERS, getCatalogCounts, PAGE_SIZE, searchCatalog, type CatalogFilter } from "@/lib/data/catalog";
@@ -73,14 +73,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<Record<string, 
       />
 
       <div className="flex flex-col gap-4">
-        <form action="/admin" className="flex gap-2" role="search">
-          {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
-          <Input name="q" defaultValue={q} placeholder="Title, author, publisher or ISBN" aria-label="Search the catalog" className="h-10" />
-          <button type="submit" className={cn(buttonVariants({ variant: "secondary" }), "h-10 rounded-full px-4")}>
-            <Search aria-hidden />
-            Search
-          </button>
-        </form>
+        <CatalogSearch q={q} filter={filter} />
         <nav aria-label="Filters" className="flex flex-wrap gap-1.5">
           {CATALOG_FILTERS.map((f) => (
             <Link
