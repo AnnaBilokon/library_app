@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth";
-import { CATALOG_FILTERS, getCatalogCounts, PAGE_SIZE, searchCatalog, type CatalogFilter } from "@/lib/data/catalog";
+import { CATALOG_FILTERS, getCatalogCounts, PAGE_SIZE, RECENT_DAYS, searchCatalog, type CatalogFilter } from "@/lib/data/catalog";
 import { formatDate } from "@/lib/books/labels";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ export const metadata: Metadata = { title: "Catalog" };
 
 const FILTER_LABEL: Record<CatalogFilter, string> = {
   all: "All",
+  recent: "Recently added",
   "to-review": "To review",
   drafts: "Drafts",
   "no-cover": "No cover",
@@ -99,6 +100,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<Record<string, 
       <section aria-label="Editions" className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground" role="status">
           {total === 0 ? "No editions found." : `${total} ${total === 1 ? "edition" : "editions"}${q ? ` matching “${q}”` : ""}`}
+          {filter === "recent" && ` · added in the last ${RECENT_DAYS} days, newest first`}
         </p>
         <ul className="flex flex-col divide-y">
           {editions.map((e) => (
@@ -119,7 +121,7 @@ async function Catalog({ searchParams }: { searchParams: Promise<Record<string, 
                 <div className="flex shrink-0 flex-col items-end gap-1 text-xs">
                   {!e.reviewedAt && <span className="rounded-full bg-primary px-2 py-0.5 font-medium text-primary-foreground">To review</span>}
                   {e.status === "draft" && <span className="rounded-full bg-accent px-2 py-0.5 font-medium">Draft</span>}
-                  {!e.reviewedAt && <span className="text-muted-foreground">added {formatDate(e.createdAt.slice(0, 10))}</span>}
+                  {(!e.reviewedAt || filter === "recent") && <span className="text-muted-foreground">added {formatDate(e.createdAt.slice(0, 10))}</span>}
                   <span className="text-muted-foreground tabular-nums">{e.copies === 1 ? "1 copy" : `${e.copies} copies`}</span>
                 </div>
               </Link>
