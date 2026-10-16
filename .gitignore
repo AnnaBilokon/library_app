@@ -42,3 +42,6 @@ next-env.d.ts
 
 # allow the template env file
 !.env.example
+
+
+.claude/settings.local.json
