@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { LibraryBig, LogOut, Settings } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function UserMenu({ email }: { email: string }) {
+export function UserMenu({ email, isAdmin }: { email: string; isAdmin: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -31,6 +31,12 @@ export function UserMenu({ email }: { email: string }) {
           <Settings aria-hidden />
           Settings
         </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem render={<Link href="/admin" />}>
+            <LibraryBig aria-hidden />
+            Catalog admin
+          </DropdownMenuItem>
+        )}
         {/* A Server Action can be called like a normal async function from the browser. */}
         <DropdownMenuItem onClick={() => void signOut()}>
           <LogOut aria-hidden />

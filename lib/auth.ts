@@ -1,11 +1,13 @@
 import "server-only";
 import { cache } from "react";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CurrentUser {
   id: string;
   email: string;
+  /** Manages the shared catalog. Set as app_metadata.role = "admin" (pnpm catalog:seed --make-admin). */
+  isAdmin: boolean;
 }
 
 /**
@@ -21,5 +23,16 @@ export const requireUser = cache(async (): Promise<CurrentUser> => {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) redirect("/login");
-  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : "" };
+  const role = (claims.app_metadata as { role?: unknown } | undefined)?.role;
+  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : "", isAdmin: role === "admin" };
+});
+
+/**
+ * The signed-in admin, or a 404 for everyone else (admin pages don't reveal that they exist).
+ * The database checks the same role (public.is_admin()), so this is the friendly half.
+ */
+export const requireAdmin = cache(async (): Promise<CurrentUser> => {
+  const user = await requireUser();
+  if (!user.isAdmin) notFound();
+  return user;
 });

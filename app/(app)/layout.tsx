@@ -42,7 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 async function Account() {
   const user = await requireUser();
-  return <UserMenu email={user.email} />;
+  return <UserMenu email={user.email} isAdmin={user.isAdmin} />;
 }
 
 async function SearchIndex() {

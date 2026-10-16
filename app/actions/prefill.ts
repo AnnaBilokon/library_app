@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionResult } from "@/app/actions/books";
 import { requireUser } from "@/lib/auth";
+import { shareCoverWithCatalog } from "@/lib/catalog/link";
 import { getBook } from "@/lib/data/books";
 import { decodeHtml, FetchError, safeFetch, sniffImageType } from "@/lib/net/safe-fetch";
 import { parseBookPage, type Prefill } from "@/lib/prefill/parse";
@@ -57,6 +58,7 @@ export async function importCoverFromUrl(bookId: string, rawUrl: string): Promis
     if (uploadError) throw new FetchError(uploadError.message);
     await supabase.from("books").update({ cover_path: path, cover_url: null }).eq("id", bookId);
     if (current?.cover_path) await supabase.storage.from("covers").remove([current.cover_path]);
+    await shareCoverWithCatalog(supabase, user, bookId);
     revalidatePath("/", "layout");
     return { ok: true, data: undefined };
   } catch (e) {

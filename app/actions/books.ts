@@ -11,6 +11,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { LEAVES_QUEUE } from "@/lib/books/queue";
 import { openReading, planStatusChange, statusFromReadings } from "@/lib/books/reading-logic";
+import { linkToCatalog, shareCoverWithCatalog } from "@/lib/catalog/link";
 import { getBook } from "@/lib/data/books";
 import {
   bookInputSchema,
@@ -52,9 +53,10 @@ export async function createBook(raw: unknown): Promise<ActionResult<{ id: strin
   const { data, error } = await supabase
     .from("books")
     .insert({ ...bookInputToRow(input), title: input.title, user_id: user.id })
-    .select("id")
+    .select("*")
     .single();
   if (error) return fail(dbError(error));
+  await linkToCatalog(supabase, user, data);
 
   // The first reading, unless the book is simply waiting to be read.
   if (input.status !== "to-read") {
@@ -333,6 +335,7 @@ export async function uploadCover(bookId: string, formData: FormData): Promise<A
   const { error } = await supabase.from("books").update({ cover_path: path }).eq("id", bookId);
   if (error) return fail(dbError(error));
   if (current?.cover_path) await supabase.storage.from("covers").remove([current.cover_path]);
+  await shareCoverWithCatalog(supabase, user, bookId);
 
   refreshAll();
   return ok(undefined);
