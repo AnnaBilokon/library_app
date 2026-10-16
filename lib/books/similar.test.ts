@@ -26,46 +26,27 @@ describe("books like this", () => {
     expect(shelfCandidates(current, shelf).map((b) => b.title)).toEqual(["Doors of Stone", "Earthsea", "Cookbook"]);
   });
 
-  it("numbers the unread books and lists what you already have", () => {
+  it("numbers the unread books and adds what you loved and dropped", () => {
     const prompt = similarPrompt(current, shelfCandidates(current, all), all);
     expect(prompt).toContain("b1 | Mistborn — Brandon Sanderson | Fantasy");
     expect(prompt).toContain("b2 | A Wizard of Earthsea");
     expect(prompt).toContain('Gave up: "Too slow"');
-    expect(prompt).toContain("The Wise Man's Fear — Patrick Rothfuss");
+    expect(prompt).not.toContain("The Wise Man's Fear");
   });
 
   it("maps refs back to books and drops unknown or repeated ones", () => {
     const candidates = shelfCandidates(current, all);
     const r = resolveAnswer(
       {
-        fromShelves: [
+        picks: [
           { ref: "b2", reason: "Also about a gifted student at a school of magic." },
           { ref: "b2", reason: "again" },
           { ref: "b9", reason: "made up" },
           { ref: "Mistborn", reason: "not a ref" },
         ],
-        newBooks: [],
       },
       candidates,
-      all,
     );
-    expect(r.fromShelves.map((s) => s.book.title)).toEqual(["A Wizard of Earthsea"]);
-  });
-
-  it("leaves out new books you already have, and genres you don't use", () => {
-    const r = resolveAnswer(
-      {
-        fromShelves: [],
-        newBooks: [
-          { title: "The Wise Man’s Fear", authors: ["Patrick Rothfuss"], year: 2011, genres: ["Fantasy"], reason: "The sequel." },
-          { title: "The Lies of Locke Lamora", authors: ["Scott Lynch"], year: 2006, genres: ["Fantasy", "Heist"], reason: "Same voice." },
-          { title: "The lies of Locke Lamora", authors: ["Scott Lynch"], year: null, genres: [], reason: "Repeated." },
-          { title: "Dune", authors: ["Frank Herbert"], year: null, genres: [], reason: "Already read." },
-        ],
-      },
-      [],
-      all,
-    );
-    expect(r.newBooks).toEqual([{ title: "The Lies of Locke Lamora", authors: ["Scott Lynch"], year: 2006, genres: ["Fantasy"], reason: "Same voice." }]);
+    expect(r.map((s) => s.book.title)).toEqual(["A Wizard of Earthsea"]);
   });
 });
