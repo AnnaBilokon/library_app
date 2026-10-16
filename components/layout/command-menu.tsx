@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { defaultFilter } from "cmdk";
-import { BarChart3, BookIcon, PartyPopper, Plus, Search, Sparkles, Sprout, Swords } from "lucide-react";
+import { BarChart3, BookIcon, Loader2, PartyPopper, Plus, Search, Sparkles, Sprout, Swords } from "lucide-react";
+import { BookCover } from "@/components/books/book-cover";
+import { useCatalogSearch } from "@/components/books/find-in-catalog";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -23,17 +25,23 @@ export interface CommandBook {
   authors: string[];
   /** Typing the digits finds the book. */
   isbn?: string;
+  /** Its catalog edition, so the catalog results leave it out. */
+  editionId?: string;
   /** On the wishlist (not on your shelves). */
   wanted?: boolean;
   /** Sold (not in the library anymore). */
   soldAt?: string;
 }
 
+const CATALOG_PREFIX = "catalog:";
+
 /**
  * A whole ISBN (with or without dashes, ISBN-10 or -13) finds exactly the book that has it;
  * anything else is cmdk's usual fuzzy match on titles, authors and pages.
  */
 function matchItem(value: string, search: string, keywords?: string[]): number {
+  // Catalog results are already matched by the server; show them below your own books.
+  if (value.startsWith(CATALOG_PREFIX)) return 0.5;
   const isbn = normalizeIsbn(search);
   if (isbn) return keywords?.includes(isbn) ? 1 : 0;
   return defaultFilter(value, search, keywords);
@@ -42,7 +50,12 @@ function matchItem(value: string, search: string, keywords?: string[]): number {
 /** Ctrl/Cmd+K: jump to any page or book. */
 export function CommandMenu({ books }: { books: CommandBook[] }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const router = useRouter();
+  // The shared catalog, searched on the server as you type; books you already have are left out.
+  const { results, pending } = useCatalogSearch(open ? search : "");
+  const mine = useMemo(() => new Set(books.flatMap((b) => (b.editionId ? [b.editionId] : []))), [books]);
+  const catalog = (results ?? []).filter((e) => !mine.has(e.id)).slice(0, 5);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -72,9 +85,17 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
         <span className="hidden truncate md:inline">Jump to a book…</span>
         <kbd className="ml-auto hidden rounded-full bg-background px-1.5 font-mono text-[10px] md:inline">Ctrl K</kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen} title="Search" description="Jump to a book or a page">
+      <CommandDialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setSearch("");
+        }}
+        title="Search"
+        description="Jump to a book or a page, or add one from the catalog"
+      >
         <Command filter={matchItem}>
-          <CommandInput placeholder="Book title, author, ISBN or page…" />
+          <CommandInput placeholder="Book title, author, ISBN or page…" value={search} onValueChange={setSearch} />
           <CommandList>
             <CommandEmpty>Nothing found.</CommandEmpty>
             <CommandGroup heading="Actions">
@@ -129,6 +150,33 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
                 </CommandItem>
               ))}
             </CommandGroup>
+            {(catalog.length > 0 || (pending && search.trim().length >= 2)) && (
+              <CommandGroup
+                heading={
+                  <span className="flex items-center gap-1.5">
+                    In the catalog, add to your library
+                    {pending && <Loader2 className="size-3 animate-spin" aria-label="Searching the catalog" />}
+                  </span>
+                }
+              >
+                {catalog.map((e) => (
+                  <CommandItem key={e.id} value={`${CATALOG_PREFIX}${e.id}`} onSelect={() => go(`/books/new?edition=${e.id}`)} className="gap-3 py-2">
+                    <div className="w-9 shrink-0">
+                      <BookCover title={e.title} authors={e.authors} src={e.coverSrc} lang={e.language} sizes="36px" compact />
+                    </div>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span lang={e.language} className="line-clamp-2 text-[15px] leading-snug font-medium">
+                        {e.title}
+                      </span>
+                      <span className="truncate text-[13px] text-muted-foreground">
+                        {[e.authors.join(", "), e.publisher, e.publishedYear].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <Plus className="shrink-0 text-muted-foreground" aria-hidden />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </CommandDialog>

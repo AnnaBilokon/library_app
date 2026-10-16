@@ -63,23 +63,25 @@ export function SearchElsewhere({
       {catalog.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="font-medium">In the catalog, not in your library yet</p>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2">
             {catalog.map((e) => (
-              <li key={e.id} className="flex items-center gap-3 rounded-xl bg-background p-2">
-                <div className="w-9 shrink-0">
-                  <BookCover title={e.title} authors={e.authors} src={e.coverSrc} lang={e.language} sizes="36px" compact />
+              <li key={e.id} className="flex items-center gap-4 rounded-xl bg-background p-3">
+                <div className="w-14 shrink-0">
+                  <BookCover title={e.title} authors={e.authors} src={e.coverSrc} lang={e.language} sizes="56px" compact />
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span lang={e.language} className="truncate font-medium">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span lang={e.language} className="line-clamp-2 text-base leading-snug font-medium">
                     {e.title}
                   </span>
-                  <span className="truncate text-xs text-muted-foreground">{[e.authors.join(", "), e.publishedYear].filter(Boolean).join(" · ")}</span>
+                  <span className="line-clamp-2 text-sm text-muted-foreground">
+                    {[e.authors.join(", "), e.publisher, e.publishedYear].filter(Boolean).join(" · ")}
+                  </span>
                 </div>
                 <Link
                   href={`/books/new?edition=${e.id}`}
-                  className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-medium ring-1 ring-border hover:bg-muted"
+                  className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-sm font-medium ring-1 ring-border hover:bg-muted"
                 >
-                  <Plus className="size-3.5" aria-hidden />
+                  <Plus className="size-4" aria-hidden />
                   Add
                   <span className="sr-only"> “{e.title}” to my library</span>
                 </Link>

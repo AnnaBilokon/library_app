@@ -47,5 +47,5 @@ async function Account() {
 
 async function SearchIndex() {
   const books = await getBooks();
-  return <CommandMenu books={books.map(({ id, title, authors, isbn, wanted, soldAt }) => ({ id, title, authors, isbn, wanted, soldAt }))} />;
+  return <CommandMenu books={books.map(({ id, title, authors, isbn, editionId, wanted, soldAt }) => ({ id, title, authors, isbn, editionId, wanted, soldAt }))} />;
 }

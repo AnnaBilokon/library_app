@@ -95,7 +95,7 @@ export function FindInCatalog({ onPick, ownedIds }: { onPick: (e: Edition) => vo
           Not in the catalog yet. Fill it in from a link or by hand; it&apos;ll be added for others too.
         </p>
       ) : results ? (
-        <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto" aria-label="Catalog results">
+        <ul className="flex max-h-96 flex-col gap-1 overflow-y-auto" aria-label="Catalog results">
           {results.map((e) => (
             <li key={e.id}>
               <button
@@ -104,19 +104,19 @@ export function FindInCatalog({ onPick, ownedIds }: { onPick: (e: Edition) => vo
                   onPick(e);
                   setPicked(e.id);
                 }}
-                className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-background focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="flex w-full items-center gap-4 rounded-xl p-2.5 text-left hover:bg-background focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               >
-                <div className="w-9 shrink-0">
-                  <BookCover title={e.title} authors={e.authors} src={e.coverSrc} lang={e.language} sizes="36px" compact />
+                <div className="w-12 shrink-0">
+                  <BookCover title={e.title} authors={e.authors} src={e.coverSrc} lang={e.language} sizes="48px" compact />
                 </div>
-                <span className="flex min-w-0 flex-col">
-                  <span lang={e.language} className="truncate text-sm font-medium">
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span lang={e.language} className="line-clamp-2 text-[15px] leading-snug font-medium">
                     {e.title}
                   </span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="line-clamp-2 text-sm text-muted-foreground">
                     {[e.authors.join(", "), e.publisher, e.publishedYear].filter(Boolean).join(" · ")}
                   </span>
-                  {ownedIds.has(e.id) && <span className="text-xs font-medium text-primary dark:text-highlight">Already in your library</span>}
+                  {ownedIds.has(e.id) && <span className="text-sm font-medium text-primary dark:text-highlight">Already in your library</span>}
                 </span>
               </button>
             </li>
