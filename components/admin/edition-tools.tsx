@@ -17,11 +17,13 @@ import { cn } from "@/lib/utils";
  * For an edition waiting in the review queue: check it, then mark it reviewed (a draft from
  * someone else gets published at the same time) and go back to the queue.
  */
-export function ReviewBanner({ edition }: { edition: Edition }) {
+export function ReviewBanner({ edition, copies }: { edition: Edition; copies: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   if (edition.reviewedAt) return null;
   const draft = edition.status === "draft";
+  // Nobody's book links to it: it came from an import (or the admin form), not from adding a book.
+  const imported = copies === 0;
 
   const review = () =>
     start(async () => {
@@ -35,11 +37,11 @@ export function ReviewBanner({ edition }: { edition: Edition }) {
     <div role="note" className="flex flex-col gap-3 rounded-2xl bg-accent/80 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col gap-0.5 text-sm">
         <p className="font-medium">
-          Added from {draft ? "someone's" : "a"} book on {formatDate(edition.createdAt.slice(0, 10))} · not reviewed yet
+          {imported ? "Imported" : `Added from ${draft ? "someone's" : "a"} book`} on {formatDate(edition.createdAt.slice(0, 10))} · not reviewed yet
         </p>
         <p className="text-muted-foreground">
           {draft
-            ? "Only its author can see it until you approve it. Check the details and cover first."
+            ? "Nobody else can find it until you approve it. Check the details and cover first."
             : "Check the details and cover, fix anything below, then mark it reviewed. Saving the form counts too."}
         </p>
       </div>

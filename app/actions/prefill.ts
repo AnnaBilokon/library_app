@@ -7,8 +7,9 @@ import type { ActionResult } from "@/app/actions/books";
 import { requireUser } from "@/lib/auth";
 import { shareCoverWithCatalog } from "@/lib/catalog/link";
 import { getBook } from "@/lib/data/books";
-import { decodeHtml, FetchError, safeFetch, sniffImageType } from "@/lib/net/safe-fetch";
-import { parseBookPage, type Prefill } from "@/lib/prefill/parse";
+import { FetchError, safeFetch, sniffImageType } from "@/lib/net/safe-fetch";
+import type { Prefill } from "@/lib/prefill/parse";
+import { readBookPage } from "@/lib/prefill/read";
 import { createClient } from "@/lib/supabase/server";
 
 const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" } as const;
@@ -18,22 +19,7 @@ export async function prefillFromUrl(rawUrl: string): Promise<ActionResult<Prefi
   await requireUser();
   const parsed = z.url({ protocol: /^https?$/ }).safeParse(rawUrl.trim());
   if (!parsed.success) return { ok: false, error: "Paste a full link, starting with https://" };
-
-  try {
-    const page = await safeFetch(parsed.data, { accept: "text/html,application/xhtml+xml", maxBytes: 6 * 1024 * 1024 });
-    if (!/html/i.test(page.contentType)) return { ok: false, error: "That link isn't a web page." };
-    const data = parseBookPage(decodeHtml(page.body, page.contentType), page.url);
-    if (!data.title && !data.isbn) return { ok: false, error: "Couldn't find book details on that page. Is it the page of one book?" };
-    return { ok: true, data: { ...data, site: new URL(page.url).hostname.replace(/^www\./, "") } };
-  } catch (e) {
-    if (e instanceof FetchError) {
-      if (e.status === 403 || e.status === 429 || e.status === 503) {
-        return { ok: false, error: "This site blocks automatic reading. Try the publisher's own site, or fill in by hand." };
-      }
-      return { ok: false, error: e.message };
-    }
-    return { ok: false, error: "Something went wrong reading that page." };
-  }
+  return readBookPage(parsed.data);
 }
 
 /**

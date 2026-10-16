@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ListPlus, Plus } from "lucide-react";
 import { CatalogSearch } from "@/components/admin/catalog-search";
 import { BookCover } from "@/components/books/book-cover";
 import { PageHeader } from "@/components/layout/page-header";
@@ -68,10 +68,16 @@ async function Catalog({ searchParams }: { searchParams: Promise<Record<string, 
         title="Catalog"
         description="Every edition in the shared library. People's own books keep their copy of the details; fix the catalog here."
         actions={
-          <Link href="/admin/editions/new" className={cn(buttonVariants(), "h-10 rounded-full px-5")}>
-            <Plus aria-hidden />
-            Add an edition
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/import" className={cn(buttonVariants({ variant: "outline" }), "h-10 rounded-full px-5")}>
+              <ListPlus aria-hidden />
+              Import a list
+            </Link>
+            <Link href="/admin/editions/new" className={cn(buttonVariants(), "h-10 rounded-full px-5")}>
+              <Plus aria-hidden />
+              Add an edition
+            </Link>
+          </div>
         }
       />
 
