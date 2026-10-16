@@ -80,6 +80,7 @@ export type Database = {
           currency: string
           deleted_at: string | null
           description: string | null
+          edition_id: string | null
           favorite: boolean
           for_sale: boolean
           forgotten: boolean
@@ -127,6 +128,7 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           description?: string | null
+          edition_id?: string | null
           favorite?: boolean
           for_sale?: boolean
           forgotten?: boolean
@@ -174,6 +176,7 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           description?: string | null
+          edition_id?: string | null
           favorite?: boolean
           for_sale?: boolean
           forgotten?: boolean
@@ -211,6 +214,86 @@ export type Database = {
           where_to_buy?: string | null
           wish_price?: number | null
           wishlist_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "books_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editions: {
+        Row: {
+          authors: string[]
+          cover_path: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          genres: string[]
+          id: string
+          isbn: string | null
+          language: string | null
+          original_language: string | null
+          pages: number | null
+          published_year: number | null
+          publisher: string | null
+          search_text: string
+          series: string | null
+          series_index: number | null
+          source_url: string | null
+          status: Database["public"]["Enums"]["edition_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          authors?: string[]
+          cover_path?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          genres?: string[]
+          id?: string
+          isbn?: string | null
+          language?: string | null
+          original_language?: string | null
+          pages?: number | null
+          published_year?: number | null
+          publisher?: string | null
+          search_text?: string
+          series?: string | null
+          series_index?: number | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["edition_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          authors?: string[]
+          cover_path?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          genres?: string[]
+          id?: string
+          isbn?: string | null
+          language?: string | null
+          original_language?: string | null
+          pages?: number | null
+          published_year?: number | null
+          publisher?: string | null
+          search_text?: string
+          series?: string | null
+          series_index?: number | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["edition_status"]
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -442,11 +525,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      edition_copies: {
+        Args: { edition_ids: string[] }
+        Returns: {
+          copies: number
+          edition_id: string
+        }[]
+      }
+      is_admin: { Args: never; Returns: boolean }
+      merge_editions: {
+        Args: { source: string; target: string }
+        Returns: string
+      }
       reorder_queue: { Args: { ids: string[] }; Returns: undefined }
     }
     Enums: {
       book_format: "paper" | "ebook" | "audio"
       book_status: "to-read" | "reading" | "paused" | "finished" | "abandoned"
+      edition_status: "draft" | "public"
       reading_outcome: "finished" | "abandoned"
       wish_priority: "low" | "medium" | "high"
     }
@@ -578,6 +674,7 @@ export const Constants = {
     Enums: {
       book_format: ["paper", "ebook", "audio"],
       book_status: ["to-read", "reading", "paused", "finished", "abandoned"],
+      edition_status: ["draft", "public"],
       reading_outcome: ["finished", "abandoned"],
       wish_priority: ["low", "medium", "high"],
     },

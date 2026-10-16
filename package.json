@@ -9,6 +9,7 @@
     "lint": "eslint",
     "notion:inspect": "tsx --env-file=.env.local scripts/inspect-notion.ts",
     "notion:import": "tsx --env-file=.env.local scripts/import-notion.ts",
+    "catalog:seed": "tsx --env-file=.env.local scripts/seed-catalog.ts",
     "db:types": "supabase gen types typescript --linked --schema public > lib/database.types.ts",
     "test": "vitest run"
   },

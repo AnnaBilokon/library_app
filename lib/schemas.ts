@@ -55,6 +55,30 @@ export const bookInputSchema = z
     message: "Can't finish before you started.",
   });
 
+/** An edition in the shared catalog (admin panel). The bibliographic part of a book, no personal fields. */
+export const editionInputSchema = z.object({
+  title: z.string().trim().min(1, "Title is required.").max(500),
+  authors: z.array(z.string().trim().min(1).max(200)).max(20),
+  genres: z.array(z.string().trim().min(1).max(100)).max(20),
+  language: z.string().regex(/^[a-z]{2,3}$/, "Pick a language.").optional().or(z.literal("")),
+  originalLanguage: z.string().regex(/^[a-z]{2,3}$/, "Pick a language.").optional().or(z.literal("")),
+  publisher: optionalText,
+  publishedYear: optionalNumber(z.number().int("Whole years only.").min(0).max(2100)),
+  pages: optionalNumber(z.number().int("Whole pages only.").positive("Must be at least 1.")),
+  isbn: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || normalizeIsbn(v) !== null, "That isn't a valid ISBN-10 or ISBN-13."),
+  series: optionalText,
+  seriesIndex: optionalNumber(z.number().positive()),
+  description: z.string().trim().max(20_000).optional(),
+  sourceUrl: z.url({ protocol: /^https?$/, error: "Use a full link, starting with https://" }).optional().or(z.literal("")),
+  status: z.enum(["draft", "public"]),
+});
+export type EditionFormValues = z.input<typeof editionInputSchema>;
+export type EditionInput = z.output<typeof editionInputSchema>;
+
 /** Form values (what the inputs hold) vs. validated output. */
 export type BookFormValues = z.input<typeof bookInputSchema>;
 export type BookInput = z.output<typeof bookInputSchema>;
@@ -97,6 +121,8 @@ type ReadingRowUpdate = Database["public"]["Tables"]["readings"]["Update"];
 const orNull = <T>(v: T | undefined | ""): T | null => (v === undefined || v === "" ? null : v);
 const textOrNull = (v: string | undefined) => (v?.trim() ? v.trim() : null);
 const uniq = (values: string[]) => [...new Set(values.map((v) => v.trim()).filter(Boolean))];
+
+type EditionRowUpdate = Database["public"]["Tables"]["editions"]["Update"];
 
 /** Validated form input → DB columns (the reverse of rowToBook). */
 export function bookInputToRow(input: BookInput): BookRowUpdate {
@@ -153,5 +179,25 @@ export function readingInputToRow(input: ReadingInput): ReadingRowUpdate {
     stop_reason: input.outcome === "abandoned" ? textOrNull(input.stopReason) : null,
     // Only a reading that ended can be rated.
     rating: input.outcome === "in-progress" ? null : (input.rating ?? null),
+  };
+}
+
+/** Validated edition input → DB columns. */
+export function editionInputToRow(input: EditionInput): EditionRowUpdate & { title: string } {
+  return {
+    title: input.title,
+    authors: uniq(input.authors),
+    genres: uniq(input.genres),
+    language: orNull(input.language),
+    original_language: orNull(input.originalLanguage),
+    publisher: textOrNull(input.publisher),
+    published_year: input.publishedYear ?? null,
+    pages: input.pages ?? null,
+    isbn: input.isbn ? normalizeIsbn(input.isbn) : null,
+    series: textOrNull(input.series),
+    series_index: input.seriesIndex ?? null,
+    description: textOrNull(input.description),
+    source_url: orNull(input.sourceUrl),
+    status: input.status,
   };
 }

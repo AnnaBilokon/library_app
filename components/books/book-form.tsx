@@ -25,7 +25,7 @@ import { BookCover } from "./book-cover";
 import { RatingStars } from "./rating-stars";
 import { TagInput } from "./tag-input";
 
-const LANGUAGES = ["uk", "en", "sv", "pl", "de", "fr", "es", "it", "ja", "ru"];
+export const LANGUAGES = ["uk", "en", "sv", "pl", "de", "fr", "es", "it", "ja", "ru"];
 
 export interface BookFormSuggestions {
   authors: string[];
@@ -510,11 +510,11 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
   );
 }
 
-const selectClass =
+export const selectClass =
   "h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
 /** "Paste a link" box: reads a publisher's or shop's page and fills the form. */
-function PrefillFromLink({ onPrefill, editing }: { onPrefill: (p: Prefill) => { filled: string[]; kept: string[] }; editing: boolean }) {
+export function PrefillFromLink({ onPrefill, editing }: { onPrefill: (p: Prefill, link: string) => { filled: string[]; kept: string[] }; editing: boolean }) {
   const [url, setUrl] = useState("");
   const [loading, startLoading] = useTransition();
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
@@ -529,7 +529,7 @@ function PrefillFromLink({ onPrefill, editing }: { onPrefill: (p: Prefill) => { 
         setMessage({ kind: "error", text: r.error });
         return;
       }
-      const { filled, kept } = onPrefill(r.data);
+      const { filled, kept } = onPrefill(r.data, link);
       if (filled.length === 0) {
         setMessage({ kind: "ok", text: `Nothing new on ${r.data.site}: your fields are already filled.` });
         return;
@@ -582,7 +582,7 @@ function PrefillFromLink({ onPrefill, editing }: { onPrefill: (p: Prefill) => { 
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
       <h2 className="font-heading text-xl font-semibold text-heading">{title}</h2>
@@ -592,7 +592,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /** Label + control + hint/error, wired together for screen readers. */
-function Field({
+export function Field({
   label,
   hint,
   error,
@@ -624,7 +624,7 @@ function Field({
   );
 }
 
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   label,
   value,
   onChange,
@@ -656,7 +656,7 @@ function Segmented<T extends string>({
   );
 }
 
-function DatalistInput({ options, ...props }: React.ComponentProps<"input"> & { options: string[] }) {
+export function DatalistInput({ options, ...props }: React.ComponentProps<"input"> & { options: string[] }) {
   const listId = useId();
   return (
     <>

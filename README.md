@@ -87,6 +87,21 @@ pnpm notion:import --update      # also overwrite books imported earlier (discar
 - If the project has more than one user, add `--user you@example.com`.
 - The mapping lives in `scripts/lib/notion-mapping.ts` and is covered by `pnpm test`.
 
+## Shared catalog and admin
+
+The catalog (`editions`) is the shared list of books everyone can find. Each person's book keeps its own copy of the details and links to its edition (`books.edition_id`); fixing the catalog never changes someone's book by itself. New books link to the edition with the same ISBN, or create one: public when an admin adds it, a draft otherwise.
+
+Admins manage it at **Account menu → Catalog admin** (`/admin`): search, filter (drafts, no cover, no ISBN, possible duplicates), edit details and covers, merge duplicates and delete unused editions. An admin is a user with `app_metadata.role = "admin"`; the database checks the same role (`public.is_admin()`).
+
+Fill the catalog from your own books (once, or again later; it's safe to re-run):
+
+```bash
+pnpm catalog:seed --dry-run      # what would happen
+pnpm catalog:seed --make-admin   # create editions, copy covers, link books, make you an admin
+```
+
+Sign out and in again after `--make-admin`, so your session picks up the role.
+
 ## Scripts
 
 | Command | What it does |
@@ -96,3 +111,4 @@ pnpm notion:import --update      # also overwrite books imported earlier (discar
 | `pnpm lint` | ESLint |
 | `pnpm test` | Vitest unit tests |
 | `pnpm db:types` | Regenerate Supabase types |
+| `pnpm catalog:seed` | Fill the shared catalog from your books (see above) |
