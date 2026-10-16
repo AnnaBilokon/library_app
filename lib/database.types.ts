@@ -241,6 +241,7 @@ export type Database = {
           pages: number | null
           published_year: number | null
           publisher: string | null
+          reviewed_at: string | null
           search_text: string
           series: string | null
           series_index: number | null
@@ -264,6 +265,7 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher?: string | null
+          reviewed_at?: string | null
           search_text?: string
           series?: string | null
           series_index?: number | null
@@ -287,6 +289,7 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher?: string | null
+          reviewed_at?: string | null
           search_text?: string
           series?: string | null
           series_index?: number | null

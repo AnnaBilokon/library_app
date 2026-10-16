@@ -117,7 +117,7 @@ async function main() {
       if (!editionId) {
         const { data, error } = await supabase
           .from("editions")
-          .insert({ ...sharedFields(source), cover_url: source.cover_path ? null : source.cover_url, status: "public", created_by: user.id })
+          .insert({ ...sharedFields(source), cover_url: source.cover_path ? null : source.cover_url, status: "public", created_by: user.id, reviewed_at: new Date().toISOString() })
           .select("id")
           .single();
         if (error) throw error;

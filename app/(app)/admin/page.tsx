@@ -9,12 +9,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth";
 import { CATALOG_FILTERS, getCatalogCounts, PAGE_SIZE, searchCatalog, type CatalogFilter } from "@/lib/data/catalog";
+import { formatDate } from "@/lib/books/labels";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Catalog" };
 
 const FILTER_LABEL: Record<CatalogFilter, string> = {
   all: "All",
+  "to-review": "To review",
   drafts: "Drafts",
   "no-cover": "No cover",
   "no-isbn": "No ISBN",
@@ -82,6 +84,8 @@ async function Catalog({ searchParams }: { searchParams: Promise<Record<string, 
               aria-current={f === filter ? "page" : undefined}
               className={cn(
                 "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-sm font-medium ring-1 ring-border hover:bg-muted",
+                // Something waiting for review stands out even while another filter is on.
+                f === "to-review" && counts[f] > 0 && f !== filter && "bg-accent ring-primary/40",
                 f === filter && "bg-primary text-primary-foreground ring-primary hover:bg-primary/90",
               )}
             >
@@ -113,7 +117,9 @@ async function Catalog({ searchParams }: { searchParams: Promise<Record<string, 
                   </span>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                  {!e.reviewedAt && <span className="rounded-full bg-primary px-2 py-0.5 font-medium text-primary-foreground">To review</span>}
                   {e.status === "draft" && <span className="rounded-full bg-accent px-2 py-0.5 font-medium">Draft</span>}
+                  {!e.reviewedAt && <span className="text-muted-foreground">added {formatDate(e.createdAt.slice(0, 10))}</span>}
                   <span className="text-muted-foreground tabular-nums">{e.copies === 1 ? "1 copy" : `${e.copies} copies`}</span>
                 </div>
               </Link>

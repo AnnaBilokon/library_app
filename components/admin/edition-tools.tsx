@@ -2,15 +2,54 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GitMerge, ImageUp, Link2, Loader2, Trash2 } from "lucide-react";
+import { CircleCheck, GitMerge, ImageUp, Link2, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { deleteEdition, findEditions, importEditionCover, mergeEdition, uploadEditionCover, type EditionOption } from "@/app/actions/admin";
+import { deleteEdition, findEditions, importEditionCover, mergeEdition, reviewEdition, uploadEditionCover, type EditionOption } from "@/app/actions/admin";
 import { BookCover } from "@/components/books/book-cover";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/books/labels";
 import type { Edition } from "@/lib/catalog/editions";
 import { cn } from "@/lib/utils";
+
+/**
+ * For an edition waiting in the review queue: check it, then mark it reviewed (a draft from
+ * someone else gets published at the same time) and go back to the queue.
+ */
+export function ReviewBanner({ edition }: { edition: Edition }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  if (edition.reviewedAt) return null;
+  const draft = edition.status === "draft";
+
+  const review = () =>
+    start(async () => {
+      const r = await reviewEdition(edition.id, draft);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(draft ? "Approved and published" : "Marked as reviewed");
+      router.push("/admin?filter=to-review");
+    });
+
+  return (
+    <div role="note" className="flex flex-col gap-3 rounded-2xl bg-accent/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-0.5 text-sm">
+        <p className="font-medium">
+          Added from {draft ? "someone's" : "a"} book on {formatDate(edition.createdAt.slice(0, 10))} · not reviewed yet
+        </p>
+        <p className="text-muted-foreground">
+          {draft
+            ? "Only its author can see it until you approve it. Check the details and cover first."
+            : "Check the details and cover, fix anything below, then mark it reviewed. Saving the form counts too."}
+        </p>
+      </div>
+      <Button onClick={review} disabled={pending} className="h-10 shrink-0 rounded-full px-5">
+        {pending ? <Loader2 className="animate-spin" aria-hidden /> : <CircleCheck aria-hidden />}
+        {draft ? "Approve & publish" : "Mark as reviewed"}
+      </Button>
+    </div>
+  );
+}
 
 /** The edition's cover: upload a file or copy one from a link. */
 export function EditionCover({ edition }: { edition: Edition }) {

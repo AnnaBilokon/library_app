@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
 import { EditionForm } from "@/components/admin/edition-form";
-import { EditionCover, EditionDangerZone } from "@/components/admin/edition-tools";
+import { EditionCover, EditionDangerZone, ReviewBanner } from "@/components/admin/edition-tools";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth";
 import { formatDate, STATUS_LABEL } from "@/lib/books/labels";
@@ -75,6 +75,7 @@ async function EditionDetail({ params }: { params: Promise<{ id: string }> }) {
           <h1 lang={edition.language} className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance text-heading md:text-4xl">
             {edition.title}
           </h1>
+          <ReviewBanner edition={edition} />
           {/* key: start fresh when the saved edition changes */}
           <EditionForm key={edition.updatedAt} edition={edition} hasMyCopy={Boolean(myCopy)} suggestions={{ authors, genres, publishers }} />
           <section className="flex flex-col gap-3 border-t pt-6">

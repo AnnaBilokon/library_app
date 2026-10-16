@@ -35,9 +35,9 @@ function refresh() {
 }
 
 /**
- * Create (id null) or update an edition. With `alsoUpdateMine`, your own book linked to it gets
- * the same details, and the catalog cover if it has none (RLS limits this to your books; other
- * people's copies stay as they are).
+ * Create (id null) or update an edition. Saving here counts as reviewing it. With `alsoUpdateMine`,
+ * your own book linked to it gets the same details, and the catalog cover if it has none (RLS
+ * limits this to your books; other people's copies stay as they are).
  */
 export async function saveEdition(editionId: string | null, raw: unknown, alsoUpdateMine: boolean): Promise<ActionResult<{ id: string }>> {
   const user = await admin();
@@ -45,7 +45,7 @@ export async function saveEdition(editionId: string | null, raw: unknown, alsoUp
   if (editionId !== null && !id.safeParse(editionId).success) return fail("Unknown edition.");
   const parsed = editionInputSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.");
-  const row = editionInputToRow(parsed.data);
+  const row = { ...editionInputToRow(parsed.data), reviewed_at: new Date().toISOString() };
 
   const supabase = await createClient();
   const { data, error } = editionId
@@ -111,6 +111,20 @@ export async function importEditionCover(editionId: string, rawUrl: string): Pro
     refresh();
     return fail(`Couldn't copy the cover (${e instanceof Error ? e.message : "download failed"}); kept a link to it instead.`);
   }
+}
+
+/** Takes an edition out of the review queue; `publish` also makes a draft public. */
+export async function reviewEdition(editionId: string, publish: boolean): Promise<ActionResult> {
+  if (!(await isAdmin())) return fail("Admins only.");
+  if (!id.safeParse(editionId).success) return fail("Unknown edition.");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("editions")
+    .update({ reviewed_at: new Date().toISOString(), ...(publish ? { status: "public" as const } : {}) })
+    .eq("id", editionId);
+  if (error) return fail(`Couldn't save: ${error.message}`);
+  refresh();
+  return ok(undefined);
 }
 
 /** Moves every book linked to `sourceId` onto `targetId` and deletes the source edition. */

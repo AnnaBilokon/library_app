@@ -27,6 +27,8 @@ export interface Edition {
   coverPath?: string;
   sourceUrl?: string;
   status: EditionStatus;
+  /** When an admin checked it; absent while it waits in the review queue. */
+  reviewedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +54,7 @@ export function rowToEdition(row: EditionRow, supabaseUrl: string): Edition {
     coverPath: opt(row.cover_path),
     sourceUrl: opt(row.source_url),
     status: row.status,
+    reviewedAt: opt(row.reviewed_at),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
