@@ -91,7 +91,7 @@ pnpm notion:import --update      # also overwrite books imported earlier (discar
 
 The catalog (`editions`) is the shared list of books everyone can find. Each person's book keeps its own copy of the details and links to its edition (`books.edition_id`); fixing the catalog never changes someone's book by itself. New books link to the edition with the same ISBN, or create one: public when an admin adds it, a draft otherwise.
 
-Admins manage it at **Account menu → Catalog admin** (`/admin`): search, filter (to review, drafts, no cover, no ISBN, possible duplicates), edit details and covers, merge duplicates and delete unused editions.
+Admins manage it at **Account menu → Catalog admin** (`/admin`): search, filter (recently added, to review, drafts, no cover, no ISBN, possible duplicates), edit details and covers, merge duplicates and delete unused editions.
 
 **Review queue:** an edition created because someone added a book (an admin included) waits under **To review**, newest first. Open it, check the details and cover, then **Mark as reviewed** (or **Approve & publish** for someone else's draft). Saving an edition in the admin form also counts as reviewing it. An admin is a user with `app_metadata.role = "admin"`; the database checks the same role (`public.is_admin()`).
 

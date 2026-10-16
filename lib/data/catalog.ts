@@ -6,9 +6,15 @@ import { normalizeIsbn } from "@/lib/isbn";
 import { createClient } from "@/lib/supabase/server";
 import type { BookStatus } from "@/lib/types";
 
-export const CATALOG_FILTERS = ["all", "to-review", "drafts", "no-cover", "no-isbn", "duplicates"] as const;
+export const CATALOG_FILTERS = ["all", "recent", "to-review", "drafts", "no-cover", "no-isbn", "duplicates"] as const;
 export type CatalogFilter = (typeof CATALOG_FILTERS)[number];
 export const PAGE_SIZE = 50;
+/** "Recently added" looks this many days back. */
+export const RECENT_DAYS = 30;
+
+const recentSince = () => new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000).toISOString();
+/** Filters that list the newest editions first (everything else is alphabetical). */
+const NEWEST_FIRST: readonly CatalogFilter[] = ["recent", "to-review"];
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 const supabaseUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -44,6 +50,7 @@ export async function searchCatalog(q: string, filter: CatalogFilter, page: numb
   if (isbn) query = query.eq("isbn", isbn);
   else if (text) query = query.ilike("search_text", `%${likeEscape(text.toLowerCase())}%`);
 
+  if (filter === "recent") query = query.gte("created_at", recentSince());
   if (filter === "to-review") query = query.is("reviewed_at", null);
   if (filter === "drafts") query = query.eq("status", "draft");
   if (filter === "no-cover") query = query.is("cover_path", null).is("cover_url", null);
@@ -51,8 +58,7 @@ export async function searchCatalog(q: string, filter: CatalogFilter, page: numb
   if (filter === "duplicates") query = query.in("id", await duplicateIds(supabase));
 
   const from = (page - 1) * PAGE_SIZE;
-  // The review queue shows the newest first; everything else is alphabetical.
-  const ordered = filter === "to-review" ? query.order("created_at", { ascending: false }) : query.order("title");
+  const ordered = NEWEST_FIRST.includes(filter) ? query.order("created_at", { ascending: false }) : query.order("title");
   const { data, error, count } = await ordered.order("id").range(from, from + PAGE_SIZE - 1);
   if (error) throw new Error(`Couldn't load the catalog: ${error.message}`);
   const copies = await copiesOf(supabase, data.map((e) => e.id));
@@ -71,6 +77,7 @@ export const getCatalogCounts = cache(async (): Promise<Record<CatalogFilter, nu
   const [results, dupes] = await Promise.all([
     Promise.all([
       editions(),
+      editions().gte("created_at", recentSince()),
       editions().is("reviewed_at", null),
       editions().eq("status", "draft"),
       editions().is("cover_path", null).is("cover_url", null),
@@ -80,8 +87,8 @@ export const getCatalogCounts = cache(async (): Promise<Record<CatalogFilter, nu
   ]);
   const failed = results.find((r) => r.error);
   if (failed?.error) throw new Error(`Couldn't count the catalog: ${failed.error.message}`);
-  const [all, toReview, drafts, noCover, noIsbn] = results.map((r) => r.count ?? 0);
-  return { all, "to-review": toReview, drafts, "no-cover": noCover, "no-isbn": noIsbn, duplicates: dupes.length };
+  const [all, recent, toReview, drafts, noCover, noIsbn] = results.map((r) => r.count ?? 0);
+  return { all, recent, "to-review": toReview, drafts, "no-cover": noCover, "no-isbn": noIsbn, duplicates: dupes.length };
 });
 
 /** Your own book linked to an edition: where it is and whether it has a cover. */
