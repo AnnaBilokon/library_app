@@ -93,6 +93,8 @@ The catalog (`editions`) is the shared list of books everyone can find. Each per
 
 Admins manage it at **Account menu → Catalog admin** (`/admin`): search, filter (recently added, to review, drafts, no cover, no ISBN, possible duplicates), edit details and covers, merge duplicates and delete unused editions.
 
+**Import a list** (`/admin/import`): paste links to book pages or ISBNs, one per line (up to 100). Each becomes a draft in **To review**; nobody else can find it until you approve it. Links are read like "Fill in from a link"; ISBNs are looked up in Google Books (set `GOOGLE_BOOKS_API_KEY`, a free key, or it's skipped) and then Open Library, which know English books well and Ukrainian ones rarely, so links work best. An ISBN already in the catalog is skipped.
+
 **Review queue:** an edition created because someone added a book (an admin included) waits under **To review**, newest first. Open it, check the details and cover, then **Mark as reviewed** (or **Approve & publish** for someone else's draft). Saving an edition in the admin form also counts as reviewing it. An admin is a user with `app_metadata.role = "admin"`; the database checks the same role (`public.is_admin()`).
 
 Fill the catalog from your own books (once, or again later; it's safe to re-run):

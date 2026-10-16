@@ -4,15 +4,14 @@
 // again (RLS on editions and on covers/catalog/), so a non-admin can't change the catalog even by
 // calling these endpoints directly.
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionResult } from "@/app/actions/books";
 import { requireUser, type CurrentUser } from "@/lib/auth";
-import { catalogCoverPath, likeEscape, sharedFields, type SharedFields } from "@/lib/catalog/editions";
+import { likeEscape, sharedFields, type SharedFields } from "@/lib/catalog/editions";
+import { COVER_TYPES, importEditionCoverFromUrl, MAX_COVER_BYTES, storeEditionCover } from "@/lib/catalog/covers";
 import { fillMyCoversFromEdition } from "@/lib/catalog/link";
 import { normalizeIsbn } from "@/lib/isbn";
-import { FetchError, safeFetch, sniffImageType } from "@/lib/net/safe-fetch";
 import { editionInputSchema, editionInputToRow } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,8 +19,6 @@ const id = z.uuid();
 const ok = <T>(data: T): ActionResult<T> => ({ ok: true, data });
 const fail = (error: string): ActionResult<never> => ({ ok: false, error });
 
-const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
-const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
 /** The signed-in admin, or null for anyone else. */
 async function admin(): Promise<CurrentUser | null> {
@@ -65,24 +62,6 @@ export async function saveEdition(editionId: string | null, raw: unknown, alsoUp
   return ok({ id: data.id });
 }
 
-/**
- * Puts an image into covers/catalog/ for this edition and removes the previous file. Your own copy
- * of the book gets it too if it has no cover yet.
- */
-async function storeCover(user: CurrentUser, editionId: string, body: Blob | Uint8Array, type: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const { data: current } = await supabase.from("editions").select("cover_path").eq("id", editionId).single();
-  const path = catalogCoverPath(editionId, COVER_TYPES[type], randomUUID().slice(0, 8));
-  const { error: uploadError } = await supabase.storage.from("covers").upload(path, body, { contentType: type });
-  if (uploadError) return fail(`Couldn't upload: ${uploadError.message}`);
-  const { error } = await supabase.from("editions").update({ cover_path: path, cover_url: null }).eq("id", editionId);
-  if (error) return fail(`Couldn't save: ${error.message}`);
-  if (current?.cover_path) await supabase.storage.from("covers").remove([current.cover_path]);
-  await fillMyCoversFromEdition(supabase, user, editionId);
-  refresh();
-  return ok(undefined);
-}
-
 export async function uploadEditionCover(editionId: string, formData: FormData): Promise<ActionResult> {
   const user = await admin();
   if (!user) return fail("Admins only.");
@@ -91,7 +70,9 @@ export async function uploadEditionCover(editionId: string, formData: FormData):
   if (!(file instanceof File) || file.size === 0) return fail("Choose an image.");
   if (!COVER_TYPES[file.type]) return fail("Use a JPG, PNG, WebP or AVIF image.");
   if (file.size > MAX_COVER_BYTES) return fail("The image is larger than 5 MB.");
-  return storeCover(user, editionId, file, file.type);
+  const r = await storeEditionCover(await createClient(), user, editionId, file, file.type);
+  refresh();
+  return r;
 }
 
 /** Copies a cover from the web into Storage; if that fails, keeps the link itself. */
@@ -100,17 +81,9 @@ export async function importEditionCover(editionId: string, rawUrl: string): Pro
   if (!user) return fail("Admins only.");
   const url = z.url({ protocol: /^https?$/ }).safeParse(rawUrl);
   if (!id.safeParse(editionId).success || !url.success) return fail("Invalid input.");
-  try {
-    const file = await safeFetch(url.data, { accept: "image/*", maxBytes: MAX_COVER_BYTES });
-    const type = sniffImageType(file.body);
-    if (!type) throw new FetchError("That link isn't a supported image.");
-    return await storeCover(user, editionId, file.body, type);
-  } catch (e) {
-    const supabase = await createClient();
-    await supabase.from("editions").update({ cover_url: url.data }).eq("id", editionId);
-    refresh();
-    return fail(`Couldn't copy the cover (${e instanceof Error ? e.message : "download failed"}); kept a link to it instead.`);
-  }
+  const r = await importEditionCoverFromUrl(await createClient(), user, editionId, url.data);
+  refresh();
+  return r;
 }
 
 /** Takes an edition out of the review queue; `publish` also makes a draft public. */
