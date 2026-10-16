@@ -4,15 +4,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { ActionResult } from "@/app/actions/books";
 import { requireUser } from "@/lib/auth";
-import type { SimilarBooks } from "@/lib/books/similar";
+import type { SimilarPick } from "@/lib/books/similar";
 import { askForSimilar } from "@/lib/books/similar-ai";
 import { getBooks } from "@/lib/data/books";
 
 /**
- * Books like this one: unread ones from your shelves and new ones for the wishlist, picked by
- * Claude from your own library. Needs ANTHROPIC_API_KEY on the server; nothing is saved.
+ * Books like this one: unread ones from your own shelves, picked by Claude. Needs
+ * ANTHROPIC_API_KEY on the server; nothing is saved.
  */
-export async function suggestSimilar(bookId: string): Promise<ActionResult<SimilarBooks>> {
+export async function suggestSimilar(bookId: string): Promise<ActionResult<SimilarPick[]>> {
   await requireUser();
   if (!z.uuid().safeParse(bookId).success) return { ok: false, error: "Unknown book." };
   if (!process.env.ANTHROPIC_API_KEY) return { ok: false, error: "Suggestions aren't set up: ANTHROPIC_API_KEY is missing." };

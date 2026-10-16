@@ -42,7 +42,7 @@ The app runs on Vercel and talks to the same Supabase project as local developme
 2. **Settings → Environment Variables** (Production and Preview):
    - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, the same values as in `.env.local`
    - `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel uses the pnpm version from `packageManager`
-   - `ANTHROPIC_API_KEY` (optional): turns on "Books like this" on a book's page, where Claude suggests similar books from your shelves and new ones for the wishlist. Create a key at [platform.claude.com](https://platform.claude.com). It stays on the server; it uses Claude Haiku, so a request costs well under a cent.
+   - `ANTHROPIC_API_KEY` (optional): turns on "Books like this" on a book's page, where Claude picks unread books from your shelves that go well with it. Create a key at [platform.claude.com](https://platform.claude.com). It stays on the server; it uses Claude Haiku, so a request costs well under a cent.
    - **Never** add `SUPABASE_SECRET_KEY` (or the Notion values): they're for local scripts only.
 3. Node.js: `engines.node` in `package.json` (`>=22`) makes Vercel build and run on Node 22.
 4. In Supabase, **Authentication → URL Configuration**: set **Site URL** to the Vercel domain (e.g. `https://your-app.vercel.app`) and add it under **Redirect URLs**.
