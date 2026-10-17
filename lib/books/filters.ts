@@ -62,6 +62,9 @@ export interface BookFilters {
   ratingMin: number | null;
   ratingMax: number | null;
   finishedYear: number | null;
+  /** Finished between these days (yyyy-mm-dd, either end optional), e.g. "last summer". */
+  finishedFrom: string | null;
+  finishedTo: string | null;
   pagesMin: number | null;
   pagesMax: number | null;
   /** Books missing any of these details. */
@@ -86,6 +89,8 @@ export const EMPTY_FILTERS: BookFilters = {
   ratingMin: null,
   ratingMax: null,
   finishedYear: null,
+  finishedFrom: null,
+  finishedTo: null,
   pagesMin: null,
   pagesMax: null,
   missing: [],
@@ -140,6 +145,11 @@ export function filterBooks(books: Book[], f: BookFilters, authorCountries: Reco
     if (f.missing.length && !f.missing.some((m) => isMissing(b, m))) return false;
     if (f.country.length && !b.authors.some((a) => (authorCountries[a] ?? []).some((c) => f.country.includes(c)))) return false;
     if (f.finishedYear !== null && !b.readings.some((r) => r.finishedAt?.startsWith(String(f.finishedYear))))
+      return false;
+    if (
+      (f.finishedFrom || f.finishedTo) &&
+      !b.readings.some((r) => r.finishedAt && (!f.finishedFrom || r.finishedAt >= f.finishedFrom) && (!f.finishedTo || r.finishedAt <= f.finishedTo))
+    )
       return false;
     return true;
   });

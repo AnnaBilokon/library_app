@@ -1,9 +1,11 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { debounce, useQueryStates } from "nuqs";
-import { ArrowDownUp, LayoutGrid, Rows3, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, LayoutGrid, Loader2, Rows3, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { toast } from "sonner";
+import { askLibrary } from "@/app/actions/ask";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,9 +33,10 @@ import {
   type SortDir,
   type SortKey,
 } from "@/lib/books/filters";
-import { FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
+import { formatDate, FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
 import { LAYOUT_COOKIE, type LibraryLayout } from "@/lib/books/layout";
 import { libraryParams, libraryUrlKeys } from "@/lib/books/search-params";
+import { todayLocal } from "@/lib/dates";
 import { BOOK_STATUSES, type Book, type BookFormat, type BookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BookFiltersPanel } from "./book-filters";
@@ -94,6 +97,22 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
     void setParams({ sort: key, dir: nextDir ?? (key === sort ? (dir === "asc" ? "desc" : "asc") : DEFAULT_DIR[key]) });
   const clearFilters = () => void setParams({ ...CLEARED });
 
+  // "Ask": Claude turns the words in the search box into filters; Undo puts the view back.
+  const [asked, setAsked] = useState<{ question: string; understood: string; before: typeof params } | null>(null);
+  const [asking, startAsking] = useTransition();
+  const ask = () => {
+    const question = filters.q.trim();
+    if (question.length < 3 || asking) return;
+    startAsking(async () => {
+      const r = await askLibrary(question, todayLocal());
+      if (!r.ok) return void toast.error(r.error);
+      const before = params;
+      const { filters: found, sort: foundSort, dir: foundDir, understood } = r.data;
+      await setParams({ ...CLEARED, ...found, q: found.q || null, ...(foundSort ? { sort: foundSort, dir: foundDir } : {}) });
+      setAsked({ question, understood, before });
+    });
+  };
+
   const [layout, setLayout] = useLayout(initialLayout);
 
   if (everything.length === 0) {
@@ -109,17 +128,36 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
       <section aria-label="All books" className="flex flex-col gap-6">
         {/* Search + quiet controls */}
         <div className="flex flex-wrap items-center gap-3">
-          <label className="relative min-w-0 flex-1 basis-full md:max-w-xl md:basis-auto">
-            <span className="sr-only">Search books</span>
-            <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input
-              type="search"
-              value={filters.q}
-              onChange={(e) => void setParams({ q: e.target.value }, { limitUrlUpdates: debounce(300) })}
-              placeholder="Search by title, author, series, notes or ISBN"
-              className="h-11 w-full rounded-full bg-card pr-4 pl-11 text-[15px] shadow-sm ring-1 ring-border transition-shadow outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring dark:bg-muted/60"
-            />
-          </label>
+          <div className="relative min-w-0 flex-1 basis-full md:max-w-xl md:basis-auto">
+            <label>
+              <span className="sr-only">Search books, or ask a question and press Ask</span>
+              <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <input
+                type="search"
+                value={filters.q}
+                onChange={(e) => void setParams({ q: e.target.value }, { limitUrlUpdates: debounce(300) })}
+                onKeyDown={(e) => {
+                  // Ctrl/Cmd+Enter asks instead of searching.
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    ask();
+                  }
+                }}
+                placeholder="Search, or ask: “short cozy books I haven’t read”"
+                className="h-11 w-full rounded-full bg-card pr-24 pl-11 text-[15px] shadow-sm ring-1 ring-border transition-shadow outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring dark:bg-muted/60 [&::-webkit-search-cancel-button]:appearance-none"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={ask}
+              disabled={asking || filters.q.trim().length < 3}
+              title="Turn your words into filters (Ctrl+Enter)"
+              className="absolute top-1/2 right-1.5 inline-flex h-8 -translate-y-1/2 items-center gap-1 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-40"
+            >
+              {asking ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
+              Ask
+            </button>
+          </div>
 
           <div className="flex items-center gap-1 md:ml-auto">
             <Sheet>
@@ -212,6 +250,29 @@ export function LibraryView({ books: everything, initialLayout, initialColumns, 
           </p>
           <ActiveFilters filters={filters} onChange={update} onClear={clearFilters} />
         </div>
+
+        {asked && (
+          <div role="status" className="-mt-3 flex items-start gap-3 rounded-2xl bg-accent/70 p-3 text-sm dark:bg-accent/60">
+            <Sparkles className="mt-0.5 size-4 shrink-0 text-primary dark:text-highlight" aria-hidden />
+            <p className="min-w-0 flex-1">
+              <span className="text-muted-foreground">«{asked.question}»</span> → {asked.understood}
+              <span className="text-muted-foreground"> Remove a filter above to widen it.</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                void setParams(asked.before);
+                setAsked(null);
+              }}
+              className="shrink-0 font-medium underline-offset-4 hover:underline"
+            >
+              Undo
+            </button>
+            <button type="button" onClick={() => setAsked(null)} aria-label="Close" className="shrink-0 text-muted-foreground hover:text-foreground">
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+        )}
 
         <SearchElsewhere
           q={deferredFilters.q}
@@ -392,6 +453,12 @@ function ActiveFilters({
   for (const m of filters.missing) chips.push({ key: `miss-${m}`, label: MISSING_LABEL[m], remove: () => onChange({ missing: filters.missing.filter((x) => x !== m) }) });
   if (filters.finishedYear !== null)
     chips.push({ key: "year", label: `Finished in ${filters.finishedYear}`, remove: () => onChange({ finishedYear: null }) });
+  if (filters.finishedFrom || filters.finishedTo)
+    chips.push({
+      key: "finished-range",
+      label: `Finished ${filters.finishedFrom ? formatDate(filters.finishedFrom) : "…"} – ${filters.finishedTo ? formatDate(filters.finishedTo) : "…"}`,
+      remove: () => onChange({ finishedFrom: null, finishedTo: null }),
+    });
   if (filters.ratingMin !== null || filters.ratingMax !== null)
     chips.push({
       key: "rating",
