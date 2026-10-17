@@ -99,6 +99,8 @@ Admins manage it at **Account menu → Catalog admin** (`/admin`): search, filte
 
 **Review queue:** an edition created because someone added a book (an admin included) waits under **To review**, newest first. Open it, check the details and cover, then **Mark as reviewed** (or **Approve & publish** for someone else's draft). Saving an edition in the admin form also counts as reviewing it. An admin is a user with `app_metadata.role = "admin"`; the database checks the same role (`public.is_admin()`).
 
+Catalog covers are stored at most 800 px wide as WebP (`lib/catalog/shrink.ts`), about a third of a shop's original; the app never shows a cover wider than 288 px. To shrink covers saved before that: `pnpm catalog:shrink-covers --dry-run`, then without `--dry-run` (your own books' covers aren't touched).
+
 Fill the catalog from your own books (once, or again later; it's safe to re-run):
 
 ```bash
@@ -118,3 +120,4 @@ Sign out and in again after `--make-admin`, so your session picks up the role.
 | `pnpm test` | Vitest unit tests |
 | `pnpm db:types` | Regenerate Supabase types |
 | `pnpm catalog:seed` | Fill the shared catalog from your books (see above) |
+| `pnpm catalog:shrink-covers` | Shrink the catalog's existing covers to 800 px WebP (see above) |

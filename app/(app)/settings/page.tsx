@@ -86,8 +86,9 @@ export default function SettingsPage() {
             Spreadsheet (CSV)
           </a>
           <p className="w-full text-xs text-muted-foreground">
-            The backup has every book (the trash too) with readings, reviews and notes, author countries, reading goals and Book Battle
-            picks. The spreadsheet opens in Excel or Google Sheets. Covers are included as links.
+            The backup has every book (the trash too) with readings, reviews and notes, author countries, reading goals, Book Battle
+            picks, your settings (tag list too) and the shared catalog with its publisher sources. The spreadsheet opens in Excel or
+            Google Sheets. Covers are included as links.
           </p>
         </CardContent>
       </Card>

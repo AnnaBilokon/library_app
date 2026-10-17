@@ -10,14 +10,15 @@
  * already in the catalog is linked to that edition instead of creating a new one.
  * Copies of the same edition (same ISBN, or same title, authors and publisher) share one edition,
  * seeded from the copy with the most details. Then every edition still without a cover gets a copy
- * of a linked book's cover in covers/catalog/ (so deleting a book never takes the catalog's cover
- * with it); a re-run retries covers that failed.
+ * of a linked book's cover in covers/catalog/, shrunk like every catalog cover (so deleting a book
+ * never takes the catalog's cover with it); a re-run retries covers that failed.
  *
  * Uses SUPABASE_SECRET_KEY, which bypasses RLS. Local use only — never in the app.
  */
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { catalogCoverPath, editionKey, pickRichest, sharedFields } from "../lib/catalog/editions";
+import { shrinkCover } from "../lib/catalog/shrink";
 import type { Database } from "../lib/database.types";
 
 const args = process.argv.slice(2);
@@ -171,9 +172,16 @@ async function copyMissingCovers(supabase: Supabase, userId: string, failures: s
   await pool(
     [...sources],
     async ([editionId, source]) => {
-      const path = catalogCoverPath(editionId, source.path.split(".").pop() ?? "jpg", randomUUID().slice(0, 8));
+      let path = "";
       for (let attempt = 1; ; attempt++) {
-        const { error } = await supabase.storage.from(BUCKET).copy(source.path, path);
+        // Download, shrink like every catalog cover (lib/catalog/shrink.ts), upload.
+        const { data: file, error: downloadError } = await supabase.storage.from(BUCKET).download(source.path);
+        let error = downloadError;
+        if (file) {
+          const small = await shrinkCover(new Uint8Array(await file.arrayBuffer()), file.type || "image/jpeg");
+          path = catalogCoverPath(editionId, small.type === "image/webp" ? "webp" : (source.path.split(".").pop() ?? "jpg"), randomUUID().slice(0, 8));
+          ({ error } = await supabase.storage.from(BUCKET).upload(path, small.body, { contentType: small.type }));
+        }
         if (!error) break;
         if (attempt === COVER_ATTEMPTS) return void failures.push(`${source.title}: cover not copied (${error.message})`);
         await sleep(1000 * 2 ** attempt);
