@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,10 +17,16 @@ export default function WishlistPage() {
         eyebrow="Books to get"
         title="Wishlist"
         actions={
-          <Link href="/books/new?wishlist=1" className={buttonVariants({ className: "h-11 rounded-full px-5 text-[15px]" })}>
-            <Plus aria-hidden />
-            Add to wishlist
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/releases" className={buttonVariants({ variant: "outline", className: "h-11 rounded-full px-5 text-[15px]" })}>
+              <Sparkles aria-hidden />
+              New releases
+            </Link>
+            <Link href="/books/new?wishlist=1" className={buttonVariants({ className: "h-11 rounded-full px-5 text-[15px]" })}>
+              <Plus aria-hidden />
+              Add to wishlist
+            </Link>
+          </div>
         }
       />
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-3xl" />}>
