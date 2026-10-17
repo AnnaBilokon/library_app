@@ -499,6 +499,7 @@ export type Database = {
           hidden_authors: string[]
           hidden_series: string[]
           hide_for_sale: boolean
+          tag_list: string[]
           updated_at: string
           user_id: string
           yearly_goal: number
@@ -508,6 +509,7 @@ export type Database = {
           hidden_authors?: string[]
           hidden_series?: string[]
           hide_for_sale?: boolean
+          tag_list?: string[]
           updated_at?: string
           user_id?: string
           yearly_goal?: number
@@ -517,6 +519,7 @@ export type Database = {
           hidden_authors?: string[]
           hidden_series?: string[]
           hide_for_sale?: boolean
+          tag_list?: string[]
           updated_at?: string
           user_id?: string
           yearly_goal?: number

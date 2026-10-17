@@ -24,6 +24,7 @@ import { STATUS_CHOICES, type StatusChoice } from "@/lib/wishlist";
 import { cn } from "@/lib/utils";
 import { BookCover } from "./book-cover";
 import { editionFormFields, FindInCatalog } from "./find-in-catalog";
+import { SuggestTagsButton } from "@/components/tags/suggest-tags-button";
 import { RatingStars } from "./rating-stars";
 import { TagInput } from "./tag-input";
 
@@ -398,7 +399,18 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
               <Controller
                 control={control}
                 name="tags"
-                render={({ field }) => <TagInput id={id} value={field.value} onChange={field.onChange} suggestions={suggestions.tags} />}
+                render={({ field }) => (
+                  <div className="flex flex-col gap-1.5">
+                    <TagInput id={id} value={field.value} onChange={field.onChange} suggestions={suggestions.tags} />
+                    <SuggestTagsButton
+                      getDraft={() => {
+                        const v = form.getValues();
+                        return { title: v.title, authors: v.authors, genres: v.genres, description: v.description, tags: v.tags };
+                      }}
+                      onAdd={(tags) => field.onChange([...field.value, ...tags.filter((t) => !field.value.includes(t))])}
+                    />
+                  </div>
+                )}
               />
             )}
           </Field>

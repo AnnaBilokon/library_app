@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { defaultFilter } from "cmdk";
-import { BarChart3, BookIcon, Loader2, PartyPopper, Plus, Search, Sparkles, Sprout, Swords } from "lucide-react";
+import { BarChart3, BookIcon, Loader2, PartyPopper, Plus, Search, Sparkles, Sprout, Swords, Tags as TagsIcon } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
 import { useCatalogSearch } from "@/components/books/find-in-catalog";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,10 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
               <CommandItem value="book battle tournament best worst of the year" onSelect={() => go("/battle")}>
                 <Swords aria-hidden />
                 Book Battle
+              </CommandItem>
+              <CommandItem value="tags moods themes tag my books" onSelect={() => go("/tags")}>
+                <TagsIcon aria-hidden />
+                Tags
               </CommandItem>
               <CommandItem value="reading habits streak badges" onSelect={() => go("/habits")}>
                 <Sprout aria-hidden />
