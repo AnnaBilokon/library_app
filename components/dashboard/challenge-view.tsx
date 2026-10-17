@@ -85,7 +85,7 @@ export function ChallengeView({
         </Link>
       )}
 
-      <BooksRead books={books} year={c.year} initialView={initialBooksView} />
+      <BooksRead books={books} year={c.year} initialView={initialBooksView} today={today} />
 
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Pages read" value={fmt(c.pages)} />
@@ -336,7 +336,7 @@ function rememberBooksReadView(view: BooksReadView) {
  * The books finished in the year, grouped by month, as a compact list or a grid of small covers
  * (collapsed until opened). The view choice is remembered in a cookie.
  */
-function BooksRead({ books, year, initialView }: { books: Book[]; year: number; initialView: BooksReadView }) {
+function BooksRead({ books, year, initialView, today }: { books: Book[]; year: number; initialView: BooksReadView; today: string }) {
   const [view, setView] = useState<BooksReadView>(initialView);
   const choose = (next: BooksReadView) => {
     rememberBooksReadView(next);
@@ -355,6 +355,10 @@ function BooksRead({ books, year, initialView }: { books: Book[]; year: number; 
     const m = Number(e.date.slice(5, 7)) - 1;
     byMonth.set(m, [...(byMonth.get(m) ?? []), e]);
   }
+  // This month opens on its own (or, before anything is finished this month and for past
+  // years, the latest month with books); the other months stay folded.
+  const thisMonth = Number(today.slice(5, 7)) - 1;
+  const openMonth = today.startsWith(String(year)) && byMonth.has(thisMonth) ? thisMonth : [...byMonth.keys()][0];
 
   return (
     <details className="group rounded-2xl bg-card p-5 ring-1 ring-border/60">
@@ -393,10 +397,11 @@ function BooksRead({ books, year, initialView }: { books: Book[]; year: number; 
             </div>
           </div>
           {[...byMonth].map(([month, list]) => (
-            <section key={month} aria-label={MONTH_NAMES[month]}>
-              <h4 className="mb-2 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            <details key={`${year}-${month}`} open={month === openMonth} className="group/month">
+              <summary className="mb-2 flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <ChevronDown className="size-3.5 -rotate-90 transition-transform group-open/month:rotate-0" aria-hidden />
                 {MONTH_NAMES[month]} · {list.length}
-              </h4>
+              </summary>
               {view === "list" ? (
                 <ul className="divide-y divide-border/60">
                   {list.map(({ book, reading, date }) => (
@@ -418,7 +423,7 @@ function BooksRead({ books, year, initialView }: { books: Book[]; year: number; 
                   ))}
                 </ul>
               ) : (
-                <ul className="grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 2xl:grid-cols-10">
+                <ul className="grid grid-cols-4 gap-x-3 gap-y-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 2xl:grid-cols-12">
                   {list.map(({ book, reading, date }) => (
                     <li key={reading.id}>
                       <Link href={`/books/${book.id}`} className="group/book flex flex-col gap-1.5 rounded-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
@@ -427,7 +432,7 @@ function BooksRead({ books, year, initialView }: { books: Book[]; year: number; 
                           authors={book.authors}
                           src={book.coverSrc}
                           lang={book.language}
-                          sizes="(min-width: 1024px) 110px, (min-width: 640px) 18vw, 30vw"
+                          sizes="(min-width: 1024px) 90px, (min-width: 640px) 14vw, 22vw"
                           className="transition-transform group-hover/book:-translate-y-0.5"
                         />
                         <span lang={book.language} className="line-clamp-2 font-heading text-xs leading-snug font-semibold text-heading group-hover/book:underline">
@@ -442,7 +447,7 @@ function BooksRead({ books, year, initialView }: { books: Book[]; year: number; 
                   ))}
                 </ul>
               )}
-            </section>
+            </details>
           ))}
         </div>
       )}
