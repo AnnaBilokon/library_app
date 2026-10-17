@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { Check, Heart, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -83,6 +84,13 @@ export function BookFiltersPanel({ filters, facets, onChange }: BookFiltersPanel
           </Select>
         </Section>
       )}
+
+      <Section title="Finished between">
+        <div className="grid grid-cols-2 gap-2">
+          <DateField value={filters.finishedFrom ?? ""} onChange={(v) => onChange({ finishedFrom: v || null })} aria-label="Finished from" />
+          <DateField value={filters.finishedTo ?? ""} onChange={(v) => onChange({ finishedTo: v || null })} aria-label="Finished until" />
+        </div>
+      </Section>
 
       {facets.language.length > 1 && (
         <Section title="Language">
