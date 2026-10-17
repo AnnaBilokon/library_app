@@ -12,10 +12,12 @@ import { requireUser, type CurrentUser } from "@/lib/auth";
 import { describePattern, parsePattern, walkListing } from "@/lib/catalog/collect";
 import { GENRE_BATCH } from "@/lib/catalog/genres";
 import { sortIntoGenres } from "@/lib/catalog/genres-ai";
+import { importEditionCoverFromUrl } from "@/lib/catalog/covers";
 import { importOne, type ImportResult } from "@/lib/catalog/import-one";
 import { getBooks } from "@/lib/data/books";
 import { getSettings } from "@/lib/data/settings";
 import { decodeHtml, FetchError, safeFetch } from "@/lib/net/safe-fetch";
+import { readBookPage } from "@/lib/prefill/read";
 import { createClient } from "@/lib/supabase/server";
 
 const fail = (error: string): ActionResult<never> => ({ ok: false, error });
@@ -69,11 +71,23 @@ export async function deleteReleaseSource(sourceId: string): Promise<ActionResul
 
 // ───────────────────────── The check ─────────────────────────
 
+export interface CollectedRelease {
+  /** Book links the catalog doesn't have yet. */
+  links: string[];
+  /** Books on the page already in the catalog without a description: read again to fill it in. */
+  refresh: string[];
+  found: number;
+  /** Books already in the catalog (e.g. imported from a list) now shown under this source. */
+  claimed: number;
+}
+
 /**
  * Reads a source's listing (up to its page limit) and returns the book links the catalog doesn't
- * have yet. Remembers the guessed book-link pattern and when the source was checked.
+ * have yet, plus known books worth reading again. Books already in the catalog but not linked to
+ * a source (imported from a list) are linked to this one, so they show on the page. Remembers the
+ * guessed book-link pattern and when the source was checked.
  */
-export async function collectReleaseLinks(sourceId: string): Promise<ActionResult<{ links: string[]; found: number }>> {
+export async function collectReleaseLinks(sourceId: string): Promise<ActionResult<CollectedRelease>> {
   if (!(await admin())) return fail("Admins only.");
   if (!id.safeParse(sourceId).success) return fail("Unknown source.");
   const supabase = await createClient();
@@ -96,16 +110,45 @@ export async function collectReleaseLinks(sourceId: string): Promise<ActionResul
   }
   if (!walk) return fail("Couldn't tell which links are the books; set how book links start for this source.");
 
-  const known = new Set<string>();
+  const known: { id: string; source_url: string | null; release_source_id: string | null; description: string | null }[] = [];
   for (let i = 0; i < walk.links.length; i += 100) {
-    const { data } = await supabase.from("editions").select("source_url").in("source_url", walk.links.slice(i, i + 100));
-    for (const e of data ?? []) if (e.source_url) known.add(e.source_url);
+    const { data } = await supabase.from("editions").select("id, source_url, release_source_id, description").in("source_url", walk.links.slice(i, i + 100));
+    known.push(...(data ?? []));
   }
+  const unclaimed = known.filter((e) => !e.release_source_id).map((e) => e.id);
+  if (unclaimed.length) await supabase.from("editions").update({ release_source_id: sourceId }).in("id", unclaimed);
   await supabase
     .from("release_sources")
     .update({ last_checked_at: new Date().toISOString(), ...(source.pattern ? {} : { pattern: describePattern(walk.pattern) }) })
     .eq("id", sourceId);
-  return { ok: true, data: { links: walk.links.filter((l) => !known.has(l)), found: walk.links.length } };
+  const knownUrls = new Set(known.map((e) => e.source_url));
+  return {
+    ok: true,
+    data: {
+      links: walk.links.filter((l) => !knownUrls.has(l)),
+      refresh: known.filter((e) => !e.description && e.source_url).map((e) => e.source_url!),
+      found: walk.links.length,
+      claimed: unclaimed.length,
+    },
+  };
+}
+
+/** Reads a known book's page again and fills in what's missing (description, cover). Returns its id when it got a description. */
+export async function refreshReleaseDetails(url: string): Promise<ActionResult<string | null>> {
+  const user = await admin();
+  if (!user) return fail("Admins only.");
+  const parsed = z.url({ protocol: /^https?$/ }).safeParse(url);
+  if (!parsed.success) return fail("Invalid input.");
+  const supabase = await createClient();
+  const { data: edition } = await supabase.from("editions").select("id, description, cover_path, cover_url").eq("source_url", parsed.data).limit(1).maybeSingle();
+  if (!edition) return fail("Not in the catalog.");
+  const page = await readBookPage(parsed.data);
+  if (!page.ok) return fail(page.error);
+  if (page.data.description && !edition.description) {
+    await supabase.from("editions").update({ description: page.data.description.slice(0, 20_000) }).eq("id", edition.id);
+  }
+  if (page.data.coverUrl && !edition.cover_path && !edition.cover_url) await importEditionCoverFromUrl(supabase, user, edition.id, page.data.coverUrl);
+  return { ok: true, data: page.data.description ? edition.id : null };
 }
 
 /** Reads one found book and adds it to the catalog as a draft from this source. */

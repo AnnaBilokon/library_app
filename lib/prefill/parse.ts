@@ -286,6 +286,26 @@ function fromSpecTable(html: string): Prefill {
   };
 }
 
+/**
+ * A blurb in a block named like a description, for shops that keep it out of their structured
+ * data (e.g. Лабораторія's `product__description-full`). The fullest version wins; the block ends
+ * where the specs or a "read more" toggle start.
+ */
+function fromDescriptionBlock(html: string): Prefill {
+  const opens = [
+    ...html.matchAll(
+      /<(?:div|section|article)\b[^>]*class=["'][^"']*\b(?:product[_-]{1,2}description(?:[_-]{1,2}full)?|description[_-]full|book[_-]description|product[_-]annotation)\b[^"']*["'][^>]*>/gi,
+    ),
+  ].sort((a, b) => Number(/full/i.test(b[0])) - Number(/full/i.test(a[0])));
+  for (const m of opens) {
+    const rest = html.slice(m.index + m[0].length, m.index + m[0].length + 12000);
+    const end = rest.search(/<[^>]+class=["'][^"']*(?:toggle|features|characteristic|specs|properties)[^"']*["']|Характеристики/i);
+    const description = cleanDescription(end > 0 ? rest.slice(0, end) : rest);
+    if (description) return { description };
+  }
+  return {};
+}
+
 function fromMeta(html: string, base: string): Prefill {
   const meta = (name: string) => {
     const re = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*>`, "i");
@@ -323,10 +343,12 @@ export function parseBookPage(html: string, url: string): Prefill {
   const fromNext = fromNextData(html, url);
   const fromProduct = product ? fromProductLd(product, url) : {};
   const fromSpecs = fromSpecTable(html);
+  const fromBlock = fromDescriptionBlock(html);
   const fromOg = fromMeta(html, url);
   const merged = merge(fromBook, fromNext, fromProduct, fromSpecs, fromOg);
   // For the description the visible "Анотація" section beats a Product record: shops often
   // flatten the Product text into one paragraph, while the page keeps the paragraphs.
-  const description = fromBook.description ?? fromNext.description ?? fromSpecs.description ?? fromProduct.description ?? fromOg.description;
+  const description =
+    fromBook.description ?? fromNext.description ?? fromSpecs.description ?? fromBlock.description ?? fromProduct.description ?? fromOg.description;
   return description ? { ...merged, description } : merged;
 }
