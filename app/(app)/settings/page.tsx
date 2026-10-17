@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Download, FileSpreadsheet, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Download, FileSpreadsheet, LogOut, Tags } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { TrashList } from "@/components/books/trash-list";
@@ -16,6 +17,7 @@ import { authorList } from "@/lib/countries";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks, getDeletedBooks } from "@/lib/data/books";
 import { getSettings } from "@/lib/data/settings";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -31,6 +33,18 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col gap-5">
           <ThemePicker />
           <PalettePicker />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tags</CardTitle>
+          <CardDescription>Your moods and themes (затишна історія, сильні жінки…), and Claude&apos;s suggestions to tag the whole library.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/tags" className={cn(buttonVariants({ variant: "outline" }), "rounded-full")}>
+            <Tags aria-hidden />
+            Manage tags
+          </Link>
         </CardContent>
       </Card>
       <Card id="install" className="scroll-mt-24">

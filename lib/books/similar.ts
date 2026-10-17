@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { languageLabel } from "@/lib/books/labels";
 import type { Edition } from "@/lib/catalog/editions";
 import { poolBooks } from "@/lib/surprise";
 import type { Book } from "@/lib/types";
@@ -42,7 +43,7 @@ You get the book they're looking at, a numbered list of unread books they alread
 
 Look for a shared feel, themes, style or subject, not just the same genre; books sharing an author, series or genre come first in each list. Return fewer, or none, when nothing on a list is close.
 
-For every pick, write one short sentence (under 25 words, in English) saying why, tied to this book: what they share, not a summary of the plot.`;
+For every pick, write one short sentence (under 25 words, in the language named at the end of the message) saying why, tied to this book: what they share, not a summary of the plot.`;
 
 const clip = (text: string | undefined, max: number) => {
   const t = text?.replace(/\s+/g, " ").trim();
@@ -126,6 +127,8 @@ export function similarPrompt(book: Book, candidates: Book[], all: Book[], catal
     section("in_catalog_not_owned", inCatalog),
     section("loved", loved),
     section("did_not_finish", dropped),
+    // The reader reads this book in its language, so the reasons are in it too.
+    `Write the reasons in ${book.language ? languageLabel(book.language) : "English"}.`,
   ].join("\n\n");
 }
 

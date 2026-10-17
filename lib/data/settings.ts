@@ -11,18 +11,21 @@ export interface Settings {
   /** Series and authors you chose not to track on the Series page. */
   hiddenSeries: string[];
   hiddenAuthors: string[];
+  /** Your mood and theme tags; tag suggestions choose from these. */
+  tagList: string[];
 }
 
 /** Your settings (defaults when you haven't saved any yet). */
 export const getSettings = cache(async (): Promise<Settings> => {
   await requireUser();
   const supabase = await createClient();
-  const { data, error } = await supabase.from("user_settings").select("hide_for_sale, countries_goal, hidden_series, hidden_authors").maybeSingle();
+  const { data, error } = await supabase.from("user_settings").select("hide_for_sale, countries_goal, hidden_series, hidden_authors, tag_list").maybeSingle();
   if (error) throw new Error(`Couldn't load your settings: ${error.message}`);
   return {
     hideForSale: data?.hide_for_sale ?? false,
     countriesGoal: data?.countries_goal ?? null,
     hiddenSeries: data?.hidden_series ?? [],
     hiddenAuthors: data?.hidden_authors ?? [],
+    tagList: data?.tag_list ?? [],
   };
 });
