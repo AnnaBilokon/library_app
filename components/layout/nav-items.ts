@@ -15,5 +15,7 @@ export function isActive(href: string, pathname: string): boolean {
   if (href === "/") return pathname === "/" || pathname.startsWith("/stats");
   // Book Battle lives in the Library (a button at the top).
   if (href === "/library") return pathname.startsWith("/library") || pathname.startsWith("/books") || pathname.startsWith("/battle");
+  // New releases is reached from the Wishlist.
+  if (href === "/wishlist") return pathname.startsWith("/wishlist") || pathname.startsWith("/releases");
   return pathname.startsWith(href);
 }

@@ -55,7 +55,7 @@ describe("catalog editions", () => {
   });
 
   it("builds the cover link from Storage, or keeps the external one", () => {
-    const base = { ...row({}), id: "e1", status: "public", source_url: null, created_by: null, reviewed_at: null, search_text: "", created_at: "", updated_at: "" } as EditionRow;
+    const base = { ...row({}), id: "e1", status: "public", source_url: null, created_by: null, reviewed_at: null, release_source_id: null, search_text: "", created_at: "", updated_at: "" } as EditionRow;
     expect(rowToEdition({ ...base, cover_path: "catalog/e1-ab.jpg" }, "https://x.supabase.co").coverSrc).toBe(
       "https://x.supabase.co/storage/v1/object/public/covers/catalog/e1-ab.jpg",
     );

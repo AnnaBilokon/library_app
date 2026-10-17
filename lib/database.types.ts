@@ -241,6 +241,7 @@ export type Database = {
           pages: number | null
           published_year: number | null
           publisher: string | null
+          release_source_id: string | null
           reviewed_at: string | null
           search_text: string
           series: string | null
@@ -265,6 +266,7 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher?: string | null
+          release_source_id?: string | null
           reviewed_at?: string | null
           search_text?: string
           series?: string | null
@@ -289,6 +291,7 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher?: string | null
+          release_source_id?: string | null
           reviewed_at?: string | null
           search_text?: string
           series?: string | null
@@ -298,7 +301,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "editions_release_source_id_fkey"
+            columns: ["release_source_id"]
+            isOneToOne: false
+            referencedRelation: "release_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       habit_sessions: {
         Row: {
@@ -472,6 +483,42 @@ export type Database = {
           },
         ]
       }
+      release_sources: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          label: string
+          last_checked_at: string | null
+          pages: number
+          pattern: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label: string
+          last_checked_at?: string | null
+          pages?: number
+          pattern?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          last_checked_at?: string | null
+          pages?: number
+          pattern?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       series_totals: {
         Row: {
           series: string
@@ -497,6 +544,7 @@ export type Database = {
         Row: {
           countries_goal: number | null
           hidden_authors: string[]
+          hidden_releases: string[]
           hidden_series: string[]
           hide_for_sale: boolean
           tag_list: string[]
@@ -507,6 +555,7 @@ export type Database = {
         Insert: {
           countries_goal?: number | null
           hidden_authors?: string[]
+          hidden_releases?: string[]
           hidden_series?: string[]
           hide_for_sale?: boolean
           tag_list?: string[]
@@ -517,6 +566,7 @@ export type Database = {
         Update: {
           countries_goal?: number | null
           hidden_authors?: string[]
+          hidden_releases?: string[]
           hidden_series?: string[]
           hide_for_sale?: boolean
           tag_list?: string[]

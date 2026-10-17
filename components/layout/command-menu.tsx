@@ -119,6 +119,10 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
                 <Swords aria-hidden />
                 Book Battle
               </CommandItem>
+              <CommandItem value="new releases coming soon publishers anons novelties" onSelect={() => go("/releases")}>
+                <Sparkles aria-hidden />
+                New releases
+              </CommandItem>
               <CommandItem value="tags moods themes tag my books" onSelect={() => go("/tags")}>
                 <TagsIcon aria-hidden />
                 Tags
