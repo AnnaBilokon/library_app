@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, Square } from "lucide-react";
-import { collectReleaseLinks, importReleaseLink, sortReleasesIntoGenres } from "@/app/actions/releases";
+import { collectReleaseLinks, importReleaseLink, refreshReleaseDetails, sortReleasesIntoGenres } from "@/app/actions/releases";
 import { Button } from "@/components/ui/button";
 import { GENRE_BATCH } from "@/lib/catalog/genres";
 import type { ReleaseSource } from "@/lib/data/releases";
@@ -31,6 +31,8 @@ export function ReleaseCheck({ sources }: { sources: ReleaseSource[] }) {
     setRunning(true);
     setResults([]);
     const added: string[] = [];
+    // Books that got a description just now: sorted into genres along with the new ones.
+    const described: string[] = [];
     let failedBooks = 0;
 
     for (const source of sources) {
@@ -41,7 +43,7 @@ export function ReleaseCheck({ sources }: { sources: ReleaseSource[] }) {
         setResults((rs) => [...rs, { label: source.label, note: collected.error, failed: true }]);
         continue;
       }
-      const { links, found } = collected.data;
+      const { links, refresh, found, claimed } = collected.data;
       let addedHere = 0;
       for (let i = 0; i < links.length && !stop.current; i++) {
         setStatus(`${source.label}: reading book ${i + 1} of ${links.length}…`);
@@ -51,15 +53,35 @@ export function ReleaseCheck({ sources }: { sources: ReleaseSource[] }) {
           addedHere++;
         } else if (!r?.ok || r.data.status === "failed") failedBooks++;
       }
+      let filled = 0;
+      for (let i = 0; i < refresh.length && !stop.current; i++) {
+        setStatus(`${source.label}: filling in details ${i + 1} of ${refresh.length}…`);
+        const r = await refreshReleaseDetails(refresh[i]).catch(() => null);
+        if (r?.ok && r.data) {
+          described.push(r.data);
+          filled++;
+        }
+      }
       setResults((rs) => [
         ...rs,
-        { label: source.label, note: `${found} on the page · ${links.length === 0 ? "nothing new" : `${addedHere} new added`}` },
+        {
+          label: source.label,
+          note: [
+            `${found} on the page`,
+            links.length === 0 ? "nothing new" : `${addedHere} new added`,
+            claimed > 0 && `${claimed} already in the catalog now shown here`,
+            filled > 0 && `${filled} descriptions filled in`,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        },
       ]);
     }
 
-    for (let i = 0; i < added.length && !stop.current; i += GENRE_BATCH) {
-      setStatus(`Sorting the new books into your genres (${Math.min(i + GENRE_BATCH, added.length)} of ${added.length})…`);
-      await sortReleasesIntoGenres(added.slice(i, i + GENRE_BATCH)).catch(() => null);
+    const toSort = [...new Set([...added, ...described])];
+    for (let i = 0; i < toSort.length && !stop.current; i += GENRE_BATCH) {
+      setStatus(`Sorting books into your genres (${Math.min(i + GENRE_BATCH, toSort.length)} of ${toSort.length})…`);
+      await sortReleasesIntoGenres(toSort.slice(i, i + GENRE_BATCH)).catch(() => null);
     }
 
     setStatus(

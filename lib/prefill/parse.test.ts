@@ -71,6 +71,19 @@ describe("parseBookPage", () => {
     });
   });
 
+  it("reads a blurb kept in a description block when the structured data has none (Лабораторія's product pages)", () => {
+    const blurb = "«День Шакала» — напружений політичний трилер про майже бездоганно спланований замах на президента Франції Шарля де Голля.";
+    const html = `
+      <meta property="og:description" content="«День Шакала» — книга Фредеріка Форсайта. Замовляйте онлайн з доставкою.">
+      <script type="application/ld+json">{"@type": "Product", "name": "День Шакала", "description": ""}</script>
+      <div class="product__description fn_product-description"><p>${blurb.slice(0, 40)}</p></div>
+      <div class="product__description-full fn_product-description-full"><p>${blurb}</p><p>Друга частина опису, теж досить довга, щоб її не відкинули як сміття.</p></div>
+      <div class="product__description-toggle fn_product-description-toggle">Читати далі</div>
+      <div>Характеристики</div><div>Видавництво</div><div>Наш Формат</div>`;
+    const d = parseBookPage(html, "https://laboratory.ua/products/den-shakala");
+    expect(d.description).toBe(`${blurb}\n\nДруга частина опису, теж досить довга, щоб її не відкинули як сміття.`);
+  });
+
   it("falls back to OpenGraph and inline 'Label: value' specs", () => {
     const html = `<title>Тіні забутих предків — Книгарня</title>
       <meta property="og:image" content="/img/cover.jpg">

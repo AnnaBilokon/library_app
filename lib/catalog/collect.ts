@@ -5,26 +5,32 @@ import { decodeEntities } from "@/lib/prefill/parse";
  * across all of its pages. Pure functions; the Server Action does the fetching.
  */
 
-/** Same-site links on a page, absolute, without #fragments, in page order, each once. */
+/**
+ * Same-site links on a page, absolute, without #fragments, in page order, each once: the page's
+ * <a href> links, then links in its embedded data ("url": "…"), where sites that draw their
+ * listing with JavaScript (e.g. Старий Лев) keep the book addresses.
+ */
 export function extractLinks(html: string, pageUrl: string): string[] {
   const base = new URL(pageUrl);
   const seen = new Set<string>();
   const links: string[] = [];
-  for (const m of html.matchAll(/<a\b[^>]*?\shref\s*=\s*["']([^"']+)["']/gi)) {
+  const add = (raw: string) => {
     let url: URL;
     try {
-      url = new URL(decodeEntities(m[1]), base);
+      url = new URL(raw, base);
     } catch {
-      continue;
+      return;
     }
-    if (url.host !== base.host || !/^https?:$/.test(url.protocol)) continue;
+    if (url.host !== base.host || !/^https?:$/.test(url.protocol)) return;
     url.hash = "";
     const href = url.toString();
     if (!seen.has(href)) {
       seen.add(href);
       links.push(href);
     }
-  }
+  };
+  for (const m of html.matchAll(/<a\b[^>]*?\shref\s*=\s*["']([^"']+)["']/gi)) add(decodeEntities(m[1]));
+  for (const m of html.matchAll(/"(?:url|href|link)"\s*:\s*"((?:https?:)?\\?\/[^"\s]+)"/gi)) add(m[1].replace(/\\\//g, "/"));
   return links;
 }
 
@@ -71,9 +77,20 @@ export function guessBookPattern(links: string[], listingUrl: string): LinkPatte
   const groups = new Map<string, { pattern: LinkPattern; links: Set<string>; menu: boolean }>();
   for (const href of links) {
     const p = parts(href);
-    if (p.length < 2) continue; // the home page and top-level pages aren't books
-    const key = `${p[0]}|${p.length}`;
-    const group = groups.get(key) ?? { pattern: { prefix: `/${p[0]}/`, depth: p.length }, links: new Set(), menu: false };
+    let key: string;
+    let pattern: LinkPattern;
+    if (p.length >= 2) {
+      key = `${p[0]}|${p.length}`;
+      pattern = { prefix: `/${p[0]}/`, depth: p.length };
+    } else {
+      // Top-level pages are books only when many share a first word, like Старий Лев's
+      // /knyga-<name>; single words (/news, /shops) are site pages.
+      const word = p[0]?.match(/^([a-zЀ-ӿ]{3,})-./i)?.[1];
+      if (!word) continue;
+      key = `${word}-|1`;
+      pattern = { prefix: `/${word}-`, depth: 1 };
+    }
+    const group = groups.get(key) ?? { pattern, links: new Set(), menu: false };
     group.links.add(listingKey(href));
     if (listingKey(href) === listing || href.startsWith(listing)) group.menu = true;
     groups.set(key, group);
