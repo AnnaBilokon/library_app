@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { CurrentUser } from "@/lib/auth";
 import type { createClient } from "@/lib/supabase/server";
 import { catalogCoverPath, sharedFields, type BookRow } from "./editions";
+import { shrinkCover } from "./shrink";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -41,7 +42,8 @@ export async function linkToCatalog(supabase: Supabase, user: CurrentUser, book:
 
 /**
  * When an admin gives their book a cover and its edition has none yet, the edition gets its own
- * copy of the file (in covers/catalog/). Best effort, admins only (Storage allows only them).
+ * copy of the file (in covers/catalog/, shrunk like every catalog cover). Best effort, admins only
+ * (Storage allows only them).
  */
 export async function shareCoverWithCatalog(supabase: Supabase, user: CurrentUser, bookId: string): Promise<void> {
   if (!user.isAdmin) return;
@@ -50,9 +52,13 @@ export async function shareCoverWithCatalog(supabase: Supabase, user: CurrentUse
     if (!book?.cover_path || !book.edition_id) return;
     const { data: edition } = await supabase.from("editions").select("cover_path").eq("id", book.edition_id).single();
     if (!edition || edition.cover_path) return;
-    const path = catalogCoverPath(book.edition_id, book.cover_path.split(".").pop() ?? "jpg", randomUUID().slice(0, 8));
-    const { error: copyError } = await supabase.storage.from("covers").copy(book.cover_path, path);
-    if (copyError) throw copyError;
+    const { data: file, error: downloadError } = await supabase.storage.from("covers").download(book.cover_path);
+    if (downloadError) throw downloadError;
+    const small = await shrinkCover(new Uint8Array(await file.arrayBuffer()), file.type || "image/jpeg");
+    const ext = small.type === "image/webp" ? "webp" : (book.cover_path.split(".").pop() ?? "jpg");
+    const path = catalogCoverPath(book.edition_id, ext, randomUUID().slice(0, 8));
+    const { error: uploadError } = await supabase.storage.from("covers").upload(path, small.body, { contentType: small.type });
+    if (uploadError) throw uploadError;
     const { error } = await supabase.from("editions").update({ cover_path: path, cover_url: null }).eq("id", book.edition_id);
     if (error) throw error;
   } catch (e) {

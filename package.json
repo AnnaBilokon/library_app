@@ -10,6 +10,7 @@
     "notion:inspect": "tsx --env-file=.env.local scripts/inspect-notion.ts",
     "notion:import": "tsx --env-file=.env.local scripts/import-notion.ts",
     "catalog:seed": "tsx --env-file=.env.local scripts/seed-catalog.ts",
+    "catalog:shrink-covers": "tsx --env-file=.env.local scripts/shrink-catalog-covers.ts",
     "db:types": "supabase gen types typescript --linked --schema public > lib/database.types.ts",
     "test": "vitest run"
   },
@@ -37,6 +38,7 @@
     "react-hook-form": "^7.89.0",
     "recharts": "3.8.0",
     "shadcn": "^4.21.4",
+    "sharp": "0.35.5",
     "sonner": "^2.0.8",
     "topojson-client": "^3.1.0",
     "tw-animate-css": "^1.4.0",
