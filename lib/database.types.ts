@@ -241,6 +241,8 @@ export type Database = {
           pages: number | null
           published_year: number | null
           publisher: string | null
+          release_date: string | null
+          release_note: string | null
           release_source_id: string | null
           reviewed_at: string | null
           search_text: string
@@ -266,6 +268,8 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher?: string | null
+          release_date?: string | null
+          release_note?: string | null
           release_source_id?: string | null
           reviewed_at?: string | null
           search_text?: string
@@ -291,6 +295,8 @@ export type Database = {
           pages?: number | null
           published_year?: number | null
           publisher?: string | null
+          release_date?: string | null
+          release_note?: string | null
           release_source_id?: string | null
           reviewed_at?: string | null
           search_text?: string
@@ -480,6 +486,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "books"
             referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      release_picks: {
+        Row: {
+          created_at: string
+          edition_id: string
+          id: string
+          reason: string
+          seen_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          edition_id: string
+          id?: string
+          reason: string
+          seen_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string
+          id?: string
+          reason?: string
+          seen_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_picks_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
           },
         ]
       }

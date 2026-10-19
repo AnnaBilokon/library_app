@@ -11,6 +11,7 @@
     "notion:import": "tsx --env-file=.env.local scripts/import-notion.ts",
     "catalog:seed": "tsx --env-file=.env.local scripts/seed-catalog.ts",
     "catalog:shrink-covers": "tsx --env-file=.env.local scripts/shrink-catalog-covers.ts",
+    "releases:daily": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/daily-releases.ts",
     "db:types": "supabase gen types typescript --linked --schema public > lib/database.types.ts",
     "test": "vitest run"
   },
@@ -37,6 +38,7 @@
     "react-dom": "19.3.0",
     "react-hook-form": "^7.89.0",
     "recharts": "3.8.0",
+    "server-only": "^0.0.1",
     "shadcn": "^4.21.4",
     "sharp": "0.35.5",
     "sonner": "^2.0.8",

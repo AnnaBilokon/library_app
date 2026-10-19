@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ReleasesView } from "@/components/releases/releases-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
+import { getReleasePicks } from "@/lib/data/release-picks";
 import { getReleases, getReleaseSources } from "@/lib/data/releases";
 
 export const metadata: Metadata = { title: "New releases" };
@@ -23,6 +24,14 @@ export default function ReleasesPage() {
 }
 
 async function Releases() {
-  const [user, releases, sources] = await Promise.all([requireUser(), getReleases(), getReleaseSources()]);
-  return <ReleasesView releases={releases} sources={sources} isAdmin={user.isAdmin} />;
+  const [user, releases, sources, picks] = await Promise.all([requireUser(), getReleases(), getReleaseSources(), getReleasePicks()]);
+  return (
+    <ReleasesView
+      releases={releases}
+      sources={sources}
+      isAdmin={user.isAdmin}
+      picks={picks.map((p) => ({ editionId: p.edition.id, reason: p.reason, seen: p.seen }))}
+      today={new Date().toISOString().slice(0, 10)}
+    />
+  );
 }

@@ -1,0 +1,33 @@
+# Every morning: check two New releases sources (taking turns) and pick books you may like.
+# Needs repository secrets NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY and ANTHROPIC_API_KEY
+# (Settings → Secrets and variables → Actions). Also runs by hand: Actions → Daily releases → Run.
+name: Daily releases
+
+on:
+  schedule:
+    - cron: "0 5 * * *" # 05:00 UTC: 07:00 in Kyiv in winter, 08:00 in summer
+  workflow_dispatch:
+
+concurrency:
+  group: daily-releases
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Check sources and pick books
+        run: pnpm releases:daily
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

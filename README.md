@@ -97,6 +97,8 @@ Admins manage it at **Account menu → Catalog admin** (`/admin`): search, filte
 
 **New releases** (`/releases`, also from the Wishlist page): **Check for new releases** reads your saved publisher pages (Sources: new releases or coming soon, how many pages, how book links start), imports books the catalog doesn't have as drafts (in To review), and sorts them into your genres with Claude. The grid filters by genre, new / coming soon and publisher; each book can go to your library or wishlist, or be marked Not interested. The first check reads everything (about 3 s a book); later ones only what's new.
 
+**Daily check and picks for you:** a GitHub Actions job (`.github/workflows/daily-releases.yml`, every day at 05:00 UTC, or Actions → Daily releases → Run) runs `pnpm releases:daily`: it checks the 2 sources checked longest ago (they take turns; at most 40 books read a day), sorts new books into genres, and picks up to 5 "books you may like" per reader from their reading (genres they read most, authors they love), each with a reason. They show on the Dashboard and under **For you** on New releases. Release dates come from the publisher's page: an exact date when there is one, their own words otherwise. Needs repository secrets `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY` and `ANTHROPIC_API_KEY`. GitHub pauses scheduled jobs after 60 days without commits; it emails you, and one click turns it back on.
+
 **Review queue:** an edition created because someone added a book (an admin included) waits under **To review**, newest first. Open it, check the details and cover, then **Mark as reviewed** (or **Approve & publish** for someone else's draft). Saving an edition in the admin form also counts as reviewing it. An admin is a user with `app_metadata.role = "admin"`; the database checks the same role (`public.is_admin()`).
 
 Catalog covers are stored at most 800 px wide as WebP (`lib/catalog/shrink.ts`), about a third of a shop's original; the app never shows a cover wider than 288 px. To shrink covers saved before that: `pnpm catalog:shrink-covers --dry-run`, then without `--dry-run` (your own books' covers aren't touched).
@@ -121,3 +123,4 @@ Sign out and in again after `--make-admin`, so your session picks up the role.
 | `pnpm db:types` | Regenerate Supabase types |
 | `pnpm catalog:seed` | Fill the shared catalog from your books (see above) |
 | `pnpm catalog:shrink-covers` | Shrink the catalog's existing covers to 800 px WebP (see above) |
+| `pnpm releases:daily` | The daily New releases check and picks (see above; `--dry-run`, `--sources`, `--max-books`) |
