@@ -22,6 +22,10 @@ export interface Prefill {
   coverUrl?: string;
   /** The publisher's blurb, as plain text with blank lines between paragraphs. */
   description?: string;
+  /** The day it comes (or came) out, yyyy-mm-dd, when the page says. */
+  releaseDate?: string;
+  /** The publisher's own words about when, e.g. "Очікується наприкінці 2026 року". */
+  releaseNote?: string;
 }
 
 type Json = Record<string, unknown>;
@@ -189,6 +193,7 @@ function fromBookLd(node: Json, base: string): Prefill {
     language: languageCode(node.inLanguage),
     coverUrl: absolute(node.image, base),
     description: cleanDescription(node.description),
+    releaseDate: typeof node.datePublished === "string" && /^\d{4}-\d{2}-\d{2}/.test(node.datePublished) ? node.datePublished.slice(0, 10) : undefined,
   };
 }
 
@@ -306,6 +311,28 @@ function fromDescriptionBlock(html: string): Prefill {
   return {};
 }
 
+/**
+ * When a book comes out, as the page says it in words: "очікується наприкінці 2026 року" (KSD),
+ * "Дата надходження уточнюється" (Віват), "Дата виходу: 15.11.2026". A dd.mm.yyyy in the phrase
+ * also becomes the date.
+ */
+export function releaseFromText(html: string): Pick<Prefill, "releaseDate" | "releaseNote"> {
+  // Blocks end a phrase; inline tags (a date in <b>) don't.
+  const text = decodeEntities(
+    html
+      .replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<\/?(?:div|p|li|ul|ol|h[1-6]|tr|table|section|article|header|footer)\b[^>]*>|<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, " "),
+  ).replace(/[^\S\n]+/g, " ");
+  // A dot ends the phrase, except inside a date like 5.11.2026.
+  const m = text.match(/(?:очікується|дата (?:виходу|надходження|релізу)|(?:у|в) продажу з|вихід (?:книги|книжки))(?:[^.!?|\n]|\.(?=\d)){0,70}/i);
+  if (!m) return {};
+  const note = m[0].replace(/[\s:,–—-]+$/, "").trim();
+  const d = note.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/);
+  const releaseDate = d ? `${d[3]}-${d[2].padStart(2, "0")}-${d[1].padStart(2, "0")}` : undefined;
+  return { releaseNote: note.charAt(0).toLocaleUpperCase("uk") + note.slice(1), ...(releaseDate ? { releaseDate } : {}) };
+}
+
 function fromMeta(html: string, base: string): Prefill {
   const meta = (name: string) => {
     const re = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*>`, "i");
@@ -350,5 +377,13 @@ export function parseBookPage(html: string, url: string): Prefill {
   // flatten the Product text into one paragraph, while the page keeps the paragraphs.
   const description =
     fromBook.description ?? fromNext.description ?? fromSpecs.description ?? fromBlock.description ?? fromProduct.description ?? fromOg.description;
-  return description ? { ...merged, description } : merged;
+  // When it comes out: an exact date from the Book record wins over a date in words.
+  const release = releaseFromText(html);
+  const releaseDate = fromBook.releaseDate ?? release.releaseDate;
+  return {
+    ...merged,
+    ...(description ? { description } : {}),
+    ...(releaseDate ? { releaseDate } : {}),
+    ...(release.releaseNote ? { releaseNote: release.releaseNote } : {}),
+  };
 }

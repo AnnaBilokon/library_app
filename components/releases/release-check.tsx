@@ -3,10 +3,12 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, Square } from "lucide-react";
+import { makeReleasePicks } from "@/app/actions/release-picks";
 import { collectReleaseLinks, importReleaseLink, refreshReleaseDetails, sortReleasesIntoGenres } from "@/app/actions/releases";
 import { Button } from "@/components/ui/button";
 import { GENRE_BATCH } from "@/lib/catalog/genres";
 import type { ReleaseSource } from "@/lib/data/releases";
+import { todayLocal } from "@/lib/dates";
 
 interface SourceResult {
   label: string;
@@ -84,10 +86,17 @@ export function ReleaseCheck({ sources }: { sources: ReleaseSource[] }) {
       await sortReleasesIntoGenres(toSort.slice(i, i + GENRE_BATCH)).catch(() => null);
     }
 
+    let picked = 0;
+    if (!stop.current) {
+      setStatus("Picking books you may like…");
+      const r = await makeReleasePicks(todayLocal()).catch(() => null);
+      if (r?.ok) picked = r.data;
+    }
+
     setStatus(
       `${stop.current ? "Stopped" : "Done"}: ${added.length === 0 ? "no new books" : `${added.length} new ${added.length === 1 ? "book" : "books"} added`}${
         failedBooks ? ` · ${failedBooks} couldn't be read` : ""
-      }.`,
+      }${picked ? ` · ${picked} new ${picked === 1 ? "pick" : "picks"} for you` : ""}.`,
     );
     setRunning(false);
     router.refresh();

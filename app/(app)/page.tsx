@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { ChallengeView } from "@/components/dashboard/challenge-view";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
+import { ReleasePicksCard } from "@/components/dashboard/release-picks-card";
 import { ReleaseReminders } from "@/components/dashboard/release-reminders";
 import { DashboardHabits } from "@/components/habits/dashboard-habits";
 import { getHabitSessions, getHabits } from "@/lib/data/habits";
@@ -12,6 +13,7 @@ import { BOOKS_READ_VIEW_COOKIE } from "@/lib/books/layout";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBooks } from "@/lib/data/books";
 import { getGoals } from "@/lib/data/goals";
+import { getReleasePicks } from "@/lib/data/release-picks";
 import { getSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -29,7 +31,7 @@ export default function DashboardPage() {
 }
 
 async function DashboardData() {
-  const [books, goals, authorCountries, settings, cookieStore, habits, sessions] = await Promise.all([
+  const [books, goals, authorCountries, settings, cookieStore, habits, sessions, picks] = await Promise.all([
     getBooks(),
     getGoals(),
     getAuthorCountries(),
@@ -37,10 +39,12 @@ async function DashboardData() {
     cookies(),
     getHabits(),
     getHabitSessions(),
+    getReleasePicks(),
   ]);
   const view = cookieStore.get(BOOKS_READ_VIEW_COOKIE)?.value === "grid" ? "grid" : "list";
   return (
     <>
+      <ReleasePicksCard picks={picks.filter((p) => !p.seen)} today={new Date().toISOString().slice(0, 10)} />
       <DashboardHabits habits={habits} sessions={sessions} books={books} />
       <ReleaseReminders books={books} />
       <ChallengeView books={books} goals={goals} authorCountries={authorCountries} countriesGoal={settings.countriesGoal} initialBooksView={view} />

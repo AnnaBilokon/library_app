@@ -1,24 +1,45 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ExternalLink, EyeOff, Gift, Plus, Undo2 } from "lucide-react";
+import { CalendarDays, Check, ExternalLink, EyeOff, Gift, Plus, Sparkles, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { markReleasePicksSeen } from "@/app/actions/release-picks";
 import { setReleaseHidden } from "@/app/actions/releases";
 import { BookCover } from "@/components/books/book-cover";
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Release, ReleaseKind, ReleaseSource } from "@/lib/data/releases";
+import { byReleaseDate, releaseLabel } from "@/lib/releases/labels";
 import { cn } from "@/lib/utils";
 import { ReleaseCheck } from "./release-check";
 import { SourcesEditor } from "./sources-editor";
 
 const KIND_LABEL: Record<ReleaseKind, string> = { new: "New", coming: "Coming soon" };
 
-/** New releases: what the check found on the publishers' pages, filtered your way. */
-export function ReleasesView({ releases, sources, isAdmin }: { releases: Release[]; sources: ReleaseSource[]; isAdmin: boolean }) {
+export interface PickInfo {
+  editionId: string;
+  reason: string;
+  seen: boolean;
+}
+
+/** New releases: what the check found on the publishers' pages, filtered your way, with picks for you on top. */
+export function ReleasesView({
+  releases,
+  sources,
+  isAdmin,
+  picks,
+  today,
+}: {
+  releases: Release[];
+  sources: ReleaseSource[];
+  isAdmin: boolean;
+  picks: PickInfo[];
+  today: string;
+}) {
   const [genres, setGenres] = useState<string[]>([]);
+  const [sort, setSort] = useState<"found" | "release">("found");
   const [kind, setKind] = useState<ReleaseKind | "all">("all");
   const [sourceId, setSourceId] = useState<string>("all");
   const [hideMine, setHideMine] = useState(true);
@@ -30,7 +51,7 @@ export function ReleasesView({ releases, sources, isAdmin }: { releases: Release
     return [...m].sort((a, b) => b[1] - a[1]);
   }, [releases]);
 
-  const shown = releases.filter(
+  const filtered = releases.filter(
     (r) =>
       (showHidden || !r.hidden) &&
       (!hideMine || !r.mine) &&
@@ -38,6 +59,16 @@ export function ReleasesView({ releases, sources, isAdmin }: { releases: Release
       (sourceId === "all" || r.source.id === sourceId) &&
       (genres.length === 0 || r.edition.genres.some((g) => genres.includes(g))),
   );
+  // Newest found first (as loaded), or by release date: soonest first, undated last.
+  const shown = sort === "release" ? [...filtered].sort((a, b) => byReleaseDate(a.edition, b.edition)) : filtered;
+
+  // Picks for you: the ones you don't have and didn't hide, on top. Seeing this page marks them seen.
+  const reasons = useMemo(() => new Map(picks.map((p) => [p.editionId, p.reason])), [picks]);
+  const forYou = releases.filter((r) => reasons.has(r.edition.id) && !r.hidden && !r.mine);
+  const anyUnseen = picks.some((p) => !p.seen);
+  useEffect(() => {
+    if (anyUnseen) void markReleasePicksSeen();
+  }, [anyUnseen]);
   const hiddenCount = releases.filter((r) => r.hidden).length;
   const chip = (active: boolean) =>
     cn(
@@ -52,6 +83,20 @@ export function ReleasesView({ releases, sources, isAdmin }: { releases: Release
           <ReleaseCheck sources={sources} />
           <SourcesEditor sources={sources} />
         </div>
+      )}
+
+      {forYou.length > 0 && (
+        <section aria-labelledby="for-you-title" className="flex flex-col gap-4 rounded-3xl bg-accent/60 p-5 md:p-6 dark:bg-accent/50">
+          <h2 id="for-you-title" className="flex items-center gap-2 font-heading text-2xl font-semibold text-heading">
+            <Sparkles className="size-5 text-primary dark:text-highlight" aria-hidden />
+            For you
+          </h2>
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {forYou.map((r) => (
+              <ReleaseCard key={r.edition.id} release={r} reason={reasons.get(r.edition.id)} today={today} />
+            ))}
+          </ul>
+        </section>
       )}
 
       {releases.length === 0 ? (
@@ -112,6 +157,10 @@ export function ReleasesView({ releases, sources, isAdmin }: { releases: Release
                 <input type="checkbox" checked={hideMine} onChange={(e) => setHideMine(e.target.checked)} className="size-4 accent-[var(--primary)]" />
                 Hide books I already have
               </label>
+              <select value={sort} onChange={(e) => setSort(e.target.value as "found" | "release")} aria-label="Sort" className="h-9 rounded-full border border-input bg-background px-3 text-sm">
+                <option value="found">Newest found</option>
+                <option value="release">Release date</option>
+              </select>
               {hiddenCount > 0 && (
                 <label className="inline-flex items-center gap-2">
                   <input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} className="size-4 accent-[var(--primary)]" />
@@ -126,7 +175,7 @@ export function ReleasesView({ releases, sources, isAdmin }: { releases: Release
 
           <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {shown.map((r) => (
-              <ReleaseCard key={r.edition.id} release={r} />
+              <ReleaseCard key={r.edition.id} release={r} reason={reasons.get(r.edition.id)} today={today} />
             ))}
           </ul>
         </>
@@ -135,7 +184,8 @@ export function ReleasesView({ releases, sources, isAdmin }: { releases: Release
   );
 }
 
-function ReleaseCard({ release: { edition: e, source, mine, hidden } }: { release: Release }) {
+function ReleaseCard({ release: { edition: e, source, mine, hidden }, reason, today }: { release: Release; reason?: string; today: string }) {
+  const when = releaseLabel(e, today);
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -181,6 +231,13 @@ function ReleaseCard({ release: { edition: e, source, mine, hidden } }: { releas
         </button>
         {e.authors.length > 0 && <span className="line-clamp-1 text-sm text-muted-foreground">{e.authors.join(", ")}</span>}
         <span className="line-clamp-1 text-xs text-muted-foreground">{[e.publisher ?? source.label, e.publishedYear].filter(Boolean).join(" · ")}</span>
+        {when && (
+          <span className="inline-flex items-center gap-1 text-xs font-medium">
+            <CalendarDays className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="line-clamp-1">{when}</span>
+          </span>
+        )}
+        {reason && <span className="line-clamp-3 text-xs leading-snug text-primary italic dark:text-highlight">{reason}</span>}
       </div>
       {e.genres.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -223,13 +280,25 @@ function ReleaseCard({ release: { edition: e, source, mine, hidden } }: { releas
           </button>
         </div>
       )}
-      <ReleaseDetails release={{ edition: e, source, mine, hidden }} open={open} onOpenChange={setOpen} />
+      <ReleaseDetails release={{ edition: e, source, mine, hidden }} when={when} reason={reason} open={open} onOpenChange={setOpen} />
     </li>
   );
 }
 
 /** Everything about a release: the full description, details, the publisher's page, and the add buttons. */
-function ReleaseDetails({ release: { edition: e, source, mine }, open, onOpenChange }: { release: Release; open: boolean; onOpenChange: (open: boolean) => void }) {
+function ReleaseDetails({
+  release: { edition: e, source, mine },
+  when,
+  reason,
+  open,
+  onOpenChange,
+}: {
+  release: Release;
+  when?: string;
+  reason?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const site = e.sourceUrl ? new URL(e.sourceUrl).hostname.replace(/^www\./, "") : null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -250,6 +319,18 @@ function ReleaseDetails({ release: { edition: e, source, mine }, open, onOpenCha
                 {[e.authors.join(", "), e.publisher, e.publishedYear, e.pages && `${e.pages} pages`].filter(Boolean).join(" · ")}
               </DialogDescription>
             </DialogHeader>
+            {when && (
+              <p className="inline-flex items-center gap-1.5 text-sm font-medium">
+                <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
+                {when}
+              </p>
+            )}
+            {reason && (
+              <p className="flex gap-1.5 rounded-xl bg-accent/70 p-3 text-sm dark:bg-accent/60">
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-primary dark:text-highlight" aria-hidden />
+                {reason}
+              </p>
+            )}
             {e.genres.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {e.genres.map((g) => (

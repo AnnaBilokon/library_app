@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanDescription, cleanTitle, decodeEntities, isJunkParagraph, parseBookPage } from "./parse";
+import { cleanDescription, cleanTitle, decodeEntities, isJunkParagraph, parseBookPage, releaseFromText } from "./parse";
 
 const ld = (obj: unknown) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
 
@@ -28,6 +28,7 @@ describe("parseBookPage", () => {
       isbn: "9786178860028",
       language: "uk",
       coverUrl: "https://laboratory.ua/files/kod_1800x1200.webp",
+      releaseDate: "2026-08-11",
     });
   });
 
@@ -82,6 +83,15 @@ describe("parseBookPage", () => {
       <div>Характеристики</div><div>Видавництво</div><div>Наш Формат</div>`;
     const d = parseBookPage(html, "https://laboratory.ua/products/den-shakala");
     expect(d.description).toBe(`${blurb}\n\nДруга частина опису, теж досить довга, щоб її не відкинули як сміття.`);
+  });
+
+  it("reads when a book comes out, as a date or in the publisher's words", () => {
+    expect(releaseFromText("<p>Вихід книги очікується наприкінці 2026 року.</p>")).toEqual({ releaseNote: "Вихід книги очікується наприкінці 2026 року" });
+    expect(releaseFromText("<div>Дата надходження уточнюється</div><div>Передзамовлення можливе тільки за умови оплати онлайн</div>")).toEqual({
+      releaseNote: "Дата надходження уточнюється",
+    });
+    expect(releaseFromText("<span>Дата виходу:</span> <b>5.11.2026</b>")).toEqual({ releaseNote: "Дата виходу: 5.11.2026", releaseDate: "2026-11-05" });
+    expect(releaseFromText("<p>Звичайний опис без дат.</p>")).toEqual({});
   });
 
   it("falls back to OpenGraph and inline 'Label: value' specs", () => {

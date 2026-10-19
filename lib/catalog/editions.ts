@@ -29,6 +29,10 @@ export interface Edition {
   status: EditionStatus;
   /** When an admin checked it; absent while it waits in the review queue. */
   reviewedAt?: string;
+  /** When it comes out (yyyy-mm-dd), when the publisher's page says. */
+  releaseDate?: string;
+  /** The publisher's own words about when, e.g. "Очікується наприкінці 2026 року". */
+  releaseNote?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +59,8 @@ export function rowToEdition(row: EditionRow, supabaseUrl: string): Edition {
     sourceUrl: opt(row.source_url),
     status: row.status,
     reviewedAt: opt(row.reviewed_at),
+    releaseDate: opt(row.release_date),
+    releaseNote: opt(row.release_note),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

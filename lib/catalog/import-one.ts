@@ -64,6 +64,8 @@ export async function importOne(
       description: clean(details.description, 20_000),
       source_url: item.kind === "link" ? item.url : null,
       release_source_id: releaseSourceId ?? null,
+      release_date: details.releaseDate ?? null,
+      release_note: clean(details.releaseNote, 200),
       // Imported details can be wrong: nobody else sees it until an admin approves it.
       status: "draft",
       reviewed_at: null,
