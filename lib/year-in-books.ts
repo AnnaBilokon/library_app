@@ -13,8 +13,13 @@ export interface YearInBooks {
   /** Your Book Battle winners, if the final was decided. */
   bestOfYear: Book | null;
   worstOfYear: Book | null;
-  /** When the battle isn't decided: the highest-rated book of the year instead. */
-  topRated: Book | null;
+  /** The book you chose as your book of the year (when the battle isn't decided). */
+  chosenOfYear: Book | null;
+  /**
+   * Otherwise: the books sharing your highest rating of the year (4.5★ or more), your favourites
+   * among them if any are. One is the top-rated book; several are offered to choose from.
+   */
+  topRated: Book[];
   favourites: Book[];
   topAuthor: { name: string; books: number } | null;
   topGenre: { name: string; books: number } | null;
@@ -43,7 +48,7 @@ export interface YearInBooks {
 export function yearInBooks(
   books: Book[],
   year: number,
-  opts: { picks: { best: Picks; worst: Picks }; countries: AuthorCountries; goal: number | null; today: string },
+  opts: { picks: { best: Picks; worst: Picks }; countries: AuthorCountries; goal: number | null; today: string; chosen?: string },
 ): YearInBooks {
   const stats = computeStats(books, year);
   const extras = computeExtras(books, year);
@@ -62,7 +67,8 @@ export function yearInBooks(
     averageRating: stats.averageRating,
     bestOfYear: best,
     worstOfYear: worst,
-    topRated: extras.topRated[0] ?? null,
+    chosenOfYear: (opts.chosen && readIn(books, year).find((b) => b.id === opts.chosen)) || null,
+    topRated: topRatedOfYear(books, year),
     favourites: extras.favourites,
     topAuthor: stats.authors[0] ? { name: stats.authors[0].label, books: stats.authors[0].count } : null,
     topGenre: stats.genresRead[0] ? { name: stats.genresRead[0].label, books: stats.genresRead[0].count } : null,
@@ -88,4 +94,22 @@ export function reportYears(books: Book[]): number[] {
   const years = new Set<number>();
   for (const b of books) for (const r of b.readings) if (r.outcome === "finished" && r.finishedAt) years.add(Number(r.finishedAt.slice(0, 4)));
   return [...years].sort((a, b) => b - a);
+}
+
+/** Books with a finished reading in the year. */
+function readIn(books: Book[], year: number): Book[] {
+  return books.filter((b) => b.readings.some((r) => r.outcome === "finished" && r.finishedAt?.startsWith(String(year))));
+}
+
+/**
+ * The year's top-rated books: those sharing the highest rating (4.5★ or more), and of those your
+ * favourites (♥) if any are. Finishing last isn't a reason to be the best, so ties stay ties.
+ */
+export function topRatedOfYear(books: Book[], year: number): Book[] {
+  const rated = readIn(books, year).filter((b) => b.rating !== undefined);
+  const best = Math.max(0, ...rated.map((b) => b.rating!));
+  if (best < 4.5) return [];
+  const tied = rated.filter((b) => b.rating === best);
+  const favourites = tied.filter((b) => b.favorite);
+  return (favourites.length ? favourites : tied).sort((a, b) => (b.lastFinishedAt ?? "").localeCompare(a.lastFinishedAt ?? ""));
 }
