@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import type { ActionResult } from "@/app/actions/books";
 import { requireUser } from "@/lib/auth";
+import { getSettings } from "@/lib/data/settings";
 import { createClient } from "@/lib/supabase/server";
 
 /** Hide (or show again) the books on the sell shelf in the Library. */
@@ -47,5 +49,22 @@ export async function setTracked(kind: "series" | "author", name: string, tracke
   );
   if (error) return { ok: false, error: `Couldn't save: ${error.message}` };
   revalidatePath("/series", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Choose your book of the year (or null to undo it): shown on Year in Books when the Book Battle isn't decided. */
+export async function setBookOfYear(year: number, bookId: string | null): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!z.number().int().min(1900).max(2100).safeParse(year).success || (bookId !== null && !z.uuid().safeParse(bookId).success)) {
+    return { ok: false, error: "Invalid input." };
+  }
+  const { booksOfYear } = await getSettings();
+  const next = { ...booksOfYear };
+  if (bookId) next[String(year)] = bookId;
+  else delete next[String(year)];
+  const supabase = await createClient();
+  const { error } = await supabase.from("user_settings").upsert({ user_id: user.id, books_of_year: next }, { onConflict: "user_id" });
+  if (error) return { ok: false, error: `Couldn't save: ${error.message}` };
+  revalidatePath("/year-in-books");
   return { ok: true, data: undefined };
 }

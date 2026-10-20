@@ -1,7 +1,11 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Crown, Minus, PartyPopper, Swords, ThumbsDown } from "lucide-react";
+import { toast } from "sonner";
+import { setBookOfYear } from "@/app/actions/settings";
 import { BookCover } from "@/components/books/book-cover";
 import { Flag } from "@/components/countries/flag";
 import { BookishFacts } from "@/components/dashboard/bookish-facts";
@@ -31,7 +35,8 @@ export function YearStory({ y, years }: { y: YearInBooks; years: number[] }) {
   const [heroRef, heroIn] = useInView<HTMLDivElement>();
   const books = useCountUp(y.books, heroIn, 1600);
   const pages = useCountUp(y.pages, heroIn, 1600);
-  const champion = y.bestOfYear ?? y.topRated;
+  // The Book Battle winner, else your own choice, else your one top-rated book (several: choose).
+  const champion = y.bestOfYear ?? y.chosenOfYear ?? (y.topRated.length === 1 ? y.topRated[0] : null);
 
   return (
     <div className="flex flex-col gap-16 pb-10">
@@ -87,12 +92,17 @@ export function YearStory({ y, years }: { y: YearInBooks; years: number[] }) {
             </div>
             <div className="flex flex-col gap-2">
               <p id="best-title" className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                {y.bestOfYear ? "Book of the year · your Book Battle winner" : `Your top-rated book${y.topRated ? ` · ★ ${y.topRated.rating}` : ""}`}
+                {y.bestOfYear
+                  ? "Book of the year · your Book Battle winner"
+                  : y.chosenOfYear
+                    ? "Your book of the year"
+                    : `Your top-rated book · ★ ${champion.rating}${champion.favorite ? " · ♥ favourite" : ""}`}
               </p>
               <Link href={`/books/${champion.id}`} lang={champion.language} className="font-heading text-4xl leading-tight font-semibold text-balance text-heading hover:underline md:text-5xl">
                 {champion.title}
               </Link>
               {champion.authors.length > 0 && <p className="text-xl text-muted-foreground">{champion.authors.join(", ")}</p>}
+              {y.chosenOfYear && !y.bestOfYear && <ChangeChoice year={y.year} />}
               {!y.bestOfYear && (
                 <Link href={`/battle?year=${y.year}`} className="inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4">
                   <Swords className="size-4" aria-hidden /> Decide your book of the year in the Book Battle
@@ -103,6 +113,8 @@ export function YearStory({ y, years }: { y: YearInBooks; years: number[] }) {
           </section>
         </Reveal>
       )}
+
+      {!champion && y.topRated.length > 1 && <TopRatedTie y={y} />}
 
       <Reveal>
         <section aria-label="Your favourites" className="grid gap-4 sm:grid-cols-3">
@@ -290,5 +302,77 @@ function Delta({ label, now, before, decimals }: { label: string; now: number | 
         {diff === null ? "nothing to compare" : diff === 0 ? "the same as before" : `${diff > 0 ? "+" : ""}${decimals ? diff : fmt(diff)} vs ${before === null ? "—" : decimals ? `★ ${before}` : fmt(before)}`}
       </span>
     </div>
+  );
+}
+
+/** Several books share your top rating: all of them are shown, and you pick your book of the year. */
+function TopRatedTie({ y }: { y: YearInBooks }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const choose = (bookId: string) =>
+    start(async () => {
+      const r = await setBookOfYear(y.year, bookId);
+      if (!r.ok) return void toast.error(r.error);
+      router.refresh();
+    });
+  const best = y.topRated[0];
+  return (
+    <Reveal>
+      <section aria-labelledby="top-rated-title" className="flex flex-col items-center gap-6 text-center">
+        <div className="flex flex-col gap-1">
+          <p id="top-rated-title" className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+            Your top-rated books · ★ {best.rating}
+            {best.favorite ? " · ♥ favourites" : ""}
+          </p>
+          <p className="text-muted-foreground">They share your top rating. Pick your book of the year, or decide it in the Book Battle.</p>
+        </div>
+        <ul className="flex flex-wrap justify-center gap-6">
+          {y.topRated.map((b) => (
+            <li key={b.id} className="flex w-36 flex-col items-center gap-2 md:w-40">
+              <Link href={`/books/${b.id}`} className="w-full">
+                <BookCover title={b.title} authors={b.authors} src={b.coverSrc} lang={b.language} sizes="160px" className="shadow-book-hover" />
+              </Link>
+              <Link href={`/books/${b.id}`} lang={b.language} className="line-clamp-2 font-heading text-base leading-snug font-semibold text-heading hover:underline">
+                {b.title}
+              </Link>
+              <button
+                type="button"
+                onClick={() => choose(b.id)}
+                disabled={pending}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-border hover:bg-muted disabled:opacity-60"
+              >
+                <Crown className="size-3.5" aria-hidden />
+                Make it my book of the year
+              </button>
+            </li>
+          ))}
+        </ul>
+        <Link href={`/battle?year=${y.year}`} className="inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4">
+          <Swords className="size-4" aria-hidden /> Or decide it in the Book Battle
+        </Link>
+      </section>
+    </Reveal>
+  );
+}
+
+/** Undo your choice (the top-rated books come back). */
+function ChangeChoice({ year }: { year: number }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          const r = await setBookOfYear(year, null);
+          if (!r.ok) return void toast.error(r.error);
+          router.refresh();
+        })
+      }
+      className="w-fit text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-60"
+    >
+      Choose another
+    </button>
   );
 }

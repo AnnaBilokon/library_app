@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { YearStory } from "@/components/year/year-story";
 import { getAuthorCountries } from "@/lib/data/author-countries";
 import { getBattlePicks } from "@/lib/data/battle";
+import { getSettings } from "@/lib/data/settings";
 import { getBooks } from "@/lib/data/books";
 import { getGoals } from "@/lib/data/goals";
 import { reportYears, yearInBooks } from "@/lib/year-in-books";
@@ -21,7 +22,7 @@ export default function YearInBooksPage({ searchParams }: PageProps<"/year-in-bo
 }
 
 async function YearData({ searchParams }: { searchParams: PageProps<"/year-in-books">["searchParams"] }) {
-  const [books, countries, goals, params] = await Promise.all([getBooks(), getAuthorCountries(), getGoals(), searchParams]);
+  const [books, countries, goals, settings, params] = await Promise.all([getBooks(), getAuthorCountries(), getGoals(), getSettings(), searchParams]);
   const today = new Date().toISOString().slice(0, 10);
   const years = reportYears(books);
   if (years.length === 0) {
@@ -31,5 +32,10 @@ async function YearData({ searchParams }: { searchParams: PageProps<"/year-in-bo
   const asked = Number(Array.isArray(params.year) ? params.year[0] : params.year);
   const year = years.includes(asked) ? asked : years[0];
   const picks = await getBattlePicks(year);
-  return <YearStory y={yearInBooks(books, year, { picks, countries, goal: goals[year] ?? null, today })} years={years} />;
+  return (
+    <YearStory
+      y={yearInBooks(books, year, { picks, countries, goal: goals[year] ?? null, today, chosen: settings.booksOfYear[String(year)] })}
+      years={years}
+    />
+  );
 }
