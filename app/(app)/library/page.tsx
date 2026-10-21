@@ -5,7 +5,7 @@ import { LibraryView } from "@/components/books/library-view";
 import { COLUMNS_COOKIE, LAYOUT_COOKIE, parseColumns, type LibraryLayout } from "@/lib/books/layout";
 import { LibrarySkeleton } from "@/components/books/library-skeleton";
 import Link from "next/link";
-import { Plus, Sparkles, Swords } from "lucide-react";
+import { Heart, Plus, Sparkles, Swords } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { AuthorCountriesProvider } from "@/components/countries/author-countries-context";
@@ -30,6 +30,10 @@ export default function LibraryPage() {
         title="Library"
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link href="/favorites" className={buttonVariants({ variant: "outline", className: "h-11 rounded-full px-5 text-[15px]" })}>
+              <Heart aria-hidden />
+              Favourites
+            </Link>
             <Link href="/battle" className={buttonVariants({ variant: "outline", className: "h-11 rounded-full px-5 text-[15px]" })}>
               <Swords aria-hidden />
               Book Battle
