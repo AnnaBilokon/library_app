@@ -227,7 +227,8 @@ export function WishlistBoard({ books }: { books: Book[] }) {
           {(["most", "maybe"] as const).map((g) => {
             const list = inGroup(g);
             return (
-              <DropZone key={g} group={g} count={list.length} cost={wishlistCost(list)} className="bg-card ring-1 ring-border/60">
+              // min-w-0: a grid column would otherwise widen to fit the whole sideways row (and the page with it).
+              <DropZone key={g} group={g} count={list.length} cost={wishlistCost(list)} className="min-w-0 bg-card ring-1 ring-border/60">
                 {list.length === 0 ? (
                   <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground sm:py-10">Drag books here</p>
                 ) : (
