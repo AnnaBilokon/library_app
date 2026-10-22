@@ -231,8 +231,9 @@ export function WishlistBoard({ books }: { books: Book[] }) {
                 {list.length === 0 ? (
                   <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground sm:py-10">Drag books here</p>
                 ) : (
-                  // One sideways row on phones so both boxes fit on screen; a grid from sm up.
-                  <ul className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-x-5 sm:gap-y-6 sm:overflow-visible sm:px-0 sm:pb-0">
+                  // One sideways row on phones so both boxes fit on screen; from sm up, a grid of
+                  // covers about as big as "Just added", as many to a row as fit.
+                  <ul className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] sm:gap-x-5 sm:gap-y-6 sm:overflow-visible sm:px-0 sm:pb-0">
                     {list.map((b) => (
                       <li key={b.id} className="w-32 shrink-0 sm:w-auto">
                         <WishCard {...cardProps(b)} />
