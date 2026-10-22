@@ -17,8 +17,9 @@ import {
   type Announcements,
   type CollisionDetection,
   type DragEndEvent,
+  type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { CalendarClock, ChevronDown, EllipsisVertical, GripVertical, Store, Truck, Undo2 } from "lucide-react";
+import { CalendarClock, ChevronDown, Ear, EllipsisVertical, GripVertical, Star, Store, Truck, Undo2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { markBought, moveWishlistBook, removeFromWishlist, setOrdered, setPricePaid } from "@/app/actions/wishlist";
 import { BookCover } from "@/components/books/book-cover";
@@ -44,15 +45,28 @@ import { daysUntil, RELEASE_WINDOW_DAYS, releaseLabel, WISH_GROUPS, wishGroup, w
 /** Drop target id of the "Ordered" box (not a wishlist group: it sets the order date). */
 const ORDERED_ZONE = "ordered";
 
-/** Drop where the pointer is; fall back to overlap for keyboard dragging (no pointer). */
+/** Prefix of the drop targets in the bar shown at the bottom while dragging on smaller screens. */
+const DOCK = "dock:";
+
+/** The box a drop target stands for (a dock target and its box are the same place). */
+const dropTarget = (id: UniqueIdentifier) => String(id).replace(DOCK, "") as WishGroup | typeof ORDERED_ZONE;
+
+/**
+ * Drop where the pointer is; the dock floats over the boxes, so it wins where they overlap. Fall
+ * back to overlap for keyboard dragging (no pointer).
+ */
 const pointerFirst: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
+  const docked = hits.filter((h) => String(h.id).startsWith(DOCK));
+  if (docked.length > 0) return docked;
   return hits.length > 0 ? hits : rectIntersection(args);
 };
 
 /**
  * The Wishlist page: a "Just added" row on top and two boxes below. Drag a book by its grip
- * (mouse, touch with a short press, or keyboard) into a box, or use its "Move to" menu.
+ * (mouse, touch with a short press, or keyboard) into a box, or use its "Move to" menu. On
+ * phones and tablets a bar with the boxes pops up at the bottom while you drag, so a book never
+ * has to travel down the page.
  */
 export function WishlistBoard({ books }: { books: Book[] }) {
   // The group each book is in, updated immediately when you drop it (saved in the background).
@@ -75,6 +89,8 @@ export function WishlistBoard({ books }: { books: Book[] }) {
   const [ordered, setOrderedState] = useState<Record<string, string | undefined>>(() => Object.fromEntries(books.map((b) => [b.id, b.orderedAt])));
   const [activeId, setActiveId] = useState<string | null>(null);
   const justDragged = useRef(false);
+  // Over the dock the page shouldn't scroll away underneath (it sits in the auto-scroll edge).
+  const overDock = useRef(false);
   const [, startTransition] = useTransition();
   const byId = new Map(books.map((b) => [b.id, b]));
   const shown = books.filter((b) => !hidden.has(b.id));
@@ -133,11 +149,16 @@ export function WishlistBoard({ books }: { books: Book[] }) {
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveId(null);
-    if (over?.id === ORDERED_ZONE) order(String(active.id), true);
-    else if (over) move(String(active.id), over.id as WishGroup);
+    overDock.current = false;
+    const to = over && dropTarget(over.id);
+    if (to === ORDERED_ZONE) order(String(active.id), true);
+    else if (to) move(String(active.id), to);
   };
 
-  const groupTitle = (g: unknown) => WISH_GROUPS.find((x) => x.id === g)?.title ?? "";
+  const groupTitle = (id: UniqueIdentifier) => {
+    const to = dropTarget(id);
+    return to === ORDERED_ZONE ? "Ordered" : (WISH_GROUPS.find((x) => x.id === to)?.title ?? "");
+  };
   const announcements: Announcements = {
     onDragStart: ({ active }) => `Picked up ${byId.get(String(active.id))?.title}.`,
     onDragOver: ({ active, over }) => (over ? `${byId.get(String(active.id))?.title} is over ${groupTitle(over.id)}.` : ""),
@@ -163,13 +184,18 @@ export function WishlistBoard({ books }: { books: Book[] }) {
       id="wishlist-board"
       sensors={sensors}
       collisionDetection={pointerFirst}
+      autoScroll={{ canScroll: () => !overDock.current }}
       onDragStart={({ active }) => setActiveId(String(active.id))}
+      onDragOver={({ over }) => (overDock.current = String(over?.id ?? "").startsWith(DOCK))}
       onDragEnd={(e) => {
         justDragged.current = true;
         setTimeout(() => (justDragged.current = false), 150);
         onDragEnd(e);
       }}
-      onDragCancel={() => setActiveId(null)}
+      onDragCancel={() => {
+        setActiveId(null);
+        overDock.current = false;
+      }}
       accessibility={{ announcements }}
     >
       <div
@@ -203,11 +229,12 @@ export function WishlistBoard({ books }: { books: Book[] }) {
             return (
               <DropZone key={g} group={g} count={list.length} cost={wishlistCost(list)} className="bg-card ring-1 ring-border/60">
                 {list.length === 0 ? (
-                  <p className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">Drag books here</p>
+                  <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground sm:py-10">Drag books here</p>
                 ) : (
-                  <ul className="grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-3">
+                  // One sideways row on phones so both boxes fit on screen; a grid from sm up.
+                  <ul className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-x-5 sm:gap-y-6 sm:overflow-visible sm:px-0 sm:pb-0">
                     {list.map((b) => (
-                      <li key={b.id}>
+                      <li key={b.id} className="w-32 shrink-0 sm:w-auto">
                         <WishCard {...cardProps(b)} />
                       </li>
                     ))}
@@ -227,6 +254,8 @@ export function WishlistBoard({ books }: { books: Book[] }) {
           onNotOrdered={(b) => order(b.id, false)}
         />
       </div>
+
+      {active && <DropDock from={groups[active.id]} />}
 
       {/* The card that follows the pointer, so it can leave the scrolling row without being clipped. */}
       <DragOverlay dropAnimation={null}>
@@ -277,6 +306,46 @@ function DropZone({
       </div>
       {children}
     </section>
+  );
+}
+
+const DOCK_TARGETS: { id: WishGroup | typeof ORDERED_ZONE; title: string; icon: LucideIcon }[] = [
+  { id: "most", title: WISH_GROUPS.find((g) => g.id === "most")!.title, icon: Star },
+  { id: "maybe", title: WISH_GROUPS.find((g) => g.id === "maybe")!.title, icon: Ear },
+  { id: ORDERED_ZONE, title: "Ordered", icon: Truck },
+];
+
+/**
+ * The boxes as a bar at the bottom of the screen (over the tab bar), shown only while dragging and
+ * below lg, where the boxes are stacked down the page. The box the book is already in is dimmed.
+ */
+function DropDock({ from }: { from?: WishGroup }) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-18px_rgb(0_0_0/0.35)] backdrop-blur duration-150 animate-in fade-in-0 slide-in-from-bottom-4 lg:hidden">
+      <p className="mb-2 text-center text-xs text-muted-foreground">Drop on a box</p>
+      <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
+        {DOCK_TARGETS.map((t) => (
+          <DockTarget key={t.id} {...t} current={t.id === from} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DockTarget({ id, title, icon: Icon, current }: { id: string; title: string; icon: LucideIcon; current: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({ id: DOCK + id, disabled: current });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-2 py-2 text-center text-xs leading-tight font-semibold transition-colors",
+        current ? "opacity-40" : "border-border bg-card",
+        isOver && "scale-105 border-solid border-primary bg-highlight text-highlight-foreground",
+      )}
+    >
+      <Icon className="size-5" aria-hidden />
+      {title}
+    </div>
   );
 }
 
