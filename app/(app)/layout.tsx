@@ -1,12 +1,16 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { ChallengeCelebration } from "@/components/dashboard/challenge-celebration";
 import { CommandMenu } from "@/components/layout/command-menu";
 import { MainNav } from "@/components/layout/main-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 import { requireUser } from "@/lib/auth";
+import { finishedPerYear } from "@/lib/challenge";
 import { getBooks } from "@/lib/data/books";
+import { getGoals } from "@/lib/data/goals";
+import { getSettings } from "@/lib/data/settings";
 import { Logo } from "@/components/layout/logo";
 
 /**
@@ -36,6 +40,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
       <div className="flex-1 pb-20 md:pb-0">{children}</div>
       <MobileNav />
+      <Suspense fallback={null}>
+        <ChallengeCheck />
+      </Suspense>
     </div>
   );
 }
@@ -48,4 +55,10 @@ async function Account() {
 async function SearchIndex() {
   const books = await getBooks();
   return <CommandMenu books={books.map(({ id, title, authors, isbn, editionId, wanted, soldAt }) => ({ id, title, authors, isbn, editionId, wanted, soldAt }))} />;
+}
+
+/** Reached this year's reading goal? Then congratulate you, on whichever page you saved the book. */
+async function ChallengeCheck() {
+  const [books, goals, settings] = await Promise.all([getBooks(), getGoals(), getSettings()]);
+  return <ChallengeCelebration finished={finishedPerYear(books)} goals={goals} celebrated={settings.challengesCelebrated} />;
 }

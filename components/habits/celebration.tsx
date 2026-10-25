@@ -13,21 +13,28 @@ const PIECES = Array.from({ length: 28 }, (_, i) => ({
   turn: (i * 47) % 360,
 }));
 
+/** A burst of confetti over a dialog (put it inside a relative, overflow-hidden box). */
+export function Confetti() {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      {PIECES.map((p, i) => (
+        <span
+          key={i}
+          className="confetti-fall absolute -top-4 rounded-[2px]"
+          style={{ left: `${p.left}%`, width: p.size, height: p.size * 1.6, background: p.colour, animationDelay: `${p.delay}ms`, rotate: `${p.turn}deg` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** A badge you just earned: big, popping in, with a burst of confetti. */
 export function Celebration({ achievements, onClose }: { achievements: Achievement[]; onClose: () => void }) {
   const [first, ...rest] = achievements;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="overflow-hidden text-center sm:max-w-sm">
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          {PIECES.map((p, i) => (
-            <span
-              key={i}
-              className="confetti-fall absolute -top-4 rounded-[2px]"
-              style={{ left: `${p.left}%`, width: p.size, height: p.size * 1.6, background: p.colour, animationDelay: `${p.delay}ms`, rotate: `${p.turn}deg` }}
-            />
-          ))}
-        </div>
+        <Confetti />
         <span className="badge-pop mx-auto grid size-24 place-items-center rounded-full bg-highlight text-5xl shadow-lg" aria-hidden>
           {first.emoji}
         </span>

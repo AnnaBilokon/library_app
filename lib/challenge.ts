@@ -118,3 +118,32 @@ export function challengeYears(books: Book[], currentYear: number, goalYears: nu
   for (const b of books) for (const r of b.readings) if (r.outcome === "finished" && r.finishedAt) years.add(Number(r.finishedAt.slice(0, 4)));
   return [...years].sort((a, b) => b - a);
 }
+
+/** Finished readings per year ("2026" → 31), counted the same way as the challenge. */
+export function finishedPerYear(books: Book[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const b of books) {
+    for (const r of b.readings) {
+      if (r.outcome !== "finished" || !r.finishedAt) continue;
+      const year = r.finishedAt.slice(0, 4);
+      counts[year] = (counts[year] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+/**
+ * This year's challenge, if you've reached its goal and haven't been congratulated on that goal
+ * yet (`celebrated` holds the goal you last were, per year: raise it and reach it, and it's new).
+ */
+export function challengeToCelebrate(
+  finished: Record<string, number>,
+  goals: Record<number, number>,
+  celebrated: Record<string, number>,
+  year: number,
+): { year: number; goal: number; read: number } | null {
+  const goal = goals[year];
+  const read = finished[String(year)] ?? 0;
+  if (!goal || read < goal || (celebrated[String(year)] ?? 0) >= goal) return null;
+  return { year, goal, read };
+}

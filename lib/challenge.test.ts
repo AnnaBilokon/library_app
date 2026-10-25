@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Book, Reading } from "@/lib/types";
-import { challengeYears, computeChallenge } from "./challenge";
+import { challengeToCelebrate, challengeYears, computeChallenge, finishedPerYear } from "./challenge";
 
 const finished = (finishedAt?: string): Reading => ({ id: finishedAt ?? "x", finishedAt, outcome: "finished" });
 const book = (readings: Reading[], pages?: number) => ({ id: Math.random().toString(), readings, pages }) as unknown as Book;
@@ -59,5 +59,30 @@ describe("computeChallenge", () => {
 describe("challengeYears", () => {
   it("offers the current year, goal years and years with dated finishes, newest first", () => {
     expect(challengeYears(books, 2027, [2024])).toEqual([2027, 2026, 2025, 2024]);
+  });
+});
+
+describe("finishedPerYear", () => {
+  it("counts dated finished readings per year, re-reads included", () => {
+    expect(finishedPerYear(books)).toEqual({ "2026": 6, "2025": 1 });
+  });
+});
+
+describe("challengeToCelebrate", () => {
+  const finished = { "2026": 30, "2025": 12 };
+
+  it("celebrates once the goal is reached", () => {
+    expect(challengeToCelebrate(finished, { 2026: 30 }, {}, 2026)).toEqual({ year: 2026, goal: 30, read: 30 });
+    expect(challengeToCelebrate(finished, { 2026: 31 }, {}, 2026)).toBeNull();
+  });
+
+  it("only once per goal, and again for a raised goal", () => {
+    expect(challengeToCelebrate(finished, { 2026: 30 }, { "2026": 30 }, 2026)).toBeNull();
+    expect(challengeToCelebrate(finished, { 2026: 25 }, { "2026": 30 }, 2026)).toBeNull();
+    expect(challengeToCelebrate(finished, { 2026: 30 }, { "2026": 20 }, 2026)).toEqual({ year: 2026, goal: 30, read: 30 });
+  });
+
+  it("needs a goal for that year", () => {
+    expect(challengeToCelebrate(finished, { 2025: 10 }, {}, 2026)).toBeNull();
   });
 });
