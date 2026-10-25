@@ -68,3 +68,21 @@ export async function setBookOfYear(year: number, bookId: string | null): Promis
   revalidatePath("/year-in-books");
   return { ok: true, data: undefined };
 }
+
+/**
+ * Remember that you've seen the "challenge complete" dialog for this year's goal. No refresh:
+ * the dialog already closed itself, and nothing else on the page changes.
+ */
+export async function markChallengeCelebrated(year: number, goal: number): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!z.number().int().min(1900).max(2200).safeParse(year).success || !z.number().int().min(1).max(1000).safeParse(goal).success) {
+    return { ok: false, error: "Invalid input." };
+  }
+  const { challengesCelebrated } = await getSettings();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("user_settings")
+    .upsert({ user_id: user.id, challenges_celebrated: { ...challengesCelebrated, [String(year)]: goal } }, { onConflict: "user_id" });
+  if (error) return { ok: false, error: `Couldn't save: ${error.message}` };
+  return { ok: true, data: undefined };
+}

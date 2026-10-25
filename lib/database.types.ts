@@ -584,6 +584,7 @@ export type Database = {
       user_settings: {
         Row: {
           books_of_year: Json
+          challenges_celebrated: Json
           countries_goal: number | null
           hidden_authors: string[]
           hidden_releases: string[]
@@ -596,6 +597,7 @@ export type Database = {
         }
         Insert: {
           books_of_year?: Json
+          challenges_celebrated?: Json
           countries_goal?: number | null
           hidden_authors?: string[]
           hidden_releases?: string[]
@@ -608,6 +610,7 @@ export type Database = {
         }
         Update: {
           books_of_year?: Json
+          challenges_celebrated?: Json
           countries_goal?: number | null
           hidden_authors?: string[]
           hidden_releases?: string[]
