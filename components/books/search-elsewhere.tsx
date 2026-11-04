@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Globe, Plus } from "lucide-react";
 import { searchMatcher } from "@/lib/books/filters";
 import type { Book } from "@/lib/types";
 import { BookCover } from "./book-cover";
@@ -12,7 +12,8 @@ const WHERE = (b: Book) => (b.wanted ? "on your wishlist" : b.soldAt ? "sold" : 
 
 /**
  * Under a Library search: matches the current view leaves out (the other shelf, the wishlist, sold
- * books) and catalog editions you don't have yet, each one click away.
+ * books) and catalog editions you don't have yet, each one click away. Once the catalog has
+ * answered, a link searches online too, for books nobody has added yet.
  */
 export function SearchElsewhere({
   q,
@@ -34,7 +35,9 @@ export function SearchElsewhere({
   const { results } = useCatalogSearch(q);
   const catalog = (results ?? []).filter((e) => !myEditionIds.has(e.id)).slice(0, 4);
 
-  if (!q.trim() || (otherShelf.count === 0 && others.length === 0 && catalog.length === 0)) return null;
+  const text = q.trim();
+  const searchedCatalog = text.length >= 2 && results !== null;
+  if (!text || (otherShelf.count === 0 && others.length === 0 && catalog.length === 0 && !searchedCatalog)) return null;
 
   return (
     <aside aria-label="More matches" className="flex flex-col gap-3 rounded-2xl bg-muted/60 p-4 text-sm">
@@ -89,6 +92,15 @@ export function SearchElsewhere({
             ))}
           </ul>
         </div>
+      )}
+      {searchedCatalog && (
+        <p>
+          <Link href={`/books/new?q=${encodeURIComponent(text)}`} className="inline-flex items-center gap-1.5 font-medium underline underline-offset-4 hover:text-primary">
+            <Globe className="size-4" aria-hidden />
+            Search online for “{text}”
+          </Link>{" "}
+          <span className="text-muted-foreground">and add it</span>
+        </p>
       )}
     </aside>
   );

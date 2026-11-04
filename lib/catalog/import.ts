@@ -48,8 +48,12 @@ type Json = Record<string, unknown>;
 /** The first volume of a Google Books `volumes?q=isbn:…` answer. */
 export function fromGoogleBooks(json: unknown, isbn: string): Prefill | null {
   const info = ((json as Json)?.items as Json[] | undefined)?.[0]?.volumeInfo as Json | undefined;
-  const title = text(info?.title);
-  if (!info || !title) return null;
+  return info ? googleVolume(info, isbn) : null;
+}
+
+function googleVolume(info: Json, isbn: string | undefined): (Prefill & { title: string }) | null {
+  const title = text(info.title);
+  if (!title) return null;
   const images = info.imageLinks as Json | undefined;
   const thumb = text(images?.thumbnail) ?? text(images?.smallThumbnail);
   return {
@@ -83,4 +87,74 @@ export function fromOpenLibrary(json: unknown, isbn: string): Prefill | null {
     isbn,
     coverUrl: text(cover?.large) ?? text(cover?.medium),
   };
+}
+
+/** A book found by searching online: the details it fills in, and where they came from. */
+export interface OnlineBook extends Prefill {
+  title: string;
+  /** Unique among the results (the source's own id for the volume or edition). */
+  key: string;
+  site: "Google Books" | "Open Library";
+}
+
+/** The ISBN-13 among a Google volume's identifiers, or its ISBN-10 converted. */
+function googleIsbn(ids: unknown): string | undefined {
+  const list = Array.isArray(ids) ? (ids as Json[]) : [];
+  const pick = (type: string) => list.find((x) => x?.type === type)?.identifier;
+  const raw = text(pick("ISBN_13")) ?? text(pick("ISBN_10"));
+  return raw ? (normalizeIsbn(raw) ?? undefined) : undefined;
+}
+
+/** Every volume of a Google Books `volumes?q=…` answer. */
+export function fromGoogleBooksSearch(json: unknown): OnlineBook[] {
+  const items = (json as Json)?.items;
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item: Json) => {
+    const info = item?.volumeInfo as Json | undefined;
+    const book = info && googleVolume(info, googleIsbn(info.industryIdentifiers));
+    const id = text(item.id);
+    return book && id ? [{ ...book, key: `google:${id}`, site: "Google Books" as const }] : [];
+  });
+}
+
+/** Open Library's three-letter language codes, for the languages books here come in. */
+const MARC_LANGUAGES: Record<string, string> = {
+  ukr: "uk", eng: "en", swe: "sv", dut: "nl", pol: "pl", ger: "de", fre: "fr", spa: "es", ita: "it", jpn: "ja", rus: "ru",
+};
+
+/**
+ * Open Library's `search.json` answer, asked for with `fields=…,editions,editions.…`: each work
+ * comes with its best-matching edition, whose publisher, year and ISBN belong to one real book
+ * (the work's own lists mix every edition's).
+ */
+export function fromOpenLibrarySearch(json: unknown): OnlineBook[] {
+  const docs = (json as Json)?.docs;
+  if (!Array.isArray(docs)) return [];
+  return docs.flatMap((doc: Json) => {
+    const edition = ((doc?.editions as Json | undefined)?.docs as Json[] | undefined)?.[0] ?? {};
+    const title = text(edition.title) ?? text(doc?.title);
+    const key = text(edition.key) ?? text(doc?.key);
+    if (!title || !key) return [];
+    const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : []);
+    const isbns = list(edition.isbn).flatMap((raw) => normalizeIsbn(raw) ?? []);
+    const languages = list(edition.language);
+    const cover = positive(edition.cover_i) ?? positive(doc.cover_i);
+    const authors = list(doc.author_name);
+    return [
+      {
+        title,
+        authors: authors.length ? authors : undefined,
+        publisher: list(edition.publisher)[0],
+        publishedYear: year(list(edition.publish_date)[0]),
+        // Editions here don't carry a page count; the work's median across its editions is close.
+        pages: positive(doc.number_of_pages_median),
+        isbn: isbns[0],
+        // Only when it's a single language: a list means a bilingual or mixed record.
+        language: languages.length === 1 ? MARC_LANGUAGES[languages[0]] : undefined,
+        coverUrl: cover ? `https://covers.openlibrary.org/b/id/${cover}-L.jpg` : undefined,
+        key: `openlibrary:${key}`,
+        site: "Open Library" as const,
+      },
+    ];
+  });
 }

@@ -63,6 +63,7 @@ When a pull request adds a migration, apply it **before** merging (`npx supabase
 
 - **National Bank of Ukraine** exchange rates (`bank.gov.ua`, free, no key), used when you mark a book sold in another currency.
 - Publisher and shop pages, fetched server-side when you use "Fill from a link".
+- **Open Library** (free, no key) and **Google Books** (only with `GOOGLE_BOOKS_API_KEY`), searched when a book isn't in the catalog ("Search online" on Add a book, in the Library search and in Ctrl K). Open Library knows few Ukrainian books, and only by Latin-letter titles; Google Books is better at them. Set the key in `.env.local` and in Vercel to use it.
 
 ## Notion import (one-time)
 

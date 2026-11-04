@@ -14,15 +14,18 @@ export function NewBookForm({
   forWishlist,
   preset,
   edition,
+  searchFor,
 }: {
   suggestions: BookFormSuggestions;
   forWishlist: boolean;
   preset: NewBookPreset;
   /** Opened with ?edition=…: start from that catalog edition. */
   edition?: Edition;
+  /** Opened with ?q=…: search the catalog and online for it. */
+  searchFor?: string;
 }) {
   const [saved, setSaved] = useState(0);
-  const key = `${forWishlist}|${preset.authors?.join(",") ?? ""}|${preset.series ?? ""}|${preset.seriesIndex ?? ""}|${edition?.id ?? ""}|${saved}`;
+  const key = `${forWishlist}|${preset.authors?.join(",") ?? ""}|${preset.series ?? ""}|${preset.seriesIndex ?? ""}|${edition?.id ?? ""}|${searchFor ?? ""}|${saved}`;
   // After the first save, the next book starts blank (not from the same edition again).
   return (
     <BookForm
@@ -31,6 +34,7 @@ export function NewBookForm({
       forWishlist={forWishlist}
       preset={preset}
       edition={saved === 0 ? edition : undefined}
+      searchFor={saved === 0 ? searchFor : undefined}
       onCreated={() => setSaved((n) => n + 1)}
     />
   );
