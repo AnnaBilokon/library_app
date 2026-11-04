@@ -44,5 +44,9 @@ async function NewBookForm({ searchParams }: { searchParams: Promise<Record<stri
   // From the catalog ("Add to my library"): ?edition=<id> starts from that edition.
   const editionId = one(params.edition);
   const edition = editionId && /^[0-9a-f-]{36}$/i.test(editionId) ? ((await getVisibleEdition(editionId)) ?? undefined) : undefined;
-  return <NewBookFormFields suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} edition={edition} />;
+  // From a search ("Search online for …"): ?q=… looks it up in the catalog and online.
+  const searchFor = edition ? undefined : one(params.q)?.slice(0, 200);
+  return (
+    <NewBookFormFields suggestions={buildSuggestions(books)} forWishlist={params.wishlist === "1"} preset={preset} edition={edition} searchFor={searchFor} />
+  );
 }

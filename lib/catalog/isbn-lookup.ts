@@ -3,7 +3,7 @@ import { FetchError, safeFetch } from "@/lib/net/safe-fetch";
 import type { Prefill } from "@/lib/prefill/parse";
 import { fromGoogleBooks, fromOpenLibrary } from "./import";
 
-async function getJson(url: string): Promise<unknown> {
+export async function getJson(url: string): Promise<unknown> {
   const res = await safeFetch(url, { accept: "application/json", maxBytes: 2 * 1024 * 1024, timeoutMs: 10_000 });
   return JSON.parse(new TextDecoder().decode(res.body));
 }

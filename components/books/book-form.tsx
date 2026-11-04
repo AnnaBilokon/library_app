@@ -17,6 +17,7 @@ import { duplicateKey } from "@/lib/books/duplicates";
 import { FORMAT_LABEL, languageLabel, STATUS_LABEL } from "@/lib/books/labels";
 import { normalizeIsbn } from "@/lib/isbn";
 import type { Edition } from "@/lib/catalog/editions";
+import type { OnlineBook } from "@/lib/catalog/import";
 import type { Prefill } from "@/lib/prefill/parse";
 import { bookInputSchema, type BookFormValues, type BookInput } from "@/lib/schemas";
 import { BOOK_FORMATS, type Book } from "@/lib/types";
@@ -128,9 +129,14 @@ interface BookFormProps {
   onCreated?: () => void;
   /** Start the new book from this catalog edition ("Add to my library"). */
   edition?: Edition;
+  /** Opened from a search ("Search online for …"): look it up in the catalog and online right away. */
+  searchFor?: string;
 }
 
-export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset, onCreated, edition }: BookFormProps) {
+/** The fields a catalog edition or an online result fills in; picking another one clears them first. */
+const EDITION_FIELDS = ["title", "authors", "genres", "language", "publisher", "publishedYear", "pages", "isbn", "series", "seriesIndex", "description", "editionId"] as const;
+
+export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWishlist, preset, onCreated, edition, searchFor }: BookFormProps) {
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -207,6 +213,12 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
     }
     if (!coverFile) setCoverUrl(e.coverSrc ?? null);
   };
+  /** Starts the book from an online result: it replaces what an earlier pick filled in, and isn't linked to any edition. */
+  const applyOnline = (b: OnlineBook) => {
+    for (const name of EDITION_FIELDS) form.setValue(name, EMPTY[name], { shouldDirty: true });
+    if (!coverFile) setCoverUrl(null);
+    applyPrefill(b);
+  };
   // Editions you already have a copy of, so the catalog search can say so.
   const ownedEditionIds = useMemo(() => new Set(suggestions.existing.flatMap((b) => (b.editionId ? [b.editionId] : []))), [suggestions.existing]);
 
@@ -239,7 +251,7 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-8">
-      {!editing && <FindInCatalog onPick={applyEdition} ownedIds={ownedEditionIds} />}
+      {!editing && <FindInCatalog onPick={applyEdition} onPickOnline={applyOnline} ownedIds={ownedEditionIds} initialQuery={searchFor} />}
       <PrefillFromLink onPrefill={applyPrefill} editing={editing} />
 
       <div className="grid gap-8 md:grid-cols-[11rem_1fr]">

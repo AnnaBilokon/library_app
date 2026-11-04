@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { defaultFilter } from "cmdk";
-import { BarChart3, BookIcon, Heart, Loader2, PartyPopper, Plus, Search, Sparkles, Sprout, Swords, Tags as TagsIcon } from "lucide-react";
+import { BarChart3, BookIcon, Globe, Heart, Loader2, PartyPopper, Plus, Search, Sparkles, Sprout, Swords, Tags as TagsIcon } from "lucide-react";
 import { BookCover } from "@/components/books/book-cover";
 import { useCatalogSearch } from "@/components/books/find-in-catalog";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export interface CommandBook {
 }
 
 const CATALOG_PREFIX = "catalog:";
+const ONLINE_VALUE = "search online";
 
 /**
  * A whole ISBN (with or without dashes, ISBN-10 or -13) finds exactly the book that has it;
@@ -42,6 +43,8 @@ const CATALOG_PREFIX = "catalog:";
 function matchItem(value: string, search: string, keywords?: string[]): number {
   // Catalog results are already matched by the server; show them below your own books.
   if (value.startsWith(CATALOG_PREFIX)) return 0.5;
+  // "Search online for …" matches any search, last of all.
+  if (value === ONLINE_VALUE) return 0.01;
   const isbn = normalizeIsbn(search);
   if (isbn) return keywords?.includes(isbn) ? 1 : 0;
   return defaultFilter(value, search, keywords);
@@ -187,6 +190,14 @@ export function CommandMenu({ books }: { books: CommandBook[] }) {
                     <Plus className="shrink-0 text-muted-foreground" aria-hidden />
                   </CommandItem>
                 ))}
+              </CommandGroup>
+            )}
+            {search.trim().length >= 2 && (
+              <CommandGroup heading="Not here?">
+                <CommandItem value={ONLINE_VALUE} onSelect={() => go(`/books/new?q=${encodeURIComponent(search.trim())}`)}>
+                  <Globe aria-hidden />
+                  <span className="truncate">Search online for “{search.trim()}”</span>
+                </CommandItem>
               </CommandGroup>
             )}
           </CommandList>
