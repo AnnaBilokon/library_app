@@ -8,6 +8,7 @@ import type { Edition } from "@/lib/catalog/editions";
 import type { OnlineBook } from "@/lib/catalog/import";
 import type { BookFormValues } from "@/lib/schemas";
 import { BookCover } from "./book-cover";
+import { ScanIsbnButton } from "./isbn-scanner";
 
 /** The form fields a catalog edition fills in for a new book (everything personal stays yours). */
 export function editionFormFields(e: Edition): Partial<BookFormValues> {
@@ -106,22 +107,31 @@ export function FindInCatalog({
         <Library className="size-4" aria-hidden />
         Find it in the catalog
       </label>
-      <div className="relative">
-        <Input
-          id={inputId}
-          type="search"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Input
+            id={inputId}
+            type="search"
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPicked(null);
+            }}
+            placeholder="Title, author or ISBN"
+            className="h-10 bg-background pr-9"
+            autoComplete="off"
+          />
+          {(pending || online.pending) && (
+            <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-hidden />
+          )}
+        </div>
+        {/* A scanned ISBN searches like a typed one: the catalog first, then online if it's not there. */}
+        <ScanIsbnButton
+          onScan={(isbn) => {
+            setQ(isbn);
             setPicked(null);
           }}
-          placeholder="Title, author or ISBN"
-          className="h-10 bg-background pr-9"
-          autoComplete="off"
         />
-        {(pending || online.pending) && (
-          <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-hidden />
-        )}
       </div>
       {error && (
         <p className="text-xs text-destructive" role="alert">
