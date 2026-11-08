@@ -2,13 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 
-/** Paths that don't need a signed-in user. */
-const PUBLIC_PATHS = ["/login", "/auth"];
+/** Paths that don't need a signed-in user. /reset-password isn't one: the email link signs you in first. */
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
+/** Pages only for signed-out visitors; a signed-in user goes home instead. */
+const SIGNED_OUT_PATHS = ["/login", "/signup", "/forgot-password"];
 
 /**
  * Runs before every matched request (see proxy.ts):
  * 1. refreshes the Supabase session and writes the new cookies to the response;
- * 2. sends signed-out visitors to /login, and signed-in users away from /login.
+ * 2. sends signed-out visitors to /login, and signed-in users away from the sign-in pages.
  *
  * The redirect is only a convenience. Real protection is RLS plus the checks in lib/auth.ts.
  */
@@ -44,7 +46,7 @@ export async function updateSession(request: NextRequest) {
   if (!signedIn && !isPublic) {
     return redirectKeepingCookies(request, response, "/login", pathname + search);
   }
-  if (signedIn && pathname === "/login") {
+  if (signedIn && SIGNED_OUT_PATHS.includes(pathname)) {
     return redirectKeepingCookies(request, response, "/");
   }
 
