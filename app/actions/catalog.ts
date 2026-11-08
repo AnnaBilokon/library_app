@@ -5,8 +5,10 @@ import type { ActionResult } from "@/app/actions/books";
 import { requireUser } from "@/lib/auth";
 import { likeEscape, rowToEdition, type Edition } from "@/lib/catalog/editions";
 import type { OnlineBook } from "@/lib/catalog/import";
+import { lookUpMoreDetails } from "@/lib/catalog/isbn-lookup";
 import { searchBooksOnline } from "@/lib/catalog/online-search";
 import { normalizeIsbn } from "@/lib/isbn";
+import type { Prefill } from "@/lib/prefill/parse";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -38,4 +40,12 @@ export async function findOnline(q: string): Promise<ActionResult<OnlineBook[]>>
   if (!text.success || text.data.length < 2) return { ok: true, data: [] };
   const found = await searchBooksOnline(text.data);
   return found ? { ok: true, data: found } : { ok: false, error: "Couldn't reach the online book search. Try again in a moment." };
+}
+
+/** The description and page count for a book picked online without them (see lookUpMoreDetails). */
+export async function findMoreDetails(isbn: string): Promise<ActionResult<Pick<Prefill, "description" | "pages">>> {
+  await requireUser();
+  const valid = normalizeIsbn(String(isbn));
+  if (!valid) return { ok: true, data: {} };
+  return { ok: true, data: await lookUpMoreDetails(valid) };
 }

@@ -72,7 +72,8 @@ When a pull request adds a migration, apply it **before** merging (`npx supabase
 
 - **National Bank of Ukraine** exchange rates (`bank.gov.ua`, free, no key), used when you mark a book sold in another currency.
 - Publisher and shop pages, fetched server-side when you use "Fill from a link".
-- **Open Library** (free, no key), **LIBRIS** (`libris.kb.se`, free, no key) and **Google Books** (only with `GOOGLE_BOOKS_API_KEY`), searched when a book isn't in the catalog ("Search online" on Add a book, in the Library search and in Ctrl K), and when looking up an ISBN. LIBRIS, the Swedish national library catalog, has nearly every book published in Sweden, children's books included, and many Ukrainian editions in Cyrillic; it has no covers or page counts. Open Library knows few Ukrainian books, and only by Latin-letter titles; Google Books is better at them. Set the key in `.env.local` and in Vercel to use it.
+- **Open Library** (free, no key), **LIBRIS** (`libris.kb.se`, free, no key) and **Google Books** (only with `GOOGLE_BOOKS_API_KEY`), searched when a book isn't in the catalog ("Search online" on Add a book, in the Library search and in Ctrl K), and when looking up an ISBN. LIBRIS, the Swedish national library catalog, has nearly every book published in Sweden, children's books included, and many Ukrainian editions in Cyrillic; it has no covers or page counts.
+- **Bokus** cover images (`image.bokus.com`, by ISBN, no key), for online results and ISBN lookups that come without a cover: Swedish books especially, and many Ukrainian ones. Picking a result without a description or page count also asks Google Books for them by ISBN. Open Library knows few Ukrainian books, and only by Latin-letter titles; Google Books is better at them. Set the key in `.env.local` and in Vercel to use it.
 
 ## Notion import (one-time)
 

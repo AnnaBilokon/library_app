@@ -7,6 +7,7 @@ import { Controller, useForm, useWatch, type FieldError, type Path, type PathVal
 import { Heart, ImagePlus, Link2, Loader2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { createBook, updateBook, uploadCover } from "@/app/actions/books";
+import { findMoreDetails } from "@/app/actions/catalog";
 import { importCoverFromUrl, prefillFromUrl } from "@/app/actions/prefill";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -218,6 +219,19 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
     for (const name of EDITION_FIELDS) form.setValue(name, EMPTY[name], { shouldDirty: true });
     if (!coverFile) setCoverUrl(null);
     applyPrefill(b);
+    // LIBRIS has no description or page count; Google Books may, by ISBN. They're filled in only
+    // where still empty, and only while it's still the book you picked.
+    const isbn = b.isbn;
+    if (isbn && (!b.description || !b.pages)) {
+      findMoreDetails(isbn)
+        .then((r) => {
+          if (!r.ok || normalizeIsbn(form.getValues("isbn") ?? "") !== isbn) return;
+          const set = { shouldDirty: true, shouldValidate: true };
+          if (r.data.description && !form.getValues("description")) form.setValue("description", r.data.description, set);
+          if (r.data.pages && !form.getValues("pages")) form.setValue("pages", r.data.pages, set);
+        })
+        .catch(() => {});
+    }
   };
   // Editions you already have a copy of, so the catalog search can say so.
   const ownedEditionIds = useMemo(() => new Set(suggestions.existing.flatMap((b) => (b.editionId ? [b.editionId] : []))), [suggestions.existing]);
