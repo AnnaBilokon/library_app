@@ -2,6 +2,7 @@ import "server-only";
 import { normalizeIsbn } from "@/lib/isbn";
 import { FetchError } from "@/lib/net/safe-fetch";
 import { fromGoogleBooksSearch, fromLibrisSearch, fromOpenLibrarySearch, type OnlineBook } from "./import";
+import { withBokusCovers } from "./bokus-cover";
 import { getJson } from "./isbn-lookup";
 
 const LIMIT = 8;
@@ -46,10 +47,12 @@ export async function searchBooksOnline(q: string): Promise<OnlineBook[] | null>
   if (found.length === 0 || (!key && answers[1].status === "rejected" && answers[2].status === "rejected")) return null;
   // Google first (its records are fuller), then LIBRIS; the same ISBN again is left out.
   const seen = new Set<string>();
-  return found.flat().filter((b) => {
+  const books = found.flat().filter((b) => {
     const id = b.isbn ?? b.key;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
   });
+  // LIBRIS has no covers, and Google often none for Swedish books: Bokus fills the gaps.
+  return withBokusCovers(books);
 }
