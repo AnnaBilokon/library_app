@@ -1,5 +1,5 @@
 /**
- * ISBN helpers. Books store ISBNs as 13 digits, so "0-14-044913-6" and "9780140449136" match.
+ * ISBN helpers. Books store ISBNs as 13 digits, so "0-14-044913-2" and "9780140449136" match.
  */
 
 function isbn13CheckDigit(first12: string): number {
@@ -24,4 +24,12 @@ export function normalizeIsbn(input: string): string | null {
     return `${first12}${isbn13CheckDigit(first12)}`;
   }
   return null;
+}
+
+/**
+ * The ISBN in a scanned barcode, or null. A book's barcode is an EAN-13 starting 978 or 979; other
+ * EAN-13s (a price sticker, a magazine) have valid check digits too, so the prefix tells them apart.
+ */
+export function isbnFromBarcode(raw: string): string | null {
+  return /^97[89]\d{10}$/.test(raw) ? normalizeIsbn(raw) : null;
 }
