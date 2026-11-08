@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fromGoogleBooks, fromGoogleBooksSearch, fromOpenLibrary, fromOpenLibrarySearch, parseImportList } from "./import";
+import { fromGoogleBooks, fromGoogleBooksSearch, fromLibrisSearch, fromOpenLibrary, fromOpenLibrarySearch, parseImportList } from "./import";
 
 describe("parsing a pasted list", () => {
   it("sorts lines into links, ISBNs and lines it can't use, skipping blanks and repeats", () => {
@@ -149,9 +149,78 @@ describe("online search", () => {
     ]);
   });
 
+  it("reads LIBRIS books, leaving out articles, films and talking books (shapes as returned)", () => {
+    const json = {
+      xsearch: {
+        list: [
+          {
+            identifier: "http://libris.kb.se/bib/095p9hsgxln9mjfr",
+            title: "Pippi Långstrump",
+            creator: "Lindgren, Astrid, 1907-2002",
+            isbn: "9789189035003",
+            type: "text",
+            publisher: ["Lidingö", "Astrid Lindgren AB"],
+            date: "2019",
+            language: "swe",
+          },
+          {
+            identifier: "http://libris.kb.se/bib/internat",
+            title: "Інтернат : роман ’Internat : roman’",
+            creator: "Жадан, Сергій, 1974- ’Žadan, Serhij, 1974-’",
+            isbn: "9786178024017",
+            type: "book",
+            publisher: "Černivci : Meridian Czernowitz",
+            date: ["[2024]", "2024"],
+            language: "ukr",
+          },
+          {
+            identifier: "http://libris.kb.se/bib/harvest",
+            title: "A harvest truce : a play",
+            creator: "Žadan, Serhij, 1974-",
+            isbn: ["9780674291997", "0674291999"],
+            type: "book",
+            publisher: ["", "Cambridge : Ukrainian Research Institute, Harvard University"],
+            date: ["2023", "[2024]"],
+            language: ["eng", "ukr"],
+          },
+          { identifier: "http://libris.kb.se/bib/film", title: "Pippi Långstrump", type: "moving image" },
+          { identifier: "http://libris.kb.se/bib/article", title: "Verkligheten är saga nog", type: "article" },
+          { identifier: "http://libris.kb.se/bib/mtm", title: "Spisok korabliv", type: "" },
+        ],
+      },
+    };
+    expect(fromLibrisSearch(json)).toEqual([
+      {
+        title: "Pippi Långstrump",
+        authors: ["Astrid Lindgren"],
+        publisher: "Astrid Lindgren AB",
+        publishedYear: 2019,
+        isbn: "9789189035003",
+        language: "sv",
+        key: "libris:http://libris.kb.se/bib/095p9hsgxln9mjfr",
+        site: "LIBRIS",
+      },
+      expect.objectContaining({ title: "Інтернат", authors: ["Сергій Жадан"], publisher: "Meridian Czernowitz", publishedYear: 2024, language: "uk" }),
+      expect.objectContaining({
+        title: "A harvest truce",
+        authors: ["Serhij Žadan"],
+        publisher: "Ukrainian Research Institute, Harvard University",
+        isbn: "9780674291997",
+        language: undefined,
+      }),
+    ]);
+  });
+
+  it("keeps an apostrophe in a LIBRIS title", () => {
+    const json = { xsearch: { list: [{ identifier: "x", title: "Don’t let the pigeon drive the bus!", creator: "Mo Willems", type: "book" }] } };
+    expect(fromLibrisSearch(json)).toEqual([expect.objectContaining({ title: "Don’t let the pigeon drive the bus!", authors: ["Mo Willems"] })]);
+  });
+
   it("finds nothing in an error or an empty answer", () => {
     expect(fromGoogleBooksSearch({ error: { code: 429 } })).toEqual([]);
     expect(fromOpenLibrarySearch({ numFound: 0, docs: [] })).toEqual([]);
     expect(fromOpenLibrarySearch(null)).toEqual([]);
+    expect(fromLibrisSearch({ xsearch: { from: 1, to: 0, records: 0 } })).toEqual([]);
+    expect(fromLibrisSearch(null)).toEqual([]);
   });
 });

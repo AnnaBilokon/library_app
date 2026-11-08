@@ -29,7 +29,7 @@ export async function findInCatalog(q: string): Promise<ActionResult<Edition[]>>
 }
 
 /**
- * Search outside the catalog (Google Books, Open Library) for a book nobody has added yet. A
+ * Search outside the catalog (Google Books, LIBRIS, Open Library) for a book nobody has added yet. A
  * result only fills in the new-book form; saving it adds it to the catalog like any other book.
  */
 export async function findOnline(q: string): Promise<ActionResult<OnlineBook[]>> {

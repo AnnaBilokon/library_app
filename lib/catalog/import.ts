@@ -94,7 +94,7 @@ export interface OnlineBook extends Prefill {
   title: string;
   /** Unique among the results (the source's own id for the volume or edition). */
   key: string;
-  site: "Google Books" | "Open Library";
+  site: "Google Books" | "Open Library" | "LIBRIS";
 }
 
 /** The ISBN-13 among a Google volume's identifiers, or its ISBN-10 converted. */
@@ -117,7 +117,7 @@ export function fromGoogleBooksSearch(json: unknown): OnlineBook[] {
   });
 }
 
-/** Open Library's three-letter language codes, for the languages books here come in. */
+/** The three-letter (MARC) language codes Open Library and LIBRIS use, for the languages books here come in. */
 const MARC_LANGUAGES: Record<string, string> = {
   ukr: "uk", eng: "en", swe: "sv", dut: "nl", pol: "pl", ger: "de", fre: "fr", spa: "es", ita: "it", jpn: "ja", rus: "ru",
 };
@@ -154,6 +154,70 @@ export function fromOpenLibrarySearch(json: unknown): OnlineBook[] {
         coverUrl: cover ? `https://covers.openlibrary.org/b/id/${cover}-L.jpg` : undefined,
         key: `openlibrary:${key}`,
         site: "Open Library" as const,
+      },
+    ];
+  });
+}
+
+/** Printed books. LIBRIS also lists articles, films, recordings, e-books and talking books. */
+const LIBRIS_BOOK_TYPES = new Set(["book", "text"]);
+
+/** A LIBRIS field: a string or a list of them. Empty strings are left out. */
+const librisList = (v: unknown) =>
+  (Array.isArray(v) ? v : [v]).filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim());
+
+/**
+ * LIBRIS follows text in another script with its Latin transliteration in ’…’: "Інтернат : роман
+ * ’Internat : roman’". Only a quote opening after a space and closing at the very end counts, so
+ * an apostrophe ("Don’t") stays.
+ */
+const withoutTransliteration = (s: string) => s.replace(/\s+’[^’]*’$/, "").trim();
+
+/** "Bergström, Gunilla, 1942-2021" (or "Gunilla Bergström") as "Gunilla Bergström". */
+function librisAuthor(raw: string): string | undefined {
+  const name = withoutTransliteration(raw).replace(/,\s*\d{4}-(\d{4})?$/, "");
+  const parts = name.split(",").map((p) => p.trim());
+  return text(parts.length === 2 ? `${parts[1]} ${parts[0]}` : name);
+}
+
+/**
+ * The publisher from "Stockholm : Rabén & Sjögren", or from a ["Lidingö", "Astrid Lindgren AB"]
+ * list, where it comes after the place.
+ */
+function librisPublisher(v: unknown): string | undefined {
+  const entries = librisList(v).map(withoutTransliteration);
+  const afterPlace = entries.find((s) => s.includes(" : "))?.split(" : ").at(-1);
+  return text((afterPlace ?? entries.at(-1))?.replace(/^\[|\]$/g, ""));
+}
+
+/**
+ * LIBRIS Xsearch's `xsearch?query=…&format=json` answer: Sweden's national library catalog, so
+ * nearly every book published in Sweden (children's books too), plus books in other languages
+ * that Swedish libraries hold, Ukrainian ones in Cyrillic among them. No covers or page counts.
+ */
+export function fromLibrisSearch(json: unknown): OnlineBook[] {
+  const list = ((json as Json)?.xsearch as Json | undefined)?.list;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((r: Json) => {
+    const id = text(r?.identifier);
+    const full = librisList(r?.title)[0];
+    if (!id || !full || !LIBRIS_BOOK_TYPES.has(String(r.type))) return [];
+    // "Pippi Långstrump : en bok" → the title before the subtitle.
+    const title = text(withoutTransliteration(full).split(" : ")[0].replace(/\s*\/.*$/, ""));
+    if (!title) return [];
+    const authors = librisList(r.creator).flatMap((a) => librisAuthor(a) ?? []);
+    const languages = librisList(r.language);
+    return [
+      {
+        title,
+        authors: authors.length ? authors : undefined,
+        publisher: librisPublisher(r.publisher),
+        publishedYear: librisList(r.date).map(year).find(Boolean),
+        isbn: librisList(r.isbn).flatMap((raw) => normalizeIsbn(raw) ?? [])[0],
+        // Only when it's a single language: a list means a bilingual or mixed record.
+        language: languages.length === 1 ? MARC_LANGUAGES[languages[0]] : undefined,
+        key: `libris:${id}`,
+        site: "LIBRIS" as const,
       },
     ];
   });

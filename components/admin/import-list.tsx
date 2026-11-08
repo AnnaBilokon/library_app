@@ -89,7 +89,7 @@ export function ImportList({ hasGoogleKey }: { hasGoogleKey: boolean }) {
         </p>
         {isbns > 0 && !hasGoogleKey && (
           <p className="text-xs text-muted-foreground">
-            Without a Google Books key, ISBNs are looked up in Open Library only (good for English books, rarely has Ukrainian ones). Links work best.
+            Without a Google Books key, ISBNs are looked up in LIBRIS (Swedish books, many Ukrainian ones) and Open Library (mostly English) only. Links work best.
           </p>
         )}
       </div>
