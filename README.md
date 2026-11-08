@@ -19,7 +19,7 @@ pnpm dev
 ### Supabase
 
 1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
-2. **Authentication → Sign In / Providers**: keep **Email** on and turn **Allow new users to sign up** off.
+2. **Authentication → Sign In / Providers**: keep **Email** on. **Allow new users to sign up** decides whether `/signup` works: on lets anyone with the link create an account (each gets an empty library of their own), off means you add people under **Authentication → Users → Add user** (tick **Auto Confirm User**). Keep **Confirm email** on, so a new account has to open the emailed link first.
 3. **Authentication → Users → Add user**: create your own user, with **Auto Confirm User** ticked.
 4. Copy the project URL (**Connect** button) and the keys (**Project Settings → API Keys**) into `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: used by the app
@@ -45,7 +45,16 @@ The app runs on Vercel and talks to the same Supabase project as local developme
    - `ANTHROPIC_API_KEY` (optional): turns on "Books like this" on a book's page, where Claude picks unread books from your shelves that go well with it. Create a key at [platform.claude.com](https://platform.claude.com). It stays on the server; it uses Claude Haiku, so a request costs well under a cent.
    - **Never** add `SUPABASE_SECRET_KEY` (or the Notion values): they're for local scripts only.
 3. Node.js: `engines.node` in `package.json` (`>=22`) makes Vercel build and run on Node 22.
-4. In Supabase, **Authentication → URL Configuration**: set **Site URL** to the Vercel domain (e.g. `https://your-app.vercel.app`) and add it under **Redirect URLs**.
+4. In Supabase, **Authentication → URL Configuration**: set **Site URL** to the Vercel domain (e.g. `https://your-app.vercel.app`) and add `https://your-app.vercel.app/**` and `http://localhost:3000/**` under **Redirect URLs**. The links in sign-up and password-reset emails go there; a URL that isn't listed falls back to the Site URL, where the link doesn't work.
+
+### Emails
+
+Sign-up confirmations and password resets are sent by email.
+
+- **Sender:** Supabase's built-in sender only delivers to the email addresses of your Supabase team members, and only a couple of emails an hour. For anyone else, set up your own SMTP under **Authentication → Emails → SMTP Settings** (e.g. [Resend](https://resend.com), which has a free plan).
+- **Links that work on any device:** by default an emailed link only works in the browser where the form was sent. To make it work anywhere (say, you asked on your laptop and open the email on your phone), edit the templates under **Authentication → Emails → Templates** to link straight to the app:
+  - **Confirm signup:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/`
+  - **Reset password:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`
 
 Every push to `main` deploys to production; every pull request gets a preview deployment.
 
