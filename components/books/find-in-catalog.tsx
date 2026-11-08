@@ -53,7 +53,7 @@ export function useCatalogSearch(q: string) {
 }
 
 /**
- * The online search (Google Books, Open Library) for a query: run with `search()`, or by itself
+ * The online search (Google Books, LIBRIS, Open Library) for a query: run with `search()`, or by itself
  * whenever `auto` is on. Like the catalog search, results belong to the query they were found for.
  */
 function useOnlineSearch(text: string, auto: boolean) {
@@ -78,7 +78,7 @@ function useOnlineSearch(text: string, auto: boolean) {
 /**
  * "Find it in the catalog": search the shared catalog and start the new book from an edition, so
  * title, authors, ISBN, cover and the rest come filled in. When the catalog doesn't have it, the
- * search goes online (Google Books, Open Library); a book found there fills in the form instead.
+ * search goes online (Google Books, LIBRIS, Open Library); a book found there fills in the form instead.
  */
 export function FindInCatalog({
   onPick,
