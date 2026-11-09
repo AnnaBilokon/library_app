@@ -2,7 +2,7 @@ import "server-only";
 import { FetchError, safeFetch } from "@/lib/net/safe-fetch";
 import type { Prefill } from "@/lib/prefill/parse";
 import { bokusCover } from "./bokus-cover";
-import { fromGoogleBooks, fromLibrisSearch, fromOpenLibrary } from "./import";
+import { fromGoogleBooks, fromLibrisSearch, fromLibrisXl, fromOpenLibrary } from "./import";
 
 export async function getJson(url: string): Promise<unknown> {
   const res = await safeFetch(url, { accept: "application/json", maxBytes: 2 * 1024 * 1024, timeoutMs: 10_000 });
@@ -30,10 +30,16 @@ function googleBooks(isbn: string): Promise<Prefill | null> {
   );
 }
 
+/** LIBRIS XL's description and page count for an ISBN (see fromLibrisXl). No key needed. */
+async function librisXl(isbn: string): Promise<Pick<Prefill, "description" | "pages">> {
+  return (await attempt(async () => fromLibrisXl(await getJson(`https://libris.kb.se/find.jsonld?identifiedBy.value=${isbn}&_limit=3`), isbn))) ?? {};
+}
+
 /**
  * Looks an ISBN up in Google Books, then LIBRIS, then Open Library, all free. Google is good for
  * English titles; LIBRIS for Swedish ones, and it knows many Ukrainian editions too. A book found
- * without a cover gets one from Bokus when it has one.
+ * without a cover gets one from Bokus when it has one, and LIBRIS XL fills in a missing
+ * description or page count.
  */
 export async function lookUpIsbn(isbn: string): Promise<(Prefill & { site: string }) | null> {
   const found =
@@ -45,16 +51,20 @@ export async function lookUpIsbn(isbn: string): Promise<(Prefill & { site: strin
     (await attempt(async () => fromOpenLibrary(await getJson(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`), isbn)).then(
       (b) => b && { ...b, site: "Open Library" },
     ));
-  if (!found || found.coverUrl) return found;
-  const coverUrl = await bokusCover(isbn);
-  return coverUrl ? { ...found, coverUrl } : found;
+  if (!found) return null;
+  const [coverUrl, more] = await Promise.all([
+    found.coverUrl ? undefined : bokusCover(isbn),
+    found.description && found.pages ? ({} as Awaited<ReturnType<typeof librisXl>>) : librisXl(isbn),
+  ]);
+  return { ...found, coverUrl: found.coverUrl ?? coverUrl, description: found.description ?? more.description, pages: found.pages ?? more.pages };
 }
 
 /**
  * The description and page count for an ISBN, for a book picked from a source that has neither
- * (LIBRIS). Only Google Books has them, and for Swedish books not always.
+ * (LIBRIS Xsearch). From Google Books, or else LIBRIS XL; for many Swedish books only one of them
+ * has each, and for some neither.
  */
 export async function lookUpMoreDetails(isbn: string): Promise<Pick<Prefill, "description" | "pages">> {
-  const google = await googleBooks(isbn);
-  return { description: google?.description, pages: google?.pages };
+  const [google, xl] = await Promise.all([googleBooks(isbn), librisXl(isbn)]);
+  return { description: google?.description ?? xl.description, pages: google?.pages ?? xl.pages };
 }

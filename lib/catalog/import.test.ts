@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fromGoogleBooks, fromGoogleBooksSearch, fromLibrisSearch, fromOpenLibrary, fromOpenLibrarySearch, parseImportList } from "./import";
+import { fromGoogleBooks, fromGoogleBooksSearch, fromLibrisSearch, fromLibrisXl, fromOpenLibrary, fromOpenLibrarySearch, parseImportList } from "./import";
 
 describe("parsing a pasted list", () => {
   it("sorts lines into links, ISBNs and lines it can't use, skipping blanks and repeats", () => {
@@ -209,6 +209,25 @@ describe("online search", () => {
         language: undefined,
       }),
     ]);
+  });
+
+  it("reads the summary and page count from a LIBRIS XL record (shapes as returned)", () => {
+    const record = (isbn: string, summary: unknown, extent: unknown) => ({ items: [{ identifiedBy: [{ "@type": "ISBN", value: isbn }], summary, extent }] });
+    expect(
+      fromLibrisXl(
+        record("9789157033352", [{ "@type": "Summary", label: ["Rune Andréasson-historia i nytappning.[Bokinfo]"] }], [{ "@type": "Extent", label: "45 sidor" }]),
+        "9789157033352",
+      ),
+    ).toEqual({ description: "Rune Andréasson-historia i nytappning.", pages: 45 });
+    expect(fromLibrisXl(record("9789129688313", undefined, [{ "@type": "Extent", label: ["248 s."] }]), "9789129688313")).toEqual({
+      description: undefined,
+      pages: 248,
+    });
+    expect(fromLibrisXl(record("9789129740240", undefined, [{ label: "33 onumrerade sidor" }]), "9789129740240").pages).toBe(33);
+    expect(fromLibrisXl(record("9789129740240", undefined, [{ label: "[32] s." }]), "9789129740240").pages).toBe(32);
+    // Another book's record, or none at all: nothing.
+    expect(fromLibrisXl(record("9789129740240", [{ label: "Fel bok" }], undefined), "9789129688313")).toEqual({});
+    expect(fromLibrisXl({ totalItems: 0, items: [] }, "9789129688313")).toEqual({});
   });
 
   it("keeps an apostrophe in a LIBRIS title", () => {
