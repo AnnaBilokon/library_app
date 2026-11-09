@@ -219,8 +219,8 @@ export function BookForm({ suggestions, book, onDone, onCancel, inSheet, forWish
     for (const name of EDITION_FIELDS) form.setValue(name, EMPTY[name], { shouldDirty: true });
     if (!coverFile) setCoverUrl(null);
     applyPrefill(b);
-    // LIBRIS has no description or page count; Google Books may, by ISBN. They're filled in only
-    // where still empty, and only while it's still the book you picked.
+    // LIBRIS search results have no description or page count; Google Books or LIBRIS XL may, by
+    // ISBN. They're filled in only where still empty, and only while it's still the book you picked.
     const isbn = b.isbn;
     if (isbn && (!b.description || !b.pages)) {
       findMoreDetails(isbn)

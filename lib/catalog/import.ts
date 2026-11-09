@@ -43,6 +43,12 @@ const positive = (v: unknown) => (typeof v === "number" && Number.isInteger(v) &
 const plain = (html: string | undefined) =>
   html && decodeEntities(html.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n\n").replace(/<[^>]+>/g, "")).replace(/\n{3,}/g, "\n\n").trim();
 
+/**
+ * Swedish summaries come from Bokinfo (the book trade's database) with the source at the end:
+ * "…i nytappning.[Bokinfo]." It isn't part of the text.
+ */
+const withoutBokinfoTag = (s: string | undefined) => text(s?.replace(/\s*\[Bokinfo\]\.?$/i, ""));
+
 type Json = Record<string, unknown>;
 
 /** The first volume of a Google Books `volumes?q=isbn:…` answer. */
@@ -66,7 +72,7 @@ function googleVolume(info: Json, isbn: string | undefined): (Prefill & { title:
     language: typeof info.language === "string" && /^[a-z]{2,3}$/.test(info.language) ? info.language : undefined,
     // A bigger, flat version of the thumbnail, over https.
     coverUrl: thumb?.replace(/^http:/, "https:").replace(/&edge=curl/, "").replace(/zoom=\d/, "zoom=2"),
-    description: plain(text(info.description)),
+    description: withoutBokinfoTag(plain(text(info.description))),
   };
 }
 
@@ -188,6 +194,31 @@ function librisPublisher(v: unknown): string | undefined {
   const entries = librisList(v).map(withoutTransliteration);
   const afterPlace = entries.find((s) => s.includes(" : "))?.split(" : ").at(-1);
   return text((afterPlace ?? entries.at(-1))?.replace(/^\[|\]$/g, ""));
+}
+
+/** The words of a LIBRIS XL label: a string, or a list of them. */
+const xlLabel = (v: unknown) => librisList((v as Json | undefined)?.label).join(" ");
+
+/**
+ * The description and page count from LIBRIS XL's `find.jsonld?identifiedBy.value=<isbn>` answer.
+ * Its record for a Swedish book usually comes from Bokinfo (the book trade's database): a page
+ * count ("248 s.", "45 sidor", "33 onumrerade sidor") and often the publisher's summary, the same
+ * text Google Books shows, but without needing a key.
+ */
+export function fromLibrisXl(json: unknown, isbn: string): Pick<Prefill, "description" | "pages"> {
+  const items = (json as Json)?.items;
+  const item = (Array.isArray(items) ? (items as Json[]) : []).find((i) =>
+    (Array.isArray(i?.identifiedBy) ? (i.identifiedBy as Json[]) : []).some((id) => normalizeIsbn(String(id?.value ?? "")) === isbn),
+  );
+  if (!item) return {};
+  const summaries = Array.isArray(item.summary) ? item.summary : [];
+  const description = withoutBokinfoTag(text(summaries.map(xlLabel).join("\n\n")));
+  const extents = Array.isArray(item.extent) ? item.extent : [];
+  const pages = extents
+    .map((e) => /\[?(\d+)\]?\s*(?:onumrerade\s+)?(?:s\.|sidor|sid\.?|p\.|pages)/i.exec(xlLabel(e)))
+    .map((m) => (m ? Number(m[1]) : undefined))
+    .find((n) => n && n > 0);
+  return { description, pages };
 }
 
 /**
