@@ -19,7 +19,8 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { CalendarClock, ChevronDown, Ear, EllipsisVertical, GripVertical, Star, Store, Truck, Undo2, type LucideIcon } from "lucide-react";
+import { CalendarClock, ChevronDown, Ear, EllipsisVertical, GripVertical, Star, Store, Truck, Undo2, X, type LucideIcon } from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { markBought, moveWishlistBook, removeFromWishlist, setOrdered, setPricePaid } from "@/app/actions/wishlist";
 import { BookCover } from "@/components/books/book-cover";
@@ -27,6 +28,7 @@ import { BoughtButton } from "@/components/wishlist/bought-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { facets, type FacetOption } from "@/lib/books/filters";
 import { formatDate, formatMoney } from "@/lib/books/labels";
 import { todayLocal } from "@/lib/dates";
 import type { Book } from "@/lib/types";
@@ -93,7 +96,13 @@ export function WishlistBoard({ books }: { books: Book[] }) {
   const overDock = useRef(false);
   const [, startTransition] = useTransition();
   const byId = new Map(books.map((b) => [b.id, b]));
-  const shown = books.filter((b) => !hidden.has(b.id));
+  const left = books.filter((b) => !hidden.has(b.id));
+  // Only one publisher's books, when one is picked: in every box, and in the totals. Kept in the URL.
+  const [publisherParam, setPublisher] = useQueryState("publisher", parseAsString);
+  const publishers = facets(left).publisher;
+  // Once a publisher's last book is gone (bought, removed), it filters nothing any more.
+  const publisher = publishers.some((p) => p.value === publisherParam) ? publisherParam : null;
+  const shown = publisher ? left.filter((b) => b.publisher === publisher) : left;
   const onTheWay = shown.filter((b) => ordered[b.id]).sort((a, b) => (ordered[b.id] ?? "").localeCompare(ordered[a.id] ?? ""));
   const visible = shown.filter((b) => !ordered[b.id]);
   const inGroup = (g: WishGroup) => visible.filter((b) => groups[b.id] === g).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -208,10 +217,15 @@ export function WishlistBoard({ books }: { books: Book[] }) {
           }
         }}
       >
-        <WishlistTotal books={visible} />
+        <div className="-mb-2 flex flex-col gap-3">
+          <PublisherFilter options={publishers} value={publisher} onChange={(p) => void setPublisher(p)} />
+          <WishlistTotal books={visible} publisher={publisher} />
+        </div>
         <DropZone group="inbox" count={inbox.length} cost={wishlistCost(inbox)} className="bg-accent/70 dark:bg-accent/60">
           {inbox.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing new. Add books from their page, or with “Add to wishlist” above.</p>
+            <p className="text-sm text-muted-foreground">
+              {publisher ? `Nothing new from ${publisher}.` : "Nothing new. Add books from their page, or with “Add to wishlist” above."}
+            </p>
           ) : (
             <ul className="-mx-5 flex gap-5 overflow-x-auto px-5 pb-2 md:-mx-6 md:px-6">
               {inbox.map((b) => (
@@ -230,7 +244,9 @@ export function WishlistBoard({ books }: { books: Book[] }) {
               // min-w-0: a grid column would otherwise widen to fit the whole sideways row (and the page with it).
               <DropZone key={g} group={g} count={list.length} cost={wishlistCost(list)} className="min-w-0 bg-card ring-1 ring-border/60">
                 {list.length === 0 ? (
-                  <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground sm:py-10">Drag books here</p>
+                  <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground sm:py-10">
+                    {publisher ? `None from ${publisher}` : "Drag books here"}
+                  </p>
                 ) : (
                   // One sideways row on phones so both boxes fit on screen; from sm up, a grid of
                   // covers about as big as "Just added", as many to a row as fit.
@@ -436,13 +452,54 @@ function WishCard({
 }
 
 /** One total across every wishlist book; moving books between boxes never changes it. */
-function WishlistTotal({ books }: { books: Book[] }) {
+/** Prefix of a publisher's value in the dropdown, so no publisher's name can be mistaken for "all". */
+const PUBLISHER = "p:";
+
+/** "Publisher: All publishers ▾", or one of them with its number of books. Hidden with fewer than two. */
+function PublisherFilter({ options, value, onChange }: { options: FacetOption[]; value: string | null; onChange: (publisher: string | null) => void }) {
+  if (options.length < 2) return null;
+  const items = [{ value: "all", label: "All publishers" }, ...options.map((o) => ({ value: `${PUBLISHER}${o.value}`, label: `${o.value} (${o.count})` }))];
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-sm font-medium" id="wish-publisher-label">
+        Publisher
+      </span>
+      <Select
+        value={value ? `${PUBLISHER}${value}` : "all"}
+        onValueChange={(v) => v && onChange(v.startsWith(PUBLISHER) ? v.slice(PUBLISHER.length) : null)}
+        items={items}
+      >
+        <SelectTrigger className="h-10 w-72 max-w-full rounded-full" aria-labelledby="wish-publisher-label">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((i) => (
+            <SelectItem key={i.value} value={i.value}>
+              {i.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {value && (
+        <Button variant="ghost" className="h-10 rounded-full px-4" onClick={() => onChange(null)}>
+          <X aria-hidden />
+          Show all
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function WishlistTotal({ books, publisher }: { books: Book[]; publisher: string | null }) {
   if (books.length === 0) return null;
   const cost = wishlistCost(books);
   const priced = cost.reduce((n, c) => n + c.priced, 0);
   return (
-    <p className="-mb-2 text-sm text-muted-foreground">
-      <span className="font-semibold text-foreground">{books.length} {books.length === 1 ? "book" : "books"}</span> on your wishlist
+    <p className="text-sm text-muted-foreground">
+      <span className="font-semibold text-foreground">
+        {books.length} {books.length === 1 ? "book" : "books"}
+      </span>
+      {publisher ? ` from ${publisher}` : ""} on your wishlist
       {cost.length > 0 && (
         <>
           {" · about "}
